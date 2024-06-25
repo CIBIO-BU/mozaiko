@@ -1,4 +1,4 @@
-# bu_repo_template
+# DNAquaIMG
 *Links to CI/CD and monitoring dashboards*
 
 Short description 
