@@ -1,0 +1,403 @@
+Kigdom	phylum	Class	Order	Family	Genus	Species	Subspecies	TaxID
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Apalone	Apalone ferox	Unassigned	100213
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Apalone	Apalone mutica	Unassigned	101490
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Trionyx	Trionyx triunguis	Unassigned	101491
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis denticulatus	Unassigned	101697
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo horsfieldii	Unassigned	101699
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo kleinmanni	Unassigned	101700
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo marginata	Unassigned	101701
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca graeca	101702
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca ibera	101703
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca whitei	101704
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo hermanni	Testudo hermanni boettgeri	101705
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo hermanni	Testudo hermanni hermanni	101706
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Myuchelys	Myuchelys latisternum	Unassigned	1041116
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Myuchelys	Myuchelys georgesi	Unassigned	1041117
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Myuchelys	Myuchelys purvisi	Unassigned	1041118
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis darwini	Unassigned	106726
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis becki	Unassigned	106727
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis vicina	Unassigned	106731
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis porteri	Unassigned	106732
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis hoodensis	Unassigned	106733
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis abingdonii	Unassigned	106734
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis chathamensis	Unassigned	106735
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Nilssonia	Nilssonia nigricans	Unassigned	1078885
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys nigrinoda	Graptemys nigrinoda delticola	1087310
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Malaclemys	Malaclemys terrapin	Malaclemys terrapin centrata	1087311
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Malaclemys	Malaclemys terrapin	Malaclemys terrapin tequesta	1087312
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Pseudemys	Pseudemys concinna	Pseudemys concinna floridana	1087313
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Trachemys venusta panamensis	1087316
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Trachemys venusta uhrigi	1087317
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys sinensis x Mauremys reevesii	Unassigned	1096724
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Trachemys venusta venusta	1104443
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis phantasticus	Unassigned	1129807
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis duncanensis	Unassigned	1137937
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys fusca	Unassigned	1138843
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys belliana	Kinixys belliana belliana	1145083
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys nogueyi	Unassigned	1145084
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys zombensis	Unassigned	1145085
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys zombensis	Kinixys zombensis domerguei	1145086
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys lobatsiana	Unassigned	1145087
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Nilssonia	Nilssonia sp. CK-2012	Unassigned	1174515
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios subniger	Pelusios subniger subniger	1224810
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Mesoclemmys	Mesoclemmys zuliae	Unassigned	1234952
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Mesoclemmys	Mesoclemmys dahli	Unassigned	1234953
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Mesoclemmys	Mesoclemmys gibba	Unassigned	1234954
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios sp. HBS-1996	Unassigned	1247478
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Sternotherus	Sternotherus minor	Sternotherus minor minor	1354751
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Sternotherus	Sternotherus minor	Sternotherus minor peltifer	1354752
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon scorpioides	Kinosternon scorpioides scorpioides	1354796
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon abaxillare	Unassigned	1354797
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon scorpioides	Kinosternon scorpioides albogulare	1354798
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon scorpioides	Kinosternon scorpioides cruentatum	1354799
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon subrubrum	Kinosternon subrubrum hippocrepis	1354801
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon subrubrum	Kinosternon subrubrum steindachneri	1354802
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon oaxacae	Unassigned	1355154
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sinensis	Unassigned	13735
+Eukaryota	Chordata	Unassigned	Testudines	Platysternidae	Platysternon	Platysternon megacephalum	Platysternon megacephalum peguense	1419816
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Sternotherus	Sternotherus odoratus	Unassigned	142480
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon baurii	Unassigned	142482
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon durangoense	Unassigned	142483
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon flavescens	Unassigned	142484
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon hirtipes	Unassigned	142486
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa olivacea	Unassigned	1488221
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa barbata	Unassigned	1488664
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa galeata	Unassigned	1488665
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa sp. B CK-2014	Unassigned	1488666
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa gehafie	Unassigned	1488667
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa neumanni	Unassigned	1488668
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa schweinfurthi	Unassigned	1488669
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa somalica	Unassigned	1488670
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa kobe	Unassigned	1489075
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa variabilis	Unassigned	1510147
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa sp. A CK-2014	Unassigned	1510148
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa sp. C CK-2014	Unassigned	1532883
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Centrochelys	Centrochelys sulcata	Unassigned	1540822
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Amyda	Amyda ornata	Unassigned	1541068
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina colliei	Unassigned	1576368
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Terrapene	Terrapene carolina	Unassigned	158814
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Deirochelys	Deirochelys reticularia	Unassigned	158819
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Dogania	Dogania subplana	Unassigned	159310
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Amyda	Amyda cartilaginea	Unassigned	161655
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Palea	Palea steindachneri	Unassigned	161718
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Aldabrachelys	Aldabrachelys gigantea	Unassigned	167804
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelochelys	Pelochelys cantorii	Unassigned	171793
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Chitra	Chitra indica	Unassigned	171798
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis donfaustoi	Unassigned	1743023
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Aldabrachelys	Aldabrachelys abrupta	Unassigned	174717
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Dipsochelys	Dipsochelys hololissa	Unassigned	174718
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Dipsochelys	Dipsochelys arnoldi	Unassigned	175474
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora trifasciata	Unassigned	176192
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora pani	Unassigned	176193
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora yunnanensis	Unassigned	176194
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys japonica	Unassigned	176196
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys leprosa	Unassigned	176197
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Aldabrachelys	Aldabrachelys grandidieri	Unassigned	180172
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Cylindraspis	Cylindraspis inepta	Unassigned	180174
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Cylindraspis	Cylindraspis indica	Unassigned	180175
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Cylindraspis	Cylindraspis peltastes	Unassigned	180176
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Cylindraspis	Cylindraspis triserrata	Unassigned	180177
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Cylindraspis	Cylindraspis vosmaeri	Unassigned	180178
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Geochelone	Geochelone elegans	Unassigned	180179
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Gopherus	Gopherus evgoodei	Unassigned	1825980
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys punctata	Lissemys punctata andersoni x Lissemys punctata punctata	1853347
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys ceylonensis	Unassigned	1853348
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys punctata	Lissemys punctata vittata	1854752
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis alburyorum	Unassigned	1873747
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Psammobates	Psammobates tentorius	Psammobates tentorius trimeni	1896053
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Psammobates	Psammobates tentorius	Psammobates tentorius tentorius	1896054
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur baska	Unassigned	193151
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys nigrinoda	Graptemys nigrinoda nigrinoda	1969994
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys pearlensis	Unassigned	1969995
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys pseudogeographica	Graptemys pseudogeographica pseudogeographica	1969996
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys flavimaculata x Graptemys oculifera	Unassigned	1969997
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina novaeguineae	Unassigned	200900
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys caspica	Unassigned	202459
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys rivulata	Unassigned	202460
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur affinis	Batagur affinis edwardmolli	2034197
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis vandenburghi	Unassigned	2039268
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis microphyes	Unassigned	2039269
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Emys	Emys orbicularis	Emys orbicularis orbicularis	204803
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Sacalia	Sacalia bealei	Unassigned	204942
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Hardella	Hardella thurjii	Unassigned	204954
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys sp. No. 36654	Unassigned	204955
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora zhoui	Unassigned	204956
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Notochelys	Notochelys platynota	Unassigned	204958
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Geoemyda	Geoemyda japonica	Unassigned	204960
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys annamensis	Unassigned	204961
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora flavomarginata	Unassigned	204965
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora flavomarginata	Cuora flavomarginata evelynae	204966
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora flavomarginata	Cuora flavomarginata flavomarginata	204967
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora galbinifrons	Unassigned	204968
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Emydura	Emydura sp.	Unassigned	2060765
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya schultzei	Unassigned	2080844
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina steindachneri	Unassigned	2080851
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya sp. XZ-2018a	Unassigned	2080853
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya sp. XZ-2018b	Unassigned	2080855
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis guntheri	Unassigned	2203395
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon stejnegeri	Unassigned	2268911
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Nilssonia	Nilssonia formosa	Unassigned	227454
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Rafetus	Rafetus euphraticus	Unassigned	227459
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Chitra	Chitra vandijki	Unassigned	227462
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Cycloderma	Cycloderma aubryi	Unassigned	227465
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys scutata	Unassigned	227466
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Cyclanorbis	Cyclanorbis senegalensis	Unassigned	227468
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Podocnemis	Podocnemis unifilis	Unassigned	227871
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Melanochelys	Melanochelys trijuga	Melanochelys trijuga edeniana	232872
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Mesoclemmys	Mesoclemmys hogei	Unassigned	241399
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora mccordi	Unassigned	241437
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora picturata	Unassigned	241440
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora bourreti	Unassigned	241441
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus axenaria	Unassigned	246115
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Emydura	Emydura subglobosa	Unassigned	251359
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Pangshura	Pangshura smithii	Unassigned	254399
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys erosa	Unassigned	254401
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya sp.	Unassigned	2563987
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Indotestudo	Indotestudo forstenii	Unassigned	260613
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Manouria	Manouria emys	Unassigned	260614
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys reevesii	Unassigned	260615
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys tcheponensis	Unassigned	260618
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys megalocephala	Unassigned	260622
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Heosemys	Heosemys annandalii	Unassigned	260624
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora mouhotii	Unassigned	260627
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Heosemys	Heosemys depressa	Unassigned	260628
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys sinensis	Unassigned	260630
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys atripons	Unassigned	260631
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Indotestudo	Indotestudo travancorica	Unassigned	260633
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Geoclemys	Geoclemys hamiltonii	Unassigned	260639
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys melanosterna	Unassigned	260641
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Pangshura	Pangshura tecta	Unassigned	260642
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Pangshura	Pangshura tentoria	Unassigned	260643
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Pangshura	Pangshura tentoria	Pangshura tentoria flaviventer	260644
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Pangshura	Pangshura tentoria	Pangshura tentoria circumdata	260645
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys punctularia	Unassigned	260647
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys punctularia	Rhinoclemmys punctularia punctularia	260648
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys pulcherrima	Unassigned	260649
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys pulcherrima	Rhinoclemmys pulcherrima incisa	260650
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys funerea	Unassigned	260651
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys areolata	Unassigned	260652
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys diademata	Unassigned	260653
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys annulata	Unassigned	260654
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys rubida	Unassigned	260655
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Pseudemys	Pseudemys concinna	Unassigned	270252
+Eukaryota	Chordata	Unassigned	Testudines	Cheloniidae	Eretmochelys	Eretmochelys imbricata	Unassigned	27787
+Eukaryota	Chordata	Unassigned	Testudines	Cheloniidae	Lepidochelys	Lepidochelys olivacea	Unassigned	27788
+Eukaryota	Chordata	Unassigned	Testudines	Cheloniidae	Natator	Natator depressus	Unassigned	27790
+Eukaryota	Chordata	Unassigned	Testudines	Dermochelyidae	Dermochelys	Dermochelys coriacea	Unassigned	27794
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Dipsochelys	Dipsochelys sp. PK-2004	Unassigned	282225
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chersobius	Chersobius signatus	Unassigned	285992
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Homopus	Homopus areolatus	Unassigned	285996
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chersobius	Chersobius boulengeri	Unassigned	285997
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Homopus	Homopus femoralis	Unassigned	285998
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chersina	Chersina angulata	Unassigned	286001
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Gopherus	Gopherus flavomarginatus	Unassigned	286002
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Gopherus	Gopherus berlandieri	Unassigned	286003
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys belliana	Unassigned	286004
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys homeana	Unassigned	286005
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Malacochersus	Malacochersus tornieri	Unassigned	286009
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Manouria	Manouria emys	Manouria emys phayrei	286010
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Manouria	Manouria emys	Manouria emys emys	286011
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Psammobates	Psammobates geometricus	Unassigned	286013
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Psammobates	Psammobates tentorius	Unassigned	286014
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca terrestris	286015
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chersobius	Chersobius solus	Unassigned	286016
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Stigmochelys	Stigmochelys pardalis	Stigmochelys pardalis pardalis	286017
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Stigmochelys	Stigmochelys pardalis	Stigmochelys pardalis babcocki	286018
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Geochelone	Geochelone platynota	Unassigned	286019
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Psammobates	Psammobates tentorius	Psammobates tentorius verroxii	286022
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Psammobates	Psammobates oculiferus	Unassigned	286023
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys spekii	Unassigned	286024
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Kinixys	Kinixys natalensis	Unassigned	286025
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Astrochelys	Astrochelys sp. CKehlmaier-2022a	Unassigned	2926749
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur affinis	Batagur affinis affinis	3002594
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus shipian	Unassigned	3003843
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Pseudemys	Pseudemys nelsoni	Unassigned	301539
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys dorbigni	Unassigned	31137
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys scripta	Trachemys scripta elegans	31138
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya lavarackorum	Unassigned	321138
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya irwini	Unassigned	321139
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Peltocephalus	Peltocephalus dumerilianus	Unassigned	329145
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios gabonensis	Unassigned	329147
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys punctata	Lissemys punctata andersoni	332366
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Emys	Emys trinacris	Unassigned	334583
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Glyptemys	Glyptemys insculpta	Unassigned	335392
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Actinemys	Actinemys marmorata	Unassigned	335395
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys barbouri	Unassigned	33563
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys caglei	Unassigned	33564
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys ernsti	Unassigned	33565
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys flavimaculata	Unassigned	33566
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys gibbonsi	Unassigned	33567
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys oculifera	Unassigned	33569
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys ouachitensis	Unassigned	33570
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys pseudogeographica	Unassigned	33571
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys pulchra	Unassigned	33572
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys versa	Unassigned	33573
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys scripta	Unassigned	34903
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys adiutrix	Unassigned	365622
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys decorata	Unassigned	365623
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys gaigeae	Unassigned	365625
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys terrapen	Unassigned	365627
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys decussata	Trachemys decussata decussata	365628
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys decussata	Trachemys decussata angusta	365629
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys scripta	Trachemys scripta scripta	365635
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Trachemys venusta cataspila	365636
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys emolli	Unassigned	365638
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys grayi	Unassigned	365639
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys scripta	Trachemys scripta troostii	365644
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys stejnegeri	Trachemys stejnegeri vicina	365649
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Pseudemys	Pseudemys texana	Unassigned	365650
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Trachemys venusta callirostris	365651
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Trachemys venusta chichiriviche	365653
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios castaneus	Unassigned	367368
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca zarudnyi	372993
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca armeniaca	372994
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Testudo graeca buxtoni	372995
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys oldhami	Unassigned	378289
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys pulchristriata	Unassigned	378291
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys nasuta	Unassigned	384628
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Gopherus	Gopherus agassizii	Unassigned	38772
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Gopherus	Gopherus polyphemus	Unassigned	38773
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Malaclemys	Malaclemys terrapin	Malaclemys terrapin terrapin	391341
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo werneri	Unassigned	415943
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys nigricans	Unassigned	421224
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Podocnemis	Podocnemis lewyana	Unassigned	428006
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Nilssonia	Nilssonia leithii	Unassigned	428571
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Pangshura	Pangshura sylhetensis	Unassigned	429326
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys punctata	Lissemys punctata punctata	443532
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Acanthochelys	Acanthochelys pallidipectoris	Unassigned	44400
+Eukaryota	Chordata	Unassigned	Testudines	Carettochelyidae	Carettochelys	Carettochelys insculpta	Unassigned	44489
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina longicollis	Unassigned	44491
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina oblonga	Unassigned	44492
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelus	Chelus fimbriata	Unassigned	44495
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya dentata	Unassigned	44497
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Phrynops	Phrynops geoffroanus	Unassigned	44502
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Platemys	Platemys platycephala	Unassigned	44504
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Podocnemis	Podocnemis expansa	Unassigned	44507
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Pseudemydura	Pseudemydura umbrina	Unassigned	44510
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Erymnochelys	Erymnochelys madagascariensis	Unassigned	44520
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelomedusa	Pelomedusa subrufa	Unassigned	44522
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios sinuatus	Unassigned	44526
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Rheodytes	Rheodytes leukops	Unassigned	44528
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elusor	Elusor macrurus	Unassigned	44530
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur affinis	Unassigned	488792
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis carbonarius	Unassigned	50047
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Podocnemis	Podocnemis sextuberculata	Unassigned	510613
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Podocnemis	Podocnemis vogli	Unassigned	510618
+Eukaryota	Chordata	Unassigned	Testudines	Podocnemididae	Podocnemis	Podocnemis erythrocephala	Unassigned	510619
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Emydura	Emydura australis	Unassigned	512778
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Astrochelys	Astrochelys yniphora	Unassigned	532073
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Melanochelys	Melanochelys trijuga	Melanochelys trijuga indopeninsularis	555094
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Melanochelys	Melanochelys trijuga	Melanochelys trijuga parkeri	555095
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys pulcherrima	Rhinoclemmys pulcherrima manni	555096
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Rhinoclemmys	Rhinoclemmys pulcherrima	Rhinoclemmys pulcherrima rogerbarbouri	555097
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Apalone	Apalone spinifera	Unassigned	55534
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios williamsi	Unassigned	55535
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Staurotypus	Staurotypus triporcatus	Unassigned	55537
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Lissemys	Lissemys punctata	Unassigned	55542
+Eukaryota	Chordata	Unassigned	Testudines	Platysternidae	Platysternon	Platysternon megacephalum	Unassigned	55544
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Heosemys	Heosemys spinosa	Unassigned	55547
+Eukaryota	Chordata	Unassigned	Testudines	Dermatemydidae	Dermatemys	Dermatemys mawii	Unassigned	55550
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Stigmochelys	Stigmochelys pardalis	Unassigned	569598
+Eukaryota	Chordata	Unassigned	Testudines	Chelydridae	Macrochelys	Macrochelys temminckii	Unassigned	571338
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Mesoclemmys	Mesoclemmys nasuta	Unassigned	571340
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina parkeri	Unassigned	571342
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Chrysemys	Chrysemys dorsalis	Unassigned	573969
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Sternotherus	Sternotherus carinatus	Unassigned	573971
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Emydura	Emydura victoriae	Unassigned	578127
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Pseudemys	Pseudemys peninsularis	Unassigned	580248
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Pseudemys	Pseudemys rubriventris	Unassigned	580249
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys ouachitensis	Graptemys ouachitensis sabinensis	580252
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys pseudogeographica	Graptemys pseudogeographica kohnii	580253
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD D 44190	Unassigned	601996
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD TD 5093	Unassigned	601997
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD D 43357	Unassigned	601998
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD TD 5559	Unassigned	601999
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD TD 5091	Unassigned	602000
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD D 44045	Unassigned	602001
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus sp. MTD D 42534	Unassigned	602002
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Hydromedusa	Hydromedusa tectifera	Unassigned	61327
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur sp. AA1016	Unassigned	623718
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon leucostomum	Unassigned	641010
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis niger	Unassigned	66189
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Astrochelys	Astrochelys radiata	Unassigned	66190
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Pyxis	Pyxis planicauda	Unassigned	66193
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Pyxis	Pyxis arachnoides	Unassigned	66194
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina burrungandjii	Unassigned	665103
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina expansa	Unassigned	665104
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur trivittata	Unassigned	686919
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur kachuga	Unassigned	698410
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora aurocapitata	Unassigned	72008
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina canni	Unassigned	742143
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Emydura	Emydura tanybaraga	Unassigned	742145
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cuora	Cuora amboinensis	Unassigned	74909
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Heosemys	Heosemys grandis	Unassigned	74912
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Siebenrockiella	Siebenrockiella crassicollis	Unassigned	74914
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Cyclemys	Cyclemys dentata	Unassigned	74916
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Indotestudo	Indotestudo elongata	Unassigned	74920
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Malayemys	Malayemys subtrijuga	Unassigned	74922
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Manouria	Manouria impressa	Unassigned	74924
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys mutica	Unassigned	74926
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Morenia	Morenia ocellata	Unassigned	74928
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Orlitia	Orlitia borneensis	Unassigned	74930
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Sacalia	Sacalia quadriocellata	Unassigned	74934
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Geoemyda	Geoemyda spengleri	Unassigned	74936
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Melanochelys	Melanochelys trijuga	Unassigned	74938
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Mauremys	Mauremys reevesii x Mauremys sinensis	Unassigned	758867
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Morenia	Morenia petersi	Unassigned	766172
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Emys	Emys orbicularis	Unassigned	82168
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Phrynops	Phrynops hilarii	Unassigned	8463
+Eukaryota	Chordata	Unassigned	Testudines	Cheloniidae	Caretta	Caretta caretta	Unassigned	8467
+Eukaryota	Chordata	Unassigned	Testudines	Cheloniidae	Chelonia	Chelonia mydas	Unassigned	8469
+Eukaryota	Chordata	Unassigned	Testudines	Cheloniidae	Lepidochelys	Lepidochelys kempii	Unassigned	8472
+Eukaryota	Chordata	Unassigned	Testudines	Chelydridae	Chelydra	Chelydra serpentina	Unassigned	8475
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Chrysemys	Chrysemys picta	Chrysemys picta bellii	8478
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Chrysemys	Chrysemys picta	Unassigned	8479
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Graptemys	Graptemys geographica	Unassigned	8481
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Emys	Emys blandingii	Unassigned	85613
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo graeca	Unassigned	86975
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Testudo	Testudo hermanni	Unassigned	86976
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios subniger	Unassigned	88690
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Emydura	Emydura macquarii	Unassigned	90392
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur borneoensis	Unassigned	904174
+Eukaryota	Chordata	Unassigned	Testudines	Geoemydidae	Batagur	Batagur dhongoka	Unassigned	904175
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina mccordi	Unassigned	904177
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina pritchardi	Unassigned	904178
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Chelodina	Chelodina reimanni	Unassigned	904179
+Eukaryota	Chordata	Unassigned	Testudines	Testudinidae	Chelonoidis	Chelonoidis chilensis	Unassigned	904182
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya albagula	Unassigned	904184
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya branderhorsti	Unassigned	904186
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon acutum	Unassigned	904193
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon alamosae	Unassigned	904194
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon chimalhuaca	Unassigned	904196
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon creaseri	Unassigned	904197
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon dunni	Unassigned	904198
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon herrerai	Unassigned	904199
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon integrum	Unassigned	904200
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Kinosternon	Kinosternon sonoriense	Unassigned	904203
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Nilssonia	Nilssonia gangetica	Unassigned	904210
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Nilssonia	Nilssonia hurum	Unassigned	904211
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios broadleyi	Unassigned	904213
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios carinatus	Unassigned	904214
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios castanoides	Unassigned	904216
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios chapini	Unassigned	904217
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios cupulatta	Unassigned	904218
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios marani	Unassigned	904219
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios niger	Unassigned	904220
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios rhodesianus	Unassigned	904223
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys ornata	Unassigned	904224
+Eukaryota	Chordata	Unassigned	Testudines	Emydidae	Trachemys	Trachemys venusta	Unassigned	904225
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Sternotherus	Sternotherus depressus	Unassigned	904226
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Staurotypus	Staurotypus salvinii	Unassigned	904227
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Rafetus	Rafetus swinhoei	Unassigned	904230
+Eukaryota	Chordata	Unassigned	Testudines	Kinosternidae	Claudius	Claudius angustatus	Unassigned	904233
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Myuchelys	Myuchelys bellii	Unassigned	904237
+Eukaryota	Chordata	Unassigned	Testudines	Chelidae	Elseya	Elseya novaeguineae	Unassigned	904238
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios castanoides	Pelusios castanoides intergularis	907251
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios castanoides	Pelusios castanoides castanoides	907252
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios subniger	Pelusios subniger parietalis	907260
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios adansonii	Unassigned	911723
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios bechuanicus	Unassigned	911724
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios nanus	Unassigned	911725
+Eukaryota	Chordata	Unassigned	Testudines	Pelomedusidae	Pelusios	Pelusios upembae	Unassigned	911726
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus parviformis	Unassigned	947008
+Eukaryota	Chordata	Unassigned	Testudines	Trionychidae	Pelodiscus	Pelodiscus maackii	Unassigned	980080
