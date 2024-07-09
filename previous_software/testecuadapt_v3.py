@@ -36,8 +36,8 @@ def filter_sequences_getprimers(infile, out_file, FWDlen, REVlen, max_ambiguous_
     Filters sequences based on the maximum allowed percentage of ambiguous bases and extracts primers.
 
     Parameters:
-    infile (str): Path to the input file containing DNA sequences in FASTA format.
-    out_file (str): Path to the output file to write the filtered sequences.
+    infile (str): Path to the input file containing DNA sequences in FASTA format (cutadapt output file)
+    out_file (str): Path to the output file to write the primers of filtered sequences.
     FWDlen (int): Length of the forward primer.
     REVlen (int): Length of the reverse primer.
     max_ambiguous_percentage (float): Maximum allowed percentage of ambiguous bases in a sequence.
@@ -150,12 +150,13 @@ def runcut(fasta, dataframe, e, finalname):
     
     * cutadapt is a tool that finds and removes adapter sequences, primers,
     poly-A tails and other types of unwanted sequence from your high-throughput 
-    sequencing reads.
+    sequencing reads. It searches for the adapter in all the reads and trims it
+    when it finds it.
 
 
     Parameters:
-    fasta (str): Path to the input fasta file.
-    dataframe (pd.DataFrame): DataFrame containing the primer sequences.
+    fasta (str): Path to the input fasta file (intial reference sequence data).
+    dataframe (pd.DataFrame): DataFrame containing the primer sequences (AllPrimers_gene.txt)
     e (int): Maximum allowed error rate.
     finalname (str): Suffix to add to the output file name.
 
@@ -166,8 +167,10 @@ def runcut(fasta, dataframe, e, finalname):
     for index, row in dataframe.iterrows(): 
         AssayName = row['AssayName']
         print(AssayName)
+        
         FwSeq = row['FwSeq'].replace('I', 'N') # Replace 'I' with 'N' in the forward primer sequence -> Why?
         RvSeq = row['RvSeq'].replace('I', 'N')
+        
         br = row['BarcodeRegion']
         ERROR = int(e)
         RvSeq_CORRECT = str(Seq(RvSeq).reverse_complement()) # Reverse complement of the reverse primer sequence
@@ -175,8 +178,14 @@ def runcut(fasta, dataframe, e, finalname):
         # Region of overlap between the forward and reverse primer sequences shouldn't exceed the length of the shortest primer
         # so that all every position of the longer primer is covered by the shorter primer
         # Avoids mismatches and gaps
+        
         ADAPTER = FwSeq + '...' + RvSeq_CORRECT # Concatenate the forward and reverse primer sequences with '...'
+        # -a is 3' adapter
+        # -g is 5' adapter
+
         OUTNAME = './cutadapt/'+ br +'/'+ AssayName+finalname # Output file name based on the barcode region and assay name
+        # -o is the output file name
+
         action = 'retain'
         # "With --action=retain, the read is trimmed, but the adapter sequence itself is not removed. Up- or downstream sequences 
         # are removed in the same way as for the trim action. For linked adapters, both adapter sequences are kept."
@@ -299,7 +308,8 @@ def runcutnoprimers(dataframe):
     """
     Run cutadapt to trim primer sequences and discard them.
 
-    *few differences compared to runcut function.
+    *few differences compared to runcut function. 
+    Only difference is that it doesn't retain the primer sequences.
     
     Parameters:
     dataframe (pd.DataFrame): DataFrame containing the primer sequences.
@@ -391,7 +401,7 @@ for B in BR:
 print('############# Step 2 Done ##############')
 
 # -------------------------------------------------------------------------------
-print('############# Step 3: Filtering sequences and retrieve primer data #############')
+print('############# Step 3: Retrieve primer data of filtered sequences #############')
 
 for B in BR:
     # print(B)
@@ -435,7 +445,7 @@ for B in BR:
 # run pga
 
 """ *Info on PGA: pairwise global alignment. 
-Amplicon regions retrieved through cutadapt are used as seed sequences. (--database)
+Adapter sequences with discarded bits (?) are used as seed sequences. (--database)
 Includes alignments that have the lenght of the foward or reserve primer-binding region (--strict).
     This is to minimize the risk of including erroneous sequences.
 """
@@ -491,6 +501,11 @@ for B in BR:
     for f in cutadaptouts:
       os.remove('./cutadapt/'+B+'/'+f)
 
+print('############# Step 6 Done ##############')
+
+# -------------------------------------------------------------------------------
+
+print('\n ############# Step 7: Performing Sequence Count ############# \n')
 
 ### confirm number of primers mismatches:
 for B in BR:
@@ -542,7 +557,7 @@ for B in BR:
             temp['TotalSeqs'] = temp['1stPCRclean'] + temp['PGAclean']
             temp.to_csv(f'./cutadapt/{B}/{t}.NumberSeqs.tsv', index=None, sep = '\t')
 
-print('############# Step 6 Done ##############')
+print('############# Step 7 Done ##############')
 # -------------------------------------------------------------------------------
 
 
