@@ -89,3 +89,4 @@ class DataTransformer:
         """
 
         return self.data['Sequence']
+    
