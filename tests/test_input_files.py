@@ -1,20 +1,50 @@
 import unittest as unittest
+import os
+import sys
+
+# Add root directory to the path in order to import the module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.data_transformer import DataTransformer
 
-class TestInputFiles(unittest.TestCase):
+class TestDataTransformer(unittest.TestCase):
     
     def setUp(self):
-        self.data_dir = "../data"
-        self.txt_file = "not_fasta_example.txt"
-        self.empty_file = "empty_fasta.fasta"
-        self.fasta_file = "fasta_example_file.fasta"
-        self.no_file = "no_file.fasta"
+        self.DataTransformer = DataTransformer
+        self.data_dir = "tests/test_data"
+        self.txt_file = os.path.join(self.data_dir, "not_fasta_example.txt")
+        self.empty_file = os.path.join(self.data_dir, "empty_fasta.fasta")
+        self.fasta_file = os.path.join(self.data_dir, "fasta_example_file.fasta")
+        self.missing_file = os.path.join(self.data_dir, "no_file.fasta")
         self.not_string = 1
+        self.open_files = []
 
     def test_empty_file(self):
-        with self.assertRaises(FileNotFoundError):
-            self.DataTransformer.read_fasta(f"{self.data_dir}/{self.no_file}")
+        data_transformer = DataTransformer(self.empty_file)
+        with self.assertRaises(ValueError) as context:
+            data_transformer.read_fasta(self.empty_file)
+        self.assertEqual(str(context.exception), 'Input file is empty.')
 
+    def test_txt_file(self):
+        data_transformer = DataTransformer(self.txt_file)
+
+        with self.assertRaises(ValueError) as context:
+            data_transformer.read_fasta(self.txt_file)
+        self.assertEqual(str(context.exception), 'Input file must be a fasta file.')
+
+    def test_missing_file(self):
+        data_transformer = DataTransformer(self.missing_file)
+
+        with self.assertRaises(FileNotFoundError) as context:
+            data_transformer.read_fasta(self.missing_file)
+        self.assertEqual(str(context.exception), 'Input file does not exist in the directory.')
+    
+    def test_wrong_input(self):
+        data_transformer = DataTransformer(self.not_string)
+
+        with self.assertRaises(ValueError) as context:
+            data_transformer.read_fasta(self.not_string)
+        self.assertEqual(str(context.exception), 'Directory must be a string.')
+    
 if __name__ == '__main__':
     unittest.main()
         

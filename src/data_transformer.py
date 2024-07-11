@@ -3,13 +3,13 @@ import pandas as pd
 import re
 import os
 
-class DataTransformer(object):
+class DataTransformer:
     """
-    Transforms data into desired outputs.
+    Handles and transforms data into desired outputs.
     """
 
-    def __init__(self):
-        self.data = None
+    def __init__(self, data):
+        self.data = data
 
     def read_fasta(self, input_file):
         """
@@ -21,42 +21,71 @@ class DataTransformer(object):
         Returns
         pd.DataFrame
         """
+          
+        if not isinstance(input_file, str):
+            raise ValueError('Directory must be a string.')
+        
+        if not os.path.exists(input_file):
+            raise FileNotFoundError('Input file does not exist in the directory.')
+        
+        if not input_file.endswith('.fasta'):
+            raise ValueError('Input file must be a fasta file.')
+        
+        if os.path.getsize(input_file) == 0:
+            raise ValueError('Input file is empty.')
+        
+        fasta_sequences = SeqIO.parse(open(input_file), 'fasta')
 
-        try:
-            
-            if not isinstance(input_file, str):
-                raise ValueError('Input file must be a string.')
-            
-            if not os.path.exists(input_file):
-                raise FileNotFoundError('Input file does not exist.')
-            
-            if not input_file.endswith('.fasta'):
-                raise ValueError('Input file must be a fasta file.')
-            
-            if os.path.getsize(input_file) == 0:
-                raise ValueError('Input file is empty.')
-            
-            fasta_sequences = SeqIO.parse(open(input_file), 'fasta')
+        data = []
 
-            data = []
+        for fasta in fasta_sequences:
+            name, sequence = fasta.id, str(fasta.seq)
+            seq_len = len(sequence)
 
-            for fasta in fasta_sequences:
-                name, sequence = fasta.id, str(fasta.seq)
-                seq_len = len(sequence)
+            data.append([name, sequence, seq_len])
 
-                # TODO: Would we include a search for TaxID in the fasta header? Or require a TSV?
-                taxid_match = re.search(r'(?<=taxid=)([0-9]+)(?=;)', fasta.description) # retrieved from Joana's code, doesn't extract anything
+        self.data = pd.DataFrame(
+            data, columns=['SeqID', 'Sequence', 'Lenght']
+            )
 
-                if taxid_match:
-                    taxid = taxid_match.group(1)
-                else:
-                    taxid = None
+        return self.data
+    
+    def get_number_of_sequences(self):
+        """
+        Returns the number of sequences in the data.
+        
+        Returns
+        int
+        """
 
-                data.append([name, sequence, seq_len, taxid])
+        return len(self.data)
+    
+    def get_sequence_lengths(self):
+        """
+        Returns the lengths of the sequences in the data.
+        
+        Returns
+        pd.Series
+        """
+        
+        seq_lengths = self.data['Lenght']
+        seq_lengths = seq_lengths.to_list()
 
-            self.data = pd.DataFrame(data, columns=['SeqID', 'Sequence', 'Lenght', 'TaxID'])
+        return seq_lengths
+    
+    def get_sequence_ids(self):
+        """
+        Returns the sequence IDs in the data.
+        
+        Returns
+        pd.Series
+        """
+        
+        return self.data['SeqID']
+    
+    def get_sequences(self):
+        """
+        Returns the sequences in the data.
+        """
 
-            return self.data
-
-        except Exception as e:
-            print(e)
+        return self.data['Sequence']
