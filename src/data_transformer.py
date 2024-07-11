@@ -34,21 +34,23 @@ class DataTransformer:
         if os.path.getsize(input_file) == 0:
             raise ValueError('Input file is empty.')
         
-        fasta_sequences = SeqIO.parse(open(input_file), 'fasta')
+        
+        with open(input_file, 'r') as input_file:
+            fasta_sequences = SeqIO.parse(input_file, 'fasta')
 
-        data = []
+            data = []
 
-        for fasta in fasta_sequences:
-            name, sequence = fasta.id, str(fasta.seq)
-            seq_len = len(sequence)
+            for fasta in fasta_sequences:
+                name, sequence = fasta.id, str(fasta.seq)
+                seq_len = len(sequence)
 
-            data.append([name, sequence, seq_len])
+                data.append([name, sequence, seq_len])
 
-        self.data = pd.DataFrame(
-            data, columns=['SeqID', 'Sequence', 'Lenght']
-            )
+            self.data = pd.DataFrame(
+                data, columns=['SeqID', 'Sequence', 'Lenght']
+                )
 
-        return self.data
+            return self.data
     
     def get_number_of_sequences(self):
         """
@@ -89,4 +91,3 @@ class DataTransformer:
         """
 
         return self.data['Sequence']
-    

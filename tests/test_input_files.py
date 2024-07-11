@@ -30,6 +30,7 @@ class TestDataTransformer(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             data_transformer.read_fasta(self.txt_file)
         self.assertEqual(str(context.exception), 'Input file must be a fasta file.')
+        print('Test #1 passed.')
 
     def test_missing_file(self):
         data_transformer = DataTransformer(self.missing_file)
@@ -37,6 +38,7 @@ class TestDataTransformer(unittest.TestCase):
         with self.assertRaises(FileNotFoundError) as context:
             data_transformer.read_fasta(self.missing_file)
         self.assertEqual(str(context.exception), 'Input file does not exist in the directory.')
+        print('Test #2 passed.')
     
     def test_wrong_input(self):
         data_transformer = DataTransformer(self.not_string)
@@ -44,6 +46,38 @@ class TestDataTransformer(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             data_transformer.read_fasta(self.not_string)
         self.assertEqual(str(context.exception), 'Directory must be a string.')
+        print('Test #3 passed.')
+    
+    def test_read_fasta(self):
+        data_transformer = DataTransformer(self.fasta_file)
+        data = data_transformer.read_fasta(self.fasta_file)
+        self.assertEqual(data.shape, (3, 3))
+        print('Test #4 passed.')
+
+    def test_get_number_of_sequences(self):
+        data_transformer = DataTransformer(self.fasta_file)
+        data = data_transformer.read_fasta(self.fasta_file)
+        self.assertEqual(data_transformer.get_number_of_sequences(), 3)
+        print('Test #5 passed.')
+
+    
+    def test_get_sequence_lengths(self):
+        data_transformer = DataTransformer(self.fasta_file)
+        data = data_transformer.read_fasta(self.fasta_file)
+        self.assertEqual(data_transformer.get_sequence_lengths(), [16, 19, 8])
+        print('Test #6 passed.')
+
+    def test_get_sequence_ids(self):
+        data_transformer = DataTransformer(self.fasta_file)
+        data = data_transformer.read_fasta(self.fasta_file)
+        self.assertEqual(data_transformer.get_sequence_ids(), ['CM074756.1', 'NC_088426.1', 'PP475397.1'])
+        print('Test #7 passed.')
+
+    def test_get_sequences(self):
+        data_transformer = DataTransformer(self.fasta_file)
+        data = data_transformer.read_fasta(self.fasta_file)
+        self.assertEqual(data_transformer.get_sequences(), ['GTTATTGTAGCTTATC', 'GCATAAAGCATGGCACTGA', 'GTTATTGA'])
+        print('Test #8 passed.')
     
 if __name__ == '__main__':
     unittest.main()
