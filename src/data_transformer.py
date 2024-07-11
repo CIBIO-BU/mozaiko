@@ -83,11 +83,17 @@ class DataTransformer:
         pd.Series
         """
         
-        return self.data['SeqID']
+        seq_ids = self.data['SeqID']
+        seq_ids = seq_ids.to_list()
+        
+        return seq_ids
     
     def get_sequences(self):
         """
         Returns the sequences in the data.
         """
 
-        return self.data['Sequence']
+        seq_list = self.data['Sequence']
+        seq_list = seq_list.to_list()
+    
+        return seq_list
