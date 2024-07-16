@@ -100,6 +100,23 @@ class TestDataTransformer(unittest.TestCase):
                          ['GTTATTGTAGCTTATC', 'GCATAAAGCATGGCACTGA', 'GTTATTGA'])
         print('Test #8 passed.')
 
+    def test_df2fasta_structure(self):
+        """
+        Test if df2fasta correctly writes the data to a fasta file.
+        """
+        self.data_transformer.read_fasta(self.fasta_file)
+        self.data_transformer.df2csv()
+        example_file = 'processed_input_fasta.csv'
+        with open(example_file, 'r', encoding='UTF-8') as f:
+            lines = f.readlines()
+            self.assertEqual(lines[0], 'seq_id,sequence,lenght\n')
+            self.assertEqual(lines[1], 'CM074756.1,GTTATTGTAGCTTATC,16\n')
+            self.assertEqual(lines[2], 'NC_088426.1,GCATAAAGCATGGCACTGA,19\n')
+            self.assertEqual(lines[3], 'PP475397.1,GTTATTGA,8\n')
+        os.remove(example_file)
+
+        print('Test #10 passed.')
+
     def tearDown(self):
         """
         Tear down the test class.
