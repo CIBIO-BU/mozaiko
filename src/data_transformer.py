@@ -1,5 +1,5 @@
 """
-This module contains the DataTransformer class which is responsible for handling and 
+This module contains the DataTransformer class which is responsible for handling and
 transforming data into desired outputs.
 
 The DataTransformer class contains the following methods:
@@ -14,6 +14,7 @@ import os
 from Bio import SeqIO
 import pandas as pd
 
+
 class DataTransformer:
     """
     Handles and transforms data into desired outputs.
@@ -25,10 +26,10 @@ class DataTransformer:
     def read_fasta(self, input_file):
         """
         Reads a fasta file.
-        
+
         Parameters
         input_file (str): Path to the fasta file.
-            
+
         Returns
         pd.DataFrame
         """
@@ -65,7 +66,7 @@ class DataTransformer:
     def get_number_of_sequences(self):
         """
         Returns the number of sequences in the data.
-        
+
         Returns
         int
         """
@@ -75,7 +76,7 @@ class DataTransformer:
     def get_sequence_lengths(self):
         """
         Returns the lengths of the sequences in the data.
-        
+
         Returns
         pd.Series
         """
@@ -88,7 +89,7 @@ class DataTransformer:
     def get_sequence_ids(self):
         """
         Returns the sequence IDs in the data.
-        
+
         Returns
         pd.Series
         """

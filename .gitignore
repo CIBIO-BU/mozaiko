@@ -1,5 +1,4 @@
-previous_software/blast_files/
-previous_software/cutadapt/
+previous_software/
 src/draft.ipynb
 src/database.py
 src/pre_processor.py
