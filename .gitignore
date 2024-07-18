@@ -1,4 +1,9 @@
 previous_software/blast_files/
 previous_software/cutadapt/
 src/draft.ipynb
+src/database.py
+src/pre_processor.py
+src/visualizations.py
+src/primer_scoring.py
+src/in_silico_analysis.py
 
