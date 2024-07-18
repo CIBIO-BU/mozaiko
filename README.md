@@ -1,5 +1,5 @@
 # DNAquaIMG
-*Links to CI/CD and monitoring dashboards*
+[![codecov](https://codecov.io/gh/CIBIO-BU/DNAquaIMG/branch/main/graph/badge.svg)](https://codecov.io/gh/CIBIO-BU/DNAquaIMG)
 
 Short description 
 
@@ -26,3 +26,4 @@ Contact points, people responsible or an address for its developers - e.g. bu@ci
         Where the issue tracking is i.e. github issues
         API documentation (f applicable)
  # Dev/test/staging/production environments (when applicable)
+institution-name/repository-name
