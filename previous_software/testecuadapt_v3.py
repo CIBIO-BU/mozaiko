@@ -31,7 +31,7 @@ def filter_sequences(infile, out_file, max_ambiguous_percentage=0.05):
                 # Write the header and sequence on separate lines
                 output_handle.write(f">{record.description}\n{sequence}\n")
 
-def filter_sequences_getprimers(infile, out_file, FWDlen, REVlen, max_ambiguous_percentage=0.05):
+def filteir_sequences_getprimers(infile, out_file, FWDlen, REVlen, max_ambiguous_percentage=0.05):
     """
     Filters sequences based on the maximum allowed percentage of ambiguous bases and extracts primers.
 
@@ -56,7 +56,7 @@ def filter_sequences_getprimers(infile, out_file, FWDlen, REVlen, max_ambiguous_
                 ac = record.id # Accession number
                 primers[ac][0] = sequence[0:FWDlen] # Forward primer
                 primers[ac][1] = sequence[len(sequence)-REVlen:] # Reverse primer
-                primers[ac][2] = len(sequence) - REVlen - FWDlen # Amplicon length
+                primers[ac][2] = len(sequence) - REVlen - FWDlen # Insert length
                 # Write the header and sequence on separate lines
                 output_handle.write(f">{record.description}\n{sequence}\n")
     return primers

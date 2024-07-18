@@ -112,5 +112,5 @@ class DataTransformer:
         """
         Write the data frame to a csv file.
         """
-
+        
         self.data.to_csv(output_name, index=False)
