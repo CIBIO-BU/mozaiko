@@ -1,4 +1,4 @@
-name: Run Tests and Upload Coverage
+name: Package Tests
 
 on: [push, pull_request]
 
@@ -24,8 +24,10 @@ jobs:
     - name: Set PYTHONPATH
       run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
 
-    - name: Run tests and collect coverage
+    - name: Run tests
       run: pytest --cov=./ --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
