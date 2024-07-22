@@ -1,0 +1,1 @@
+This folder contains data used to run the software. Currently, it holds the Diat.barcode database, an [open-access barcode database for diatoms](https://entrepot.recherche.data.gouv.fr/dataset.xhtml?persistentId=doi%3A10.15454%2FTOMBYZ&version=&q=&fileTypeGroupFacet=&fileAccess=&fileSortField=date&tagPresort=true), in the version 12.4. 

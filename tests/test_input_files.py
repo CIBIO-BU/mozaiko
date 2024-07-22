@@ -15,7 +15,7 @@ class TestDataTransformer(unittest.TestCase):
         """
         Set up the test class and data.
         """
-        self.data_dir = "tests/test_data"
+        self.data_dir = "data/test_data"
         self.fasta_file = os.path.join(self.data_dir, "fasta_example_file.fasta")
         self.data_transformer = DataTransformer(None)
 
