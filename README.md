@@ -1,6 +1,6 @@
 # DNAquaIMG
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Lint Code Base](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml)
+[![Lint Status](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml)
 [![Tests Coverage](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml)
 
 Short description
@@ -17,7 +17,7 @@ Configuration instructions
 How to install and run
 
 ## Contacts
-Contact points, people responsible or an address for its developers - e.g. bu@cibioup.pt.
+Contact points, people responsible or an address for its developers - e.g. <bu@cibioup.pt>.
 
         How to run the software from the ready-made Docker image
         Prerequisites
