@@ -123,5 +123,6 @@ class TestDataTransformer(unittest.TestCase):
         """
         del self.data_transformer
 
+
 if __name__ == '__main__':
     unittest.main()
