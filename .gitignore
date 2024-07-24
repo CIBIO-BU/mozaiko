@@ -5,4 +5,5 @@ src/pre_processor.py
 src/visualizations.py
 src/primer_scoring.py
 src/in_silico_analysis.py
+utility-scripts/diat-barcode_pre-process/diat.barcode_release-version_12.4.xlsx
 
