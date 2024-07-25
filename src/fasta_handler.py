@@ -23,7 +23,7 @@ class FastaHandler:
     def __init__(self, data):
         self.data = data
 
-    def read_fasta(self, input_file):
+    def read_fasta(self, input_file): #TODO: Implement 'Does it contain TAXid? decision tree'
         """
         Reads a fasta file.
 
