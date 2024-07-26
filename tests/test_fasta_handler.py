@@ -3,7 +3,7 @@ Unit tests for the FastaHandler class.
 """
 import unittest
 import os
-from src.fasta_handler import FastaHandler
+from reference_database.sequence_import import FastaHandler
 
 
 class TestFastaHandler(unittest.TestCase):
