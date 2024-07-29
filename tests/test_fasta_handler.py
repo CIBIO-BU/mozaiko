@@ -1,14 +1,14 @@
 """
-Unit tests for the FastaHandler class.
+Unit tests for the CustomFastaImport class.
 """
 import unittest
 import os
-from reference_database.sequence_import import FastaHandler
+from src.reference_database.sequence_import import CustomFastaImport
 
 
-class TestFastaHandler(unittest.TestCase):
+class TestCustomFastaImport(unittest.TestCase):
     """
-    Class to test the FastaHandler class.
+    Class to test the CustomFastaImport class.
     """
 
     def setUp(self):
@@ -17,7 +17,8 @@ class TestFastaHandler(unittest.TestCase):
         """
         self.data_dir = "data/test_data"
         self.fasta_file = os.path.join(self.data_dir, "fasta_example_file.fasta")
-        self.data_transformer = FastaHandler(None)
+        self.fasta_taxid_file = os.path.join(self.data_dir, "fasta_example_file_taxid.fasta")
+        self.data_transformer = CustomFastaImport(None)
 
     def test_empty_file(self):
         """
@@ -62,15 +63,15 @@ class TestFastaHandler(unittest.TestCase):
         """
         Test if read_fasta reads the fasta file correctly.
         """
-        data = self.data_transformer.read_fasta(self.fasta_file)
-        self.assertEqual(data.shape, (3, 3))
+        data = self.data_transformer.read_fasta(self.fasta_taxid_file)
+        self.assertEqual(data.shape, (3, 4))
         print('Test #4 passed.')
 
     def test_get_number_of_sequences(self):
         """
         Test if get_number_of_sequences returns the correct number of sequences.
         """
-        self.data_transformer.read_fasta(self.fasta_file)
+        self.data_transformer.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.data_transformer.get_number_of_sequences(), 3)
         print('Test #5 passed.')
 
@@ -78,7 +79,7 @@ class TestFastaHandler(unittest.TestCase):
         """
         Test if get_sequence_lengths returns the correct lengths of the sequences.
         """
-        self.data_transformer.read_fasta(self.fasta_file)
+        self.data_transformer.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.data_transformer.get_sequence_lengths(), [16, 19, 8])
         print('Test #6 passed.')
 
@@ -86,7 +87,7 @@ class TestFastaHandler(unittest.TestCase):
         """
         Test if get_sequence_ids returns the correct sequence IDs.
         """
-        self.data_transformer.read_fasta(self.fasta_file)
+        self.data_transformer.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.data_transformer.get_sequence_ids(),
                          ['CM074756.1', 'NC_088426.1', 'PP475397.1'])
         print('Test #7 passed.')
@@ -95,7 +96,7 @@ class TestFastaHandler(unittest.TestCase):
         """
         Test if get_sequences returns the correct sequences.
         """
-        self.data_transformer.read_fasta(self.fasta_file)
+        self.data_transformer.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.data_transformer.get_sequences(),
                          ['GTTATTGTAGCTTATC', 'GCATAAAGCATGGCACTGA', 'GTTATTGA'])
         print('Test #8 passed.')
@@ -104,15 +105,15 @@ class TestFastaHandler(unittest.TestCase):
         """
         Test if df2fasta correctly writes the data to a fasta file.
         """
-        self.data_transformer.read_fasta(self.fasta_file)
+        self.data_transformer.read_fasta(self.fasta_taxid_file)
         self.data_transformer.df2csv()
         example_file = 'processed_input_fasta.csv'
         with open(example_file, 'r', encoding='UTF-8') as f:
             lines = f.readlines()
-            self.assertEqual(lines[0], 'seq_id,sequence,lenght\n')
-            self.assertEqual(lines[1], 'CM074756.1,GTTATTGTAGCTTATC,16\n')
-            self.assertEqual(lines[2], 'NC_088426.1,GCATAAAGCATGGCACTGA,19\n')
-            self.assertEqual(lines[3], 'PP475397.1,GTTATTGA,8\n')
+            self.assertEqual(lines[0], 'seq_id,sequence,lenght,taxid\n')
+            self.assertEqual(lines[1], 'CM074756.1,GTTATTGTAGCTTATC,16,8481\n')
+            self.assertEqual(lines[2], 'NC_088426.1,GCATAAAGCATGGCACTGA,19,12345\n')
+            self.assertEqual(lines[3], 'PP475397.1,GTTATTGA,8,106731\n')
         os.remove(example_file)
 
         print('Test #10 passed.')

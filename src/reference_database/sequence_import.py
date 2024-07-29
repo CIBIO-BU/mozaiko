@@ -17,11 +17,9 @@ The CustomFastaImport class contains the following methods:
 - df2csv: Write the data frame to a csv file.
 """
 import os
+import re
 from Bio import SeqIO
 import pandas as pd
-import tkinter as tk
-import re
-from tkinter.filedialog import askopenfilename
 
 
 class CustomFastaImport:
@@ -31,6 +29,7 @@ class CustomFastaImport:
 
     def __init__(self, data):
         self.data = data
+        self.lineage_file = None
 
     def _validate_input(self, input_file):
         """
@@ -38,12 +37,6 @@ class CustomFastaImport:
 
         Parameters
         input_file (str): Path to fasta file.
-
-        Raises
-        ValueError: If the input is not a string.
-        FileNotFoundError: If the input file does not exist.
-        ValueError: If the input file is not a fasta file.  
-        ValueError: If the input file is empty.
         """
 
         if not isinstance(input_file, str):
@@ -57,7 +50,7 @@ class CustomFastaImport:
 
         if os.path.getsize(input_file) == 0:
             raise ValueError('Input file is empty.')
-        
+
     def add_taxids(self, input_file):
         """
         Joins the TaxIDs of sequences in the data.
@@ -65,7 +58,7 @@ class CustomFastaImport:
         Returns
         pd.DataFrame
         """
-            
+
         with open(input_file, 'r', encoding='UTF-8'):
             records = SeqIO.parse(input_file, 'fasta')
 
@@ -74,11 +67,11 @@ class CustomFastaImport:
             for seq in records:
                 taxid = re.search(r'(?<=taxid=)([0-9]+)', seq.description).group(1)
                 taxids.append(taxid)
-                
+
             self.data['taxid'] = taxids
 
         return self.data
-        
+
     def _check_for_taxids(self, input_file):
         """
         Checks if fasta file contains TaxIDs.
@@ -87,14 +80,12 @@ class CustomFastaImport:
             for record in SeqIO.parse(input_file, 'fasta'):
 
                 if 'taxid' in record.description.lower():
-                    
                     return True
-                
-                else:
 
-                    self._request_lineage_file(input_file)
-                
-    def _request_lineage_file(self, input_file):
+                else:
+                    self._request_lineage_file()
+
+    def _request_lineage_file(self):
         """
         Requests users to upload lineage files whem taxids are not present in fasta file.
 
@@ -102,65 +93,76 @@ class CustomFastaImport:
         pd.DataFrame
         """
 
-        header_requirements = ['seq_ID',
-                                'Species',
-                                'Genus',
-                                'Family',
-                                'Order',
-                                'Class',
-                                'Phylum',
-                                'Subkingdom',
-                                'Kingdom',
-                                'Empire']
-        
+        header_requirements = ['seq_id',
+                                'species',
+                                'genus',
+                                'family',
+                                'order',
+                                'class',
+                                'phylum',
+                                'subkingdom',
+                                'kingdom',
+                                'empire']
+
         str_requirements = ', '.join(header_requirements)
 
-        print("File given as input does not contain Taxonomic IDs. \n" +
+        print("\n ------ Error Message ------ \n" +
+              "File given as input does not contain Taxonomic IDs. \n" +
               "Please upload a TSV file containing sequence IDs and the respective lineage. \n" + 
               "The file should contain the following columns: [" + str_requirements + "]. \n" +
-              "Please make sure columns follow the same format and order before uploading. \n" +
+              "Please make sure columns follow the same order before uploading. \n" +
               "For the taxonomic levels where no assignment is available, "
               "please leave the cells blank. \n" +
               "\n" +
-              "------ \n" +
-              "\n" +
-              "If your file contains Taxonomic IDs, please make sure these are present " +
-              "in the header of each record of fasta file. Additionally, these must be "
-              "identified with 'taxid=' beforehand. For example: 'CM074756.1;taxid=8481'.")
-        
-        root = tk.Tk()
-        root.withdraw()
-        
-        while True:
-            print("Please select the TSV file to upload.")
+              "If your file contains does Taxonomic IDs, please make sure these are present " +
+              "in the header of each record of fasta file. \n" +
+              "For correct reading, these must be identified with 'taxid=' beforehand. " +
+              "For example: 'CM074756.1;taxid=8481'." +
+              "\n ---------- End ---------- \n")
 
-            file = askopenfilename(filetypes=[('TSV files', '*.tsv')])
-            
+        attempt = 0
+        max_attempts = 3
+
+        while attempt < max_attempts:
+
+            file = input("Please select the TSV file to upload.: ")
+            attempt += 1
+
             if not file:
-                raise ValueError("No file selected. Please try again.")
-            
+                print("No file provided. Please try again.")
+                continue
+
             if not file.endswith('.tsv'):
-                raise ValueError("File must be a TSV file. Please try again.")
+                print("File must be a TSV file. Please try again.")
+                continue
+
+            if not os.path.exists(file):
+                print("File does not exist in the directory. Please try again.")
+                continue
 
             try:
                 lineage_file = pd.read_csv(file, header=0, sep='\t')
-            
+
             except Exception as e:
-                raise ValueError("Error reading the file: {e}. Please try.")
+                print(f"Error reading the file: {e}. Please try.")
+                continue
 
             lineage_header = [column.lower() for column in lineage_file.columns]
-            
-            if lineage_header == header_requirements:
-                print("File was successfully loaded.")
-                root.destroy()
-                
-                self.lineage_file = lineage_file
 
-                return lineage_file
-                
-            else:
+            if lineage_header != header_requirements:
                 print("Columns in TSV file do not match the requirements: [" +
-                             {header_requirements} + "]. Please try again.")
+                             {str_requirements} + "]. Please try again.")
+
+                continue
+
+            else:
+                print("File was successfully loaded.")
+
+                self.lineage_file = lineage_file
+                return lineage_file
+
+        print("Maximum number of attempts reached. Exiting.")
+        return None
 
     def read_fasta(self, input_file):
         """
@@ -178,7 +180,7 @@ class CustomFastaImport:
         self._validate_input(input_file)
 
         self._check_for_taxids(input_file)
-        
+
         with open(input_file, 'r', encoding='UTF-8'):
             records = SeqIO.parse(input_file, 'fasta')
 
@@ -197,7 +199,7 @@ class CustomFastaImport:
         self.add_taxids(input_file)
 
         return self.data
-        
+
     def print_data(self):
         """
         Print the DataFrame
@@ -269,4 +271,3 @@ class CustomFastaImport:
         """
 
         self.data.to_csv(output_name, index=False)
-        
