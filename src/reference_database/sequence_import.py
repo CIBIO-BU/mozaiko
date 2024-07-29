@@ -1,9 +1,15 @@
 """
-This module contains the FastaHandler class which is responsible for handling and
-transforming data into desired outputs.
+This module contains the CustomFastaImport class which is responsible for handling and
+transforming custom data into desired inputs/outputs.
 
-The FastaHandler class contains the following methods:
+The CustomFastaImport class contains the following methods:
+- _validate_input: Validates the input provided by the user.
+- add_taxids: Joins the TaxIDs of sequences in the data.
+- _check_for_taxids: Checks if fasta file contains TaxIDs.
+- _request_lineage_file: Requests users to upload lineage file if no taxids are found in fasta file.
 - read_fasta: Reads a fasta file.
+- print_data: Print the DataFrame.
+- get_taxids: Returns the TaxIDs of the sequences in the data.
 - get_number_of_sequences: Returns the number of sequences in the data.
 - get_sequence_lengths: Returns the lengths of the sequences in the data.
 - get_sequence_ids: Returns the sequence IDs in the data.
@@ -18,7 +24,7 @@ import re
 from tkinter.filedialog import askopenfilename
 
 
-class FastaHandler:
+class CustomFastaImport:
     """
     Handles and transforms fasta into desired outputs.
     """
@@ -26,10 +32,7 @@ class FastaHandler:
     def __init__(self, data):
         self.data = data
 
-    def _request_input_file(self):
-        pass #TODO: Implement / file requirements / requirements for taxids
-
-    def _validate_input(self, input_file): #TODO review validation and test
+    def _validate_input(self, input_file):
         """
         Validades the input provided by the user.
 
@@ -55,6 +58,27 @@ class FastaHandler:
         if os.path.getsize(input_file) == 0:
             raise ValueError('Input file is empty.')
         
+    def add_taxids(self, input_file):
+        """
+        Joins the TaxIDs of sequences in the data.
+
+        Returns
+        pd.DataFrame
+        """
+            
+        with open(input_file, 'r', encoding='UTF-8'):
+            records = SeqIO.parse(input_file, 'fasta')
+
+            taxids = []
+
+            for seq in records:
+                taxid = re.search(r'(?<=taxid=)([0-9]+)', seq.description).group(1)
+                taxids.append(taxid)
+                
+            self.data['taxid'] = taxids
+
+        return self.data
+        
     def _check_for_taxids(self, input_file):
         """
         Checks if fasta file contains TaxIDs.
@@ -63,11 +87,12 @@ class FastaHandler:
             for record in SeqIO.parse(input_file, 'fasta'):
 
                 if 'taxid' in record.description.lower():
+                    
                     return True
                 
                 else:
-                    print("File does not contain taxids.") #TODO: add numebr of sequences without taxids, extract to file
-                    return False
+
+                    self._request_lineage_file(input_file)
                 
     def _request_lineage_file(self, input_file):
         """
@@ -76,7 +101,6 @@ class FastaHandler:
         Returns
         pd.DataFrame
         """
-        self._check_for_taxids(input_file)
 
         header_requirements = ['seq_ID',
                                 'Species',
@@ -88,10 +112,21 @@ class FastaHandler:
                                 'Subkingdom',
                                 'Kingdom',
                                 'Empire']
+        
+        str_requirements = ', '.join(header_requirements)
 
-        print("File given as input does not contain taxids. \n" +
+        print("File given as input does not contain Taxonomic IDs. \n" +
               "Please upload a TSV file containing sequence IDs and the respective lineage. \n" + 
-              "The file should contain the following header: {header_requirements}")
+              "The file should contain the following columns: [" + str_requirements + "]. \n" +
+              "Please make sure columns follow the same format and order before uploading. \n" +
+              "For the taxonomic levels where no assignment is available, "
+              "please leave the cells blank. \n" +
+              "\n" +
+              "------ \n" +
+              "\n" +
+              "If your file contains Taxonomic IDs, please make sure these are present " +
+              "in the header of each record of fasta file. Additionally, these must be "
+              "identified with 'taxid=' beforehand. For example: 'CM074756.1;taxid=8481'.")
         
         root = tk.Tk()
         root.withdraw()
@@ -111,7 +146,7 @@ class FastaHandler:
                 lineage_file = pd.read_csv(file, header=0, sep='\t')
             
             except Exception as e:
-                raise ValueError("Error reafing the file: {e}. Please try.")
+                raise ValueError("Error reading the file: {e}. Please try.")
 
             lineage_header = [column.lower() for column in lineage_file.columns]
             
@@ -124,29 +159,33 @@ class FastaHandler:
                 return lineage_file
                 
             else:
-                print("Columns in TSV file do not match the requirements:" +
-                             "({header_requirements}). Please try again.")
+                print("Columns in TSV file do not match the requirements: [" +
+                             {header_requirements} + "]. Please try again.")
 
-    def read_fasta(self, input_file): #TODO: Implement 'Does it contain TAXid? decision tree'
+    def read_fasta(self, input_file):
         """
         Reads a fasta file.
 
         Parameters
         input_file (str): Path to the fasta file.
 
-        Returns
+        Returnscheck_for_taxids(input_file)
+
+        self.
         pd.DataFrame
         """
 
         self._validate_input(input_file)
+
+        self._check_for_taxids(input_file)
         
         with open(input_file, 'r', encoding='UTF-8'):
             records = SeqIO.parse(input_file, 'fasta')
 
             data = []
 
-            for fasta in records:
-                name, sequence = fasta.id, str(fasta.seq)
+            for seq in records:
+                name, sequence = seq.id, str(seq.seq)
                 seq_len = len(sequence)
 
                 data.append([name, sequence, seq_len])
@@ -155,32 +194,15 @@ class FastaHandler:
                 data, columns=['seq_id', 'sequence', 'lenght']
                 )
 
-            return self.data
+        self.add_taxids(input_file)
+
+        return self.data
         
     def print_data(self):
         """
         Print the DataFrame
         """
         return self.data
-        
-    def add_taxids(self, input_file):
-        """
-        Joins the TaxIDs of sequences in the data.
-
-        Returns
-        pd.DataFrame
-        """
-        self._check_for_taxids(input_file)
-        
-        if self._check_for_taxids(input_file):
-            
-            with open(input_file, 'r', encoding='UTF-8'):
-                
-                for record in SeqIO.parse(input_file, 'fasta'):
-                    taxid = re.search(r'(?<=taxid=)([0-9]+)', record.description).group(1) #TODO taxid extraction
-                    self.data['taxid'] = taxid #TODO test
-
-            return self.data
 
     def get_taxids(self):
         """
