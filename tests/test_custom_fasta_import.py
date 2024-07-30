@@ -26,7 +26,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         empty_file = os.path.join(self.data_dir, "empty_fasta.fasta")
         with self.assertRaises(ValueError) as context:
-            self.data_transformer.read_fasta(empty_file)
+            self.data_transformer._validate_input(empty_file)
         self.assertEqual(str(context.exception), 'Input file is empty.')
 
     def test_txt_file(self):
@@ -35,7 +35,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         txt_file = os.path.join(self.data_dir, "not_fasta_example.txt")
         with self.assertRaises(ValueError) as context:
-            self.data_transformer.read_fasta(txt_file)
+            self.data_transformer._validate_input(txt_file)
         self.assertEqual(str(context.exception), 'Input file must be a fasta file.')
         print('Test #1 passed.')
 
@@ -45,7 +45,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         missing_file = os.path.join(self.data_dir, "no_file.fasta")
         with self.assertRaises(FileNotFoundError) as context:
-            self.data_transformer.read_fasta(missing_file)
+            self.data_transformer._validate_input(missing_file)
         self.assertEqual(str(context.exception), 'Input file does not exist in the directory.')
         print('Test #2 passed.')
 
@@ -55,7 +55,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         not_string = 1
         with self.assertRaises(ValueError) as context:
-            self.data_transformer.read_fasta(not_string)
+            self.data_transformer._validate_input(not_string)
         self.assertEqual(str(context.exception), 'Directory must be a string.')
         print('Test #3 passed.')
 
@@ -124,6 +124,8 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         del self.data_transformer
 
+class TestLinageFileLoader(unittest.TestCase):
+    pass
 
 if __name__ == '__main__':
     unittest.main()

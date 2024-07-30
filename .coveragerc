@@ -1,4 +1,0 @@
-[run]
-omit =
-    previous_software/*
-    external-scripts/*
