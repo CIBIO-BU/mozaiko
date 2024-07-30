@@ -110,7 +110,7 @@ class TestCustomFastaImport(unittest.TestCase):
         example_file = 'processed_input_fasta.csv'
         with open(example_file, 'r', encoding='UTF-8') as f:
             lines = f.readlines()
-            self.assertEqual(lines[0], 'seq_id,sequence,lenght,taxid\n')
+            self.assertEqual(lines[0], 'seq_id,sequence,length,taxid\n')
             self.assertEqual(lines[1], 'CM074756.1,GTTATTGTAGCTTATC,16,8481\n')
             self.assertEqual(lines[2], 'NC_088426.1,GCATAAAGCATGGCACTGA,19,12345\n')
             self.assertEqual(lines[3], 'PP475397.1,GTTATTGA,8,106731\n')
