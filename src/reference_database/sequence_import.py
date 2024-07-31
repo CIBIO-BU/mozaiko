@@ -31,7 +31,7 @@ class CustomFastaImport:
         """
         Initializes the CustomFastaImport class.
         """
-        self.data = pd.DataFrame() if data is None else data
+        self.data = data
         self.lineage_file_loader = LineageFileLoader()
         self.lineage_file = None
 
@@ -122,12 +122,6 @@ class CustomFastaImport:
 
         self._check_for_taxids(input_file)
 
-        return self.data
-
-    def print_data(self):
-        """
-        Print the DataFrame
-        """
         return self.data
 
     def get_taxids(self):
