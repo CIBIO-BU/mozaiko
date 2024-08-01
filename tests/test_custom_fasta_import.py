@@ -4,7 +4,7 @@ Unit tests for the CustomFastaImport class.
 import os
 import unittest
 from unittest.mock import patch, MagicMock
-from src.sequence_import import CustomFastaImport, LineageFileLoader
+from sequence_import import CustomFastaImport, LineageFileLoader
 
 
 class TestCustomFastaImport(unittest.TestCase):
