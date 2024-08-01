@@ -8,7 +8,6 @@ The CustomFastaImport class contains the following methods:
 - _check_for_taxids: Checks if fasta file contains TaxIDs.
 - _request_lineage_file: Requests users to upload lineage file if no taxids are found in fasta file.
 - read_fasta: Reads a fasta file.
-- print_data: Print the DataFrame.
 - get_taxids: Returns the TaxIDs of the sequences in the data.
 - get_number_of_sequences: Returns the number of sequences in the data.
 - get_sequence_lengths: Returns the lengths of the sequences in the data.
@@ -211,27 +210,30 @@ class LineageFileLoader:
                                 'empire']
         self.str_requirements = ', '.join(self.header_requirements)
         self.lineage_file = None
+        self.help_message_template = """
+        --------------------------------- help message ---------------------------------------
+        Taxonomic information is needed to continue the in-silico analysis.
+        The inputed FASTA file does not contain Taxonomic IDs.
+        Please upload a TSV file containing the sequence IDs and taxonomic lineage.
+
+        The TSV file must contain the columns:
+        [{columns}].
+        Please make sure columns follow the same order before uploading.
+
+        For the taxonomic levels where no assignment is available, please leave the cells blank.
+
+        If your FASTA file does contain Taxonomic IDs for all sequences, please make sure these 
+        are present in each sequence header.
+        For correct reading, these must be identified with 'taxid=' beforehand.
+        For example: 'CM074756.1;taxid=8481'.
+        ---------------------------------------------------------------------------------------
+        """
 
     def _print_help_message(self):
         """
         Prints help message to guide users on how to upload the lineage
         """
-        print("\n -------- help message -------- \n" +
-            "Taxonomic information is needed to continue the in-silico analysis. \n" +
-            "The inputed FASTA file does not contain Taxonomic IDs. \n" +
-            "Please upload a TSV file containing the sequence IDs and taxonomic lineage. \n" + 
-            "\n" +
-            "The TSV file must contain the columns: [" + self.str_requirements + "]. \n" +
-            "Please make sure columns follow the same order before uploading. \n" +
-            "\n" +
-            "For the taxonomic levels where no assignment is available, "
-            "please leave the cells blank. \n" +
-            "\n" +
-            "If your FASTA file does in fact contain Taxonomic IDs for all sequences, please " +
-            "make sure these are present in the each sequence header. \n" +
-            "For correct reading, these must be identified with 'taxid=' beforehand. " +
-            "For example: 'CM074756.1;taxid=8481'. \n" +
-            "------------------------------- \n")
+        print(self.help_message_template.format(columns=self.str_requirements))
 
     def _validate_file(self, input_file):
         """
@@ -309,7 +311,7 @@ class LineageFileLoader:
                             "(or 'exit' to quit this operation): ") 
 
             if input_file.strip().lower() == 'exit':
-                print("Operation canceled.")
+                print("Operation canceled. Data currently in memory: ")
                 break
 
             error_message = self._validate_file(input_file)

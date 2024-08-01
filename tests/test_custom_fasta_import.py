@@ -1,9 +1,9 @@
 """
 Unit tests for the CustomFastaImport class.
 """
+import os
 import unittest
 from unittest.mock import patch, MagicMock
-import os
 from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
 
@@ -146,6 +146,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         Test if _check_for_taxids requests lineage file if taxids are not found.
         """
+        # mock the SeqIO.parse function to return a list of sequences without taxids
         mock_seqio_parse.return_value = [
             MagicMock(description='example 1 without taxonomic id'),
             MagicMock(description='example 2 without taxonomic id')
@@ -153,14 +154,17 @@ class TestCustomFastaImport(unittest.TestCase):
 
         with patch.object(self.fasta_import.lineage_file_loader,
                           'load_lineage_file',
-                          return_value='dummy_lineage.tsv'):
+                          return_value='dummy_lineage.tsv') as mock_load_lineage_file:
             with patch.object(self.fasta_import, 'add_taxids') as mock_add_taxids:
-                self.fasta_import.read_fasta(self.fasta_file)
+                self.fasta_import.read_fasta(self.fasta_file) # Use real fasta file so
+                #FileNotFoundError isn't raised
 
                 mock_add_taxids.assert_not_called()
 
         mock_print.assert_called_once_with("No TaxIDs found in the fasta file. " +
                                            "Starting lineage file upload process.")
+
+        mock_load_lineage_file.assert_called_once()
 
         self.assertEqual(self.fasta_import.lineage_file, 'dummy_lineage.tsv')
 
@@ -168,7 +172,7 @@ class TestCustomFastaImport(unittest.TestCase):
 
     def tearDown(self):
         """
-        Tear down the test class.
+        Tear down the test classes.
         """
         del self.fasta_import
 
@@ -181,6 +185,36 @@ class TestLinageFileLoader(unittest.TestCase):
         Initialize the test class.
         """
         self.lineage_loader = LineageFileLoader()
+        self.fasta_file_no_taxid = "data/test_data/fasta_example_file.fasta"
+        self.fasta_import = CustomFastaImport(None)
+        self.lineage_file = 'dummy_lineage_file.tsv'
+        self.header_requirements = ['seq_id',
+                                'species',
+                                'genus',
+                                'family',
+                                'order',
+                                'class',
+                                'phylum',
+                                'subkingdom',
+                                'kingdom',
+                                'empire']
+
+
+    def test_validate_file_nofile(self):
+        """
+        Test if validate_file returns output when the input file does not exist.
+        """
+
+    @patch('builtins.print')
+    def test_help_message(self, mock_print):
+        """
+        Test if the help message is displayed correctly.
+        """
+        self.lineage_loader._print_help_message()
+
+        expected_message = self.lineage_loader.help_message_template.format(
+            columns=self.lineage_loader.str_requirements)
+        mock_print.assert_called_once_with(expected_message)
 
 if __name__ == '__main__':
     unittest.main()
