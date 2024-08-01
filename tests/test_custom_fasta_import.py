@@ -40,7 +40,6 @@ class TestCustomFastaImport(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.fasta_import.read_fasta(txt_file)
         self.assertEqual(str(context.exception), 'Input file must be a fasta file.')
-        print('Test #1 passed.')
 
     def test_missing_file(self):
         """
@@ -50,7 +49,6 @@ class TestCustomFastaImport(unittest.TestCase):
         with self.assertRaises(FileNotFoundError) as context:
             self.fasta_import.read_fasta(missing_file)
         self.assertEqual(str(context.exception), 'Input file does not exist in the directory.')
-        print('Test #2 passed.')
 
     def test_wrong_input(self):
         """
@@ -60,7 +58,6 @@ class TestCustomFastaImport(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.fasta_import.read_fasta(not_string)
         self.assertEqual(str(context.exception), 'Directory must be a string.')
-        print('Test #3 passed.')
 
     def test_read_fasta(self):
         """
@@ -68,7 +65,6 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         data = self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(data.shape, (3, 4))
-        print('Test #4 passed.')
 
     def test_get_number_of_sequences(self):
         """
@@ -76,7 +72,6 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_number_of_sequences(), 3)
-        print('Test #5 passed.')
 
     def test_get_sequence_lengths(self):
         """
@@ -84,7 +79,6 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_sequence_lengths(), [16, 19, 8])
-        print('Test #6 passed.')
 
     def test_get_sequence_ids(self):
         """
@@ -93,7 +87,6 @@ class TestCustomFastaImport(unittest.TestCase):
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_sequence_ids(),
                          ['CM074756.1', 'NC_088426.1', 'PP475397.1'])
-        print('Test #7 passed.')
 
     def test_get_sequences(self):
         """
@@ -102,7 +95,6 @@ class TestCustomFastaImport(unittest.TestCase):
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_sequences(),
                          ['GTTATTGTAGCTTATC', 'GCATAAAGCATGGCACTGA', 'GTTATTGA'])
-        print('Test #8 passed.')
 
     def test_df2fasta_structure(self):
         """
@@ -119,15 +111,12 @@ class TestCustomFastaImport(unittest.TestCase):
             self.assertEqual(lines[3], 'PP475397.1,GTTATTGA,8,106731\n')
         os.remove(example_file)
 
-        print('Test #10 passed.')
-
     def test_get_taxids(self):
         """
         Test if get_taxids returns the correct taxids.
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_taxids(), ['8481', '12345', '106731'])
-        print('Test #11 passed.')
 
     def test_check_for_taxids_with_taxid(self):
         """
@@ -136,9 +125,6 @@ class TestCustomFastaImport(unittest.TestCase):
         self.fasta_import.add_taxids = MagicMock()
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.fasta_import.add_taxids.assert_called_once_with(self.fasta_taxid_file)
-
-
-        print('Test #12 passed.')
 
     @patch('builtins.print')
     @patch('Bio.SeqIO.parse')
@@ -167,8 +153,6 @@ class TestCustomFastaImport(unittest.TestCase):
         mock_load_lineage_file.assert_called_once()
 
         self.assertEqual(self.fasta_import.lineage_file, 'dummy_lineage.tsv')
-
-        print('Test #13 passed.')
 
     def tearDown(self):
         """
