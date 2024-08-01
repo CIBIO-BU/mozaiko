@@ -4,7 +4,7 @@ Unit tests for the CustomFastaImport class.
 import os
 import unittest
 from unittest.mock import patch, MagicMock
-from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
+from src.sequence_import import CustomFastaImport, LineageFileLoader
 
 
 class TestCustomFastaImport(unittest.TestCase):
@@ -172,16 +172,6 @@ class TestLinageFileLoader(unittest.TestCase):
         self.fasta_file_no_taxid = "data/test_data/fasta_example_file.fasta"
         self.fasta_import = CustomFastaImport(None)
         self.lineage_file = 'dummy_lineage_file.tsv'
-        self.header_requirements = ['seq_id',
-                                'species',
-                                'genus',
-                                'family',
-                                'order',
-                                'class',
-                                'phylum',
-                                'subkingdom',
-                                'kingdom',
-                                'empire']
 
 
     def test_validate_file_nofile(self):
