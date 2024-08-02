@@ -5,6 +5,7 @@ import os
 import unittest
 from io import StringIO
 from unittest.mock import MagicMock, mock_open, patch
+
 import pandas as pd
 from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
@@ -90,8 +91,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_sequence_ids(),
-                         ["CM074756.1", "NC_088426.1", "PP475397.1"],
-        )
+                         ["CM074756.1", "NC_088426.1", "PP475397.1"])
 
     def test_get_sequences(self):
         """
@@ -99,8 +99,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.assertEqual(self.fasta_import.get_sequences(),
-                         ["GTTATTGTAGCTTATC", "GCATAAAGCATGGCACTGA", "GTTATTGA"],
-        )
+                         ["GTTATTGTAGCTTATC", "GCATAAAGCATGGCACTGA", "GTTATTGA"])
 
     def test_df2fasta_structure(self):
         """
@@ -224,11 +223,12 @@ class TestLinageFileLoader(unittest.TestCase):
         """
         Test if the program reads the lineage file correctly.
         """
-        output_df = pd.read_csv(StringIO("seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t" +
-                                          "subkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\tfamily" +
-           "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\n"),
-           sep="\t",
-           header=0)
+        output_df = pd.read_csv(StringIO("seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t"
+                                         + "subkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\t"
+                                         + "family\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
+                                         + "empire\n"),
+                                        sep="\t",
+                                        header=0)
         output = self.lineage_loader.load_lineage_file()
 
         pd.testing.assert_frame_equal(output, output_df)
