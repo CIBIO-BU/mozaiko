@@ -319,9 +319,7 @@ class LineageFileLoader:
 
             if error_message:
                 print(f"Error: {error_message}")
-                print("Type 'help' for more information, or press Enter to try again.")
-
-                user_input = input().strip().lower()
+                user_input = input("Type 'help' for more information, or press Enter to try again: ").strip().lower()
 
                 if user_input == 'help':
                     self._print_help_message()

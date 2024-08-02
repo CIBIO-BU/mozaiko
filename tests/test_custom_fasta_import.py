@@ -179,11 +179,6 @@ class TestLinageFileLoader(unittest.TestCase):
         self.fasta_import = CustomFastaImport(None)
         self.lineage_file = "dummy_lineage_file.tsv"
 
-    def test_validate_file_nofile(self):
-        """
-        Test if validate_file returns output when the input file does not exist.
-        """
-
     @patch("builtins.input", side_effect=["", "help", "", "exit"])
     @patch("builtins.print")
     def test_load_lineage_file(self, mock_print, _mock_input):
@@ -196,9 +191,6 @@ class TestLinageFileLoader(unittest.TestCase):
             columns=self.lineage_loader.str_requirements)
 
         mock_print.assert_any_call(expected_message)
-        mock_print.assert_any_call(
-            "Type 'help' for more information, or press Enter to try again."
-            )
         mock_print.assert_any_call("Error: No input_file provided. Please try again.")
         mock_print.assert_any_call("Operation canceled. Data currently in memory: ")
         mock_print.assert_any_call(expected_message)
@@ -213,11 +205,44 @@ class TestLinageFileLoader(unittest.TestCase):
         self.assertIsNone(output)
         self.assertEqual(mock_input.call_count, 2)
 
+    @patch("builtins.input", side_effect=["not_a_tsv_file.txt", "", "exit"])
+    @patch("builtins.print")
+    def test_validate_file_not_tsv(self, mock_print, _mock_input):
+        """
+        Test if the program raises an error when the file is not a TSV file.
+        """
+        output = self.lineage_loader.load_lineage_file()
+        self.assertIsNone(output)
+        mock_print.assert_any_call("Error: File must be a TSV file. Please try again.")
+
+    @patch("builtins.input", side_effect=["nonexistent_file.tsv", "", "exit"])
+    @patch("os.path.isfile", return_value=False)
+    @patch("builtins.print")
+    def test_validate_file_not_exist(self, mock_print, _mock_isfile, _mock_input):
+        """
+        Test if the program raises an error when the file does not exist.
+        """
+        output = self.lineage_loader.load_lineage_file()
+        self.assertIsNone(output)
+        mock_print.assert_any_call("Error: Invalid input. Please try again.")
+
+    @patch("builtins.input", side_effect=["empty_file.tsv", "", "exit"])
+    @patch("os.path.isfile", return_value=True)
+    @patch("os.path.getsize", return_value=0)
+    @patch("builtins.print")
+    def test_validate_file_empty(self, mock_print, _mock_getsize, _mock_isfile, _mock_input):
+        """
+        Test if the program raises an error when the file is empty.
+        """
+        output = self.lineage_loader.load_lineage_file()
+        self.assertIsNone(output)
+        mock_print.assert_any_call("Error: File is empty. Please try again.")
+
     @patch("builtins.input", side_effect=["valid_file.tsv"])
     @patch.object(LineageFileLoader, "_validate_file", return_value=None)
-    @patch("builtins.open", new_callable=mock_open, read_data="seq_id\tspecies\tgenus\tfamily" +
-           "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\tfamily" +
-           "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\n")
+    @patch("builtins.open", new_callable=mock_open, read_data="seq_id\tspecies\tgenus\tfamily"
+            + "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\tfamily"
+            + "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\n")
     @patch("builtins.print")
     def test_load_lineage_file_tsv_file(self, _mock_input, _mock_validate, _mock_read, _mock_print):
         """
