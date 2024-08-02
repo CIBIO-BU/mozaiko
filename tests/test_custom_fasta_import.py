@@ -195,6 +195,7 @@ class TestLinageFileLoader(unittest.TestCase):
         mock_print.assert_any_call("Type 'help' for more information, or press Enter to try again.")
         mock_print.assert_any_call("Error: No input_file provided. Please try again.")
         mock_print.assert_any_call("Operation canceled. Data currently in memory: ")
+        mock_print.assert_any_call(expected_message)
 
     @patch('builtins.input', side_effect=['', 'exit'])
     def test_load_lineage_file_no_input_then_exit(self, mock_input):
@@ -224,3 +225,16 @@ class TestLinageFileLoader(unittest.TestCase):
         output = self.lineage_loader.load_lineage_file()
 
         pd.testing.assert_frame_equal(output, output_df)
+
+    @patch('builtins.input', side_effect=['valid_file.tsv'])
+    @patch.object(LineageFileLoader, '_validate_file', return_value=None)
+    @patch('builtins.open', new_callable=mock_open, read_data='mock data')
+    def test_read_lienage_file_column_requirements(self, _mock_input, _mock_validate, _mock_read):
+        """
+        Test if the program reads the lineage file correctly.
+        """
+        with self.assertRaises(ValueError) as context:
+            self.lineage_loader.load_lineage_file()
+
+        self.assertEqual(str(context.exception), 'Columns in TSV file do not match the requirements: [seq_id, species, genus, family, order, class, phylum, subkingdom, kingdom, empire]. Please try again.')
+
