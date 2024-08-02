@@ -199,15 +199,15 @@ class LineageFileLoader:
         Initializes the LineageFileLoader class.
         """
         self.header_requirements = ['seq_id',
-                                'species',
-                                'genus',
-                                'family',
-                                'order',
-                                'class',
-                                'phylum',
-                                'subkingdom',
-                                'kingdom',
-                                'empire']
+                                    'species',
+                                    'genus',
+                                    'family',
+                                    'order',
+                                    'class',
+                                    'phylum',
+                                    'subkingdom',
+                                    'kingdom',
+                                    'empire']
         self.str_requirements = ', '.join(self.header_requirements)
         self.lineage_file = None
         self.help_message_template = """
@@ -304,8 +304,8 @@ class LineageFileLoader:
         self._print_help_message()
 
         while True:
-            input_file = input("Please type the directory of the TSV file to upload " +
-                            "(or 'exit' to quit this operation): ")
+            input_file = input("Please type the directory of the TSV file to upload "
+                               + "(or 'exit' to quit this operation): ")
 
             if input_file.strip().lower() == 'exit':
                 print("Operation canceled. Data currently in memory: ")

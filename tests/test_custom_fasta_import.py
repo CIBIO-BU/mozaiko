@@ -240,9 +240,11 @@ class TestLinageFileLoader(unittest.TestCase):
 
     @patch("builtins.input", side_effect=["valid_file.tsv"])
     @patch.object(LineageFileLoader, "_validate_file", return_value=None)
-    @patch("builtins.open", new_callable=mock_open, read_data="seq_id\tspecies\tgenus\tfamily"
-            + "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\tfamily"
-            + "\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\n")
+    @patch("builtins.open",
+           new_callable=mock_open,
+           read_data="seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
+           + "empire\nseq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
+           + "empire\n")
     @patch("builtins.print")
     def test_load_lineage_file_tsv_file(self, _mock_input, _mock_validate, _mock_read, _mock_print):
         """
@@ -251,9 +253,7 @@ class TestLinageFileLoader(unittest.TestCase):
         output_df = pd.read_csv(StringIO("seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t"
                                          + "subkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\t"
                                          + "family\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-                                         + "empire\n"),
-                                        sep="\t",
-                                        header=0)
+                                         + "empire\n"), sep="\t", header=0)
         output = self.lineage_loader.load_lineage_file()
 
         pd.testing.assert_frame_equal(output, output_df)
