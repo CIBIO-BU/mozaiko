@@ -144,8 +144,8 @@ class TestCustomFastaImport(unittest.TestCase):
                           'load_lineage_file',
                           return_value='dummy_lineage.tsv') as mock_load_lineage_file:
             with patch.object(self.fasta_import, 'add_taxids') as mock_add_taxids:
-                self.fasta_import.read_fasta(self.fasta_file) # Use real fasta file so
-                #FileNotFoundError isn't raised
+                self.fasta_import.read_fasta(self.fasta_file)  # Use real fasta file so
+                # FileNotFoundError isn't raised
 
                 mock_add_taxids.assert_not_called()
 
@@ -161,6 +161,7 @@ class TestCustomFastaImport(unittest.TestCase):
         Tear down the test classes.
         """
         del self.fasta_import
+
 
 class TestLinageFileLoader(unittest.TestCase):
     """
@@ -218,10 +219,11 @@ class TestLinageFileLoader(unittest.TestCase):
         """
         Test if the program reads the lineage file correctly.
         """
-        output_df = pd.read_csv((StringIO('seq_id\tspecies\tgenus\tfamily' +
-           '\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\nTCC6-18S-1\t' +
-           'Chlorogonium elongatum\tChlorogonium\tHaematococcaceae\tVolvocales\tChlorophyceae\t' +
-           'Chlorophyta	Viridiplantae\tPlantae\tEukaryota\n')), sep='\t', header=0)
+        output_df = pd.read_csv((StringIO('seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t' +
+                                          'subkingdom\tkingdom\tempire\nTCC6-18S-1\tChlorogonium ' +
+                                          'elongatum\tChlorogonium\tHaematococcaceae\tVolvocales' +
+                                          '\tChlorophyceae\tChlorophyta Viridiplantae\tPlantae\t' +
+                                          'Eukaryota\n')), sep='\t', header=0)
         output = self.lineage_loader.load_lineage_file()
 
         pd.testing.assert_frame_equal(output, output_df)
