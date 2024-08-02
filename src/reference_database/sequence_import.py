@@ -246,9 +246,6 @@ class LineageFileLoader:
         str: Error message if validation
         """
 
-        if not input_file:
-            return "No input_file provided. Please try again."
-
         if not input_file.endswith('.tsv'):
             return "File must be a TSV file. Please try again."
 
@@ -312,7 +309,11 @@ class LineageFileLoader:
 
             if input_file.strip().lower() == 'exit':
                 print("Operation canceled. Data currently in memory: ")
-                break
+                return None
+            
+            if input_file == '':
+                print("Error: No input_file provided. Please try again.")
+                continue
 
             error_message = self._validate_file(input_file)
 
@@ -329,6 +330,7 @@ class LineageFileLoader:
 
             self.read_lineage_file(input_file)
             print("File uploaded successfully.")
+
             break
 
         return self.lineage_file

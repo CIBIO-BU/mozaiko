@@ -3,7 +3,9 @@ Unit tests for the CustomFastaImport class.
 """
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
+from io import StringIO
+import pandas as pd
 from reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
 
@@ -173,15 +175,14 @@ class TestLinageFileLoader(unittest.TestCase):
         self.fasta_import = CustomFastaImport(None)
         self.lineage_file = 'dummy_lineage_file.tsv'
 
-
     def test_validate_file_nofile(self):
         """
         Test if validate_file returns output when the input file does not exist.
         """
 
-    @patch('builtins.input', side_effect=['', 'help', 'exit'])
+    @patch('builtins.input', side_effect=['', 'help', '', 'exit'])
     @patch('builtins.print')
-    def test_help_message(self, mock_print, mock_input):
+    def test_load_lineage_file(self, mock_print, _mock_input):
         """
         Test if the help message is displayed correctly.
         """
@@ -189,8 +190,37 @@ class TestLinageFileLoader(unittest.TestCase):
 
         expected_message = self.lineage_loader.help_message_template.format(
             columns=self.lineage_loader.str_requirements)
-        
-        mock_print.assert_any_call(expected_message)
 
-if __name__ == '__main__':
-    unittest.main()
+        mock_print.assert_any_call(expected_message)
+        mock_print.assert_any_call("Type 'help' for more information, or press Enter to try again.")
+        mock_print.assert_any_call("Error: No input_file provided. Please try again.")
+        mock_print.assert_any_call("Operation canceled. Data currently in memory: ")
+
+    @patch('builtins.input', side_effect=['', 'exit'])
+    def test_load_lineage_file_no_input_then_exit(self, mock_input):
+        """
+        Test if the program exits when no input is provided.
+        """
+        output = self.lineage_loader.load_lineage_file()
+
+        self.assertIsNone(output)
+        self.assertEqual(mock_input.call_count, 2)
+
+    @patch('builtins.input', side_effect=['valid_file.tsv'])
+    @patch.object(LineageFileLoader, '_validate_file', return_value=None)
+    @patch('builtins.open', new_callable=mock_open, read_data='seq_id\tspecies\tgenus\tfamily' +
+           '\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\nTCC6-18S-1\t' +
+           'Chlorogonium elongatum\tChlorogonium\tHaematococcaceae\tVolvocales\tChlorophyceae\t' +
+           'Chlorophyta	Viridiplantae\tPlantae\tEukaryota\n')
+    @patch('builtins.print')
+    def test_load_lineage_file_tsv_file(self, _mock_input, _mock_validate, _mock_read, _mock_print):
+        """
+        Test if the program reads the lineage file correctly.
+        """
+        output_df = pd.read_csv((StringIO('seq_id\tspecies\tgenus\tfamily' +
+           '\torder\tclass\tphylum\tsubkingdom\tkingdom\tempire\nTCC6-18S-1\t' +
+           'Chlorogonium elongatum\tChlorogonium\tHaematococcaceae\tVolvocales\tChlorophyceae\t' +
+           'Chlorophyta	Viridiplantae\tPlantae\tEukaryota\n')), sep='\t', header=0)
+        output = self.lineage_loader.load_lineage_file()
+
+        pd.testing.assert_frame_equal(output, output_df)
