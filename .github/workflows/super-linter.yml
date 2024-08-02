@@ -1,45 +1,49 @@
 ---
-name: Lint Code Base
+  name: Lint Code Base
 
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  on:
+    push:
+      branches: ["main"]
+    pull_request:
+      branches: ["main"]
 
-permissions:
-  contents: read
+  permissions:
+    contents: read
 
-jobs:
-  run-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+  jobs:
+    run-lint:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+            pip install isort black  # Install isort and black
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
+        - name: Set PYTHONPATH
+          run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
 
-      - name: Format with black
-        run: |
-          pip install black
-          black .
+        - name: Sort imports with isort
+          run: |
+            isort .
 
-      - name: Lint Code Base
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: "main"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: Format with black
+          run: |
+            black .
+
+        - name: Lint Code Base
+          uses: github/super-linter@v4
+          env:
+            VALIDATE_ALL_CODEBASE: false
+            DEFAULT_BRANCH: "main"
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
