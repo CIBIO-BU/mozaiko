@@ -179,16 +179,18 @@ class TestLinageFileLoader(unittest.TestCase):
         Test if validate_file returns output when the input file does not exist.
         """
 
+    @patch('builtins.input', side_effect=['', 'help', 'exit'])
     @patch('builtins.print')
-    def test_help_message(self, mock_print):
+    def test_help_message(self, mock_print, mock_input):
         """
         Test if the help message is displayed correctly.
         """
-        self.lineage_loader._print_help_message()
+        self.lineage_loader.load_lineage_file()
 
         expected_message = self.lineage_loader.help_message_template.format(
             columns=self.lineage_loader.str_requirements)
-        mock_print.assert_called_once_with(expected_message)
+        
+        mock_print.assert_any_call(expected_message)
 
 if __name__ == '__main__':
     unittest.main()
