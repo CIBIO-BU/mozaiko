@@ -11,6 +11,7 @@ import pandas as pd
 
 from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
+
 class TestCustomFastaImport(unittest.TestCase):
     """
     Class to test the CustomFastaImport class.
