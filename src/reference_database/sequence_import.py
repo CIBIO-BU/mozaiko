@@ -222,7 +222,7 @@ class LineageFileLoader:
 
         For the taxonomic levels where no assignment is available, please leave the cells blank.
 
-        If your FASTA file does contain Taxonomic IDs for all sequences, please make sure these 
+        If your FASTA file does contain Taxonomic IDs for all sequences, please make sure these
         are present in each sequence header.
         For correct reading, these must be identified with 'taxid=' beforehand.
         For example: 'CM074756.1;taxid=8481'.
@@ -305,12 +305,12 @@ class LineageFileLoader:
 
         while True:
             input_file = input("Please type the directory of the TSV file to upload " +
-                            "(or 'exit' to quit this operation): ") 
+                            "(or 'exit' to quit this operation): ")
 
             if input_file.strip().lower() == 'exit':
                 print("Operation canceled. Data currently in memory: ")
                 return None
-            
+
             if input_file == '':
                 print("Error: No input_file provided. Please try again.")
                 continue

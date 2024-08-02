@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from io import StringIO
 import pandas as pd
-from reference_database.sequence_import import CustomFastaImport, LineageFileLoader
+from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
 
 class TestCustomFastaImport(unittest.TestCase):
