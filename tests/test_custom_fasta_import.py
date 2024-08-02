@@ -236,5 +236,6 @@ class TestLinageFileLoader(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.lineage_loader.load_lineage_file()
 
-        self.assertEqual(str(context.exception), 'Columns in TSV file do not match the requirements: [seq_id, species, genus, family, order, class, phylum, subkingdom, kingdom, empire]. Please try again.')
-
+        self.assertEqual(str(context.exception), 'Columns in TSV file do not match the ' +
+                         'requirements: [seq_id, species, genus, family, order, class, phylum, ' +
+                         'subkingdom, kingdom, empire]. Please try again.')
