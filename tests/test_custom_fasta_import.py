@@ -1,12 +1,14 @@
 """
 Unit tests for the CustomFastaImport class.
 """
+
 import os
 import unittest
 from io import StringIO
 from unittest.mock import MagicMock, mock_open, patch
 
 import pandas as pd
+
 from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
 
@@ -53,7 +55,9 @@ class TestCustomFastaImport(unittest.TestCase):
         missing_file = os.path.join(self.data_dir, "no_file.fasta")
         with self.assertRaises(FileNotFoundError) as context:
             self.fasta_import.read_fasta(missing_file)
-        self.assertEqual(str(context.exception), "Input file does not exist in the directory.")
+        self.assertEqual(
+            str(context.exception), "Input file does not exist in the directory."
+        )
 
     def test_wrong_input(self):
         """
@@ -90,16 +94,20 @@ class TestCustomFastaImport(unittest.TestCase):
         Test if get_sequence_ids returns the correct sequence IDs.
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
-        self.assertEqual(self.fasta_import.get_sequence_ids(),
-                         ["CM074756.1", "NC_088426.1", "PP475397.1"])
+        self.assertEqual(
+            self.fasta_import.get_sequence_ids(),
+            ["CM074756.1", "NC_088426.1", "PP475397.1"],
+        )
 
     def test_get_sequences(self):
         """
         Test if get_sequences returns the correct sequences.
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
-        self.assertEqual(self.fasta_import.get_sequences(),
-                         ["GTTATTGTAGCTTATC", "GCATAAAGCATGGCACTGA", "GTTATTGA"])
+        self.assertEqual(
+            self.fasta_import.get_sequences(),
+            ["GTTATTGTAGCTTATC", "GCATAAAGCATGGCACTGA", "GTTATTGA"],
+        )
 
     def test_df2fasta_structure(self):
         """
@@ -140,20 +148,24 @@ class TestCustomFastaImport(unittest.TestCase):
         # mock the SeqIO.parse function to return a list of sequences without taxids
         mock_seqio_parse.return_value = [
             MagicMock(description="example 1 without taxonomic id"),
-            MagicMock(description="example 2 without taxonomic id")
+            MagicMock(description="example 2 without taxonomic id"),
         ]
 
-        with patch.object(self.fasta_import.lineage_file_loader,
-                          "load_lineage_file",
-                          return_value="dummy_lineage.tsv") as mock_load_lineage_file:
+        with patch.object(
+            self.fasta_import.lineage_file_loader,
+            "load_lineage_file",
+            return_value="dummy_lineage.tsv",
+        ) as mock_load_lineage_file:
             with patch.object(self.fasta_import, "add_taxids") as mock_add_taxids:
                 self.fasta_import.read_fasta(self.fasta_file)  # Use real fasta file so
                 # FileNotFoundError isn't raised
 
                 mock_add_taxids.assert_not_called()
 
-        mock_print.assert_called_once_with("No TaxIDs found in the fasta file. "
-                                           + "Starting lineage file upload process.")
+        mock_print.assert_called_once_with(
+            "No TaxIDs found in the fasta file. "
+            + "Starting lineage file upload process."
+        )
 
         mock_load_lineage_file.assert_called_once()
 
@@ -170,6 +182,7 @@ class TestLinageFileLoader(unittest.TestCase):
     """
     Class to test the LineageFileLoader class.
     """
+
     def setUp(self):
         """
         Initialize the test class.
@@ -188,7 +201,8 @@ class TestLinageFileLoader(unittest.TestCase):
         self.lineage_loader.load_lineage_file()
 
         expected_message = self.lineage_loader.help_message_template.format(
-            columns=self.lineage_loader.str_requirements)
+            columns=self.lineage_loader.str_requirements
+        )
 
         mock_print.assert_any_call(expected_message)
         mock_print.assert_any_call("Error: No input_file provided. Please try again.")
@@ -230,7 +244,9 @@ class TestLinageFileLoader(unittest.TestCase):
     @patch("os.path.isfile", return_value=True)
     @patch("os.path.getsize", return_value=0)
     @patch("builtins.print")
-    def test_validate_file_empty(self, mock_print, _mock_getsize, _mock_isfile, _mock_input):
+    def test_validate_file_empty(
+        self, mock_print, _mock_getsize, _mock_isfile, _mock_input
+    ):
         """
         Test if the program raises an error when the file is empty.
         """
@@ -240,20 +256,30 @@ class TestLinageFileLoader(unittest.TestCase):
 
     @patch("builtins.input", side_effect=["valid_file.tsv"])
     @patch.object(LineageFileLoader, "_validate_file", return_value=None)
-    @patch("builtins.open",
-           new_callable=mock_open,
-           read_data="seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-           + "empire\nseq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-           + "empire\n")
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
+        + "empire\nseq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
+        + "empire\n",
+    )
     @patch("builtins.print")
-    def test_load_lineage_file_tsv_file(self, _mock_input, _mock_validate, _mock_read, _mock_print):
+    def test_load_lineage_file_tsv_file(
+        self, _mock_input, _mock_validate, _mock_read, _mock_print
+    ):
         """
         Test if the program reads the lineage file correctly.
         """
-        output_df = pd.read_csv(StringIO("seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t"
-                                         + "subkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\t"
-                                         + "family\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-                                         + "empire\n"), sep="\t", header=0)
+        output_df = pd.read_csv(
+            StringIO(
+                "seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t"
+                + "subkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\t"
+                + "family\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
+                + "empire\n"
+            ),
+            sep="\t",
+            header=0,
+        )
         output = self.lineage_loader.load_lineage_file()
 
         pd.testing.assert_frame_equal(output, output_df)
@@ -261,13 +287,18 @@ class TestLinageFileLoader(unittest.TestCase):
     @patch("builtins.input", side_effect=["valid_file.tsv"])
     @patch.object(LineageFileLoader, "_validate_file", return_value=None)
     @patch("builtins.open", new_callable=mock_open, read_data="mock data")
-    def test_read_lienage_file_column_requirements(self, _mock_input, _mock_validate, _mock_read):
+    def test_read_lienage_file_column_requirements(
+        self, _mock_input, _mock_validate, _mock_read
+    ):
         """
         Test if the program reads the lineage file correctly.
         """
         with self.assertRaises(ValueError) as context:
             self.lineage_loader.load_lineage_file()
 
-        self.assertEqual(str(context.exception), "Columns in TSV file do not match the "
-                         + "requirements: [seq_id, species, genus, family, order, class, phylum, "
-                         + "subkingdom, kingdom, empire]. Please try again.")
+        self.assertEqual(
+            str(context.exception),
+            "Columns in TSV file do not match the "
+            + "requirements: [seq_id, species, genus, family, order, class, phylum, "
+            + "subkingdom, kingdom, empire]. Please try again.",
+        )

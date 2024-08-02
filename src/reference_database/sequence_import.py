@@ -15,10 +15,12 @@ The CustomFastaImport class contains the following methods:
 - get_sequences: Returns the sequences in the data.
 - df2csv: Write the data frame to a csv file.
 """
+
 import os
 import re
-from Bio import SeqIO
+
 import pandas as pd
+from Bio import SeqIO
 
 
 class CustomFastaImport:
@@ -43,16 +45,16 @@ class CustomFastaImport:
         """
 
         if not isinstance(input_file, str):
-            raise ValueError('Directory must be a string.')
+            raise ValueError("Directory must be a string.")
 
         if not os.path.exists(input_file):
-            raise FileNotFoundError('Input file does not exist in the directory.')
+            raise FileNotFoundError("Input file does not exist in the directory.")
 
-        if not input_file.endswith('.fasta'):
-            raise ValueError('Input file must be a fasta file.')
+        if not input_file.endswith(".fasta"):
+            raise ValueError("Input file must be a fasta file.")
 
         if os.path.getsize(input_file) == 0:
-            raise ValueError('Input file is empty.')
+            raise ValueError("Input file is empty.")
 
     def add_taxids(self, input_file):
         """
@@ -62,16 +64,16 @@ class CustomFastaImport:
         pd.DataFrame
         """
 
-        with open(input_file, 'r', encoding='UTF-8') as fasta_file:
-            records = SeqIO.parse(fasta_file, 'fasta')
+        with open(input_file, "r", encoding="UTF-8") as fasta_file:
+            records = SeqIO.parse(fasta_file, "fasta")
             taxids = []
 
             for record in records:
-                match = re.search(r'(?<=taxid=)([0-9]+)', record.description)
+                match = re.search(r"(?<=taxid=)([0-9]+)", record.description)
                 if match:
                     taxids.append(match.group(1))
 
-            self.data['taxid'] = taxids
+            self.data["taxid"] = taxids
 
         return self.data
 
@@ -79,17 +81,19 @@ class CustomFastaImport:
         """
         Checks if fasta file contains TaxIDs.
         """
-        with open(input_file, 'r', encoding='UTF-8') as fasta_file:
+        with open(input_file, "r", encoding="UTF-8") as fasta_file:
             taxid_found = False
-            for record in SeqIO.parse(fasta_file, 'fasta'):
+            for record in SeqIO.parse(fasta_file, "fasta"):
 
-                if 'taxid' in record.description.lower():
+                if "taxid" in record.description.lower():
                     self.add_taxids(input_file)
                     taxid_found = True
                     break
 
             if not taxid_found:
-                print("No TaxIDs found in the fasta file. Starting lineage file upload process.")
+                print(
+                    "No TaxIDs found in the fasta file. Starting lineage file upload process."
+                )
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
     def read_fasta(self, input_file):
@@ -105,17 +109,17 @@ class CustomFastaImport:
 
         self._validate_input(input_file)
 
-        with open(input_file, 'r', encoding='UTF-8') as fasta_file:
-            records = SeqIO.parse(fasta_file, 'fasta')
-            data_dict = {'seq_id': [], 'sequence': [], 'length': []}
+        with open(input_file, "r", encoding="UTF-8") as fasta_file:
+            records = SeqIO.parse(fasta_file, "fasta")
+            data_dict = {"seq_id": [], "sequence": [], "length": []}
 
             for seq in records:
                 name, sequence = seq.id, str(seq.seq)
                 seq_len = len(sequence)
 
-                data_dict['seq_id'].append(name)
-                data_dict['sequence'].append(sequence)
-                data_dict['length'].append(seq_len)
+                data_dict["seq_id"].append(name)
+                data_dict["sequence"].append(sequence)
+                data_dict["length"].append(seq_len)
 
             self.data = pd.DataFrame(data_dict)
 
@@ -131,7 +135,7 @@ class CustomFastaImport:
         pd.Series
         """
 
-        taxids = self.data['taxid']
+        taxids = self.data["taxid"]
         taxids = taxids.to_list()
 
         return taxids
@@ -154,7 +158,7 @@ class CustomFastaImport:
         pd.Series
         """
 
-        seq_lengths = self.data['length']
+        seq_lengths = self.data["length"]
         seq_lengths = seq_lengths.to_list()
 
         return seq_lengths
@@ -167,7 +171,7 @@ class CustomFastaImport:
         pd.Series
         """
 
-        seq_ids = self.data['seq_id']
+        seq_ids = self.data["seq_id"]
         seq_ids = seq_ids.to_list()
 
         return seq_ids
@@ -177,12 +181,12 @@ class CustomFastaImport:
         Returns the sequences in the data.
         """
 
-        seq_list = self.data['sequence']
+        seq_list = self.data["sequence"]
         seq_list = seq_list.to_list()
 
         return seq_list
 
-    def df2csv(self, output_name: str = 'processed_input_fasta.csv'):
+    def df2csv(self, output_name: str = "processed_input_fasta.csv"):
         """
         Write the data frame to a csv file.
         """
@@ -194,21 +198,24 @@ class LineageFileLoader:
     """
     This class is responsible for loading the lineage file.
     """
+
     def __init__(self):
         """
         Initializes the LineageFileLoader class.
         """
-        self.header_requirements = ['seq_id',
-                                    'species',
-                                    'genus',
-                                    'family',
-                                    'order',
-                                    'class',
-                                    'phylum',
-                                    'subkingdom',
-                                    'kingdom',
-                                    'empire']
-        self.str_requirements = ', '.join(self.header_requirements)
+        self.header_requirements = [
+            "seq_id",
+            "species",
+            "genus",
+            "family",
+            "order",
+            "class",
+            "phylum",
+            "subkingdom",
+            "kingdom",
+            "empire",
+        ]
+        self.str_requirements = ", ".join(self.header_requirements)
         self.lineage_file = None
         self.help_message_template = """
         --------------------------------- help message ---------------------------------------
@@ -246,7 +253,7 @@ class LineageFileLoader:
         str: Error message if validation
         """
 
-        if not input_file.endswith('.tsv'):
+        if not input_file.endswith(".tsv"):
             return "File must be a TSV file. Please try again."
 
         if not os.path.isfile(input_file):
@@ -271,14 +278,16 @@ class LineageFileLoader:
         pd.DataFrame
         """
         try:
-            lineage_file = pd.read_csv(input_file, header=0, sep='\t')
+            lineage_file = pd.read_csv(input_file, header=0, sep="\t")
 
         except pd.errors.ParserError as e:
             raise ValueError(f"Error reading the file: {e}. Please try again.") from e
 
         except Exception as e:
-            raise RuntimeError(f"An unexpected error occurred while reading the file: {e}." +
-                               "Please try again.") from e
+            raise RuntimeError(
+                f"An unexpected error occurred while reading the file: {e}."
+                + "Please try again."
+            ) from e
 
         lineage_header = [column.lower() for column in lineage_file.columns]
 
@@ -304,14 +313,16 @@ class LineageFileLoader:
         self._print_help_message()
 
         while True:
-            input_file = input("Please type the directory of the TSV file to upload "
-                               + "(or 'exit' to quit this operation): ")
+            input_file = input(
+                "Please type the directory of the TSV file to upload "
+                + "(or 'exit' to quit this operation): "
+            )
 
-            if input_file.strip().lower() == 'exit':
+            if input_file.strip().lower() == "exit":
                 print("Operation canceled. Data currently in memory: ")
                 return None
 
-            if input_file == '':
+            if input_file == "":
                 print("Error: No input_file provided. Please try again.")
                 continue
 
@@ -319,9 +330,15 @@ class LineageFileLoader:
 
             if error_message:
                 print(f"Error: {error_message}")
-                user_input = input("Type 'help' for more information, or press Enter to try again: ").strip().lower()
+                user_input = (
+                    input(
+                        "Type 'help' for more information, or press Enter to try again: "
+                    )
+                    .strip()
+                    .lower()
+                )
 
-                if user_input == 'help':
+                if user_input == "help":
                     self._print_help_message()
 
                 continue
