@@ -8,4 +8,6 @@ src/in_silico_analysis.py
 external-scripts/diat-barcode_pre-process/diat.barcode_release-version_12.4.xlsx
 src/reference_database/database_assembly.py
 src/utils/
-
+src/seq_derep
+**/__pycache__/
+.vscode/
