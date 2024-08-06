@@ -1,0 +1,27 @@
+package:
+  name: "dnaquaimg"
+  version: "0.1.0"
+
+source:
+  git_url: https://github.com/CIBIO-BU/DNAquaIMG
+  path: .
+
+requirements:
+  host:
+    - python
+    - setuptools
+  build:
+    - python
+  run:
+    - python
+    - pandas
+    - numpy
+    - biopython
+    - openpyxl
+    - PyYAML
+
+about:
+  home: https://github.com/CIBIO-BU/DNAquaIMG
+  license: GPLv3
+  license_file: LICENSE
+  summary: "Evaluate Marker's Efficency at Identifying Country-specific Taxa"

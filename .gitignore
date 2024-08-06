@@ -12,4 +12,3 @@ src/seq_derep
 **/__pycache__/
 .vscode/
 src/reference_database/borrow-crabs.sh
-setup.py
