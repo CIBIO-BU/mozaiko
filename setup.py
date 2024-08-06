@@ -4,11 +4,5 @@ setup(
     name='dnaquaimg',
     version='0.1',
     packages=find_packages(include=['src', 'src.*']),
-    url='https://github.com/CIBIO-BU/DNAquaIMG',
-    install_requires=[
-        'numpy',
-        'pandas',
-        'biopython',
-        'openpyxl'
-    ]
+    url='https://github.com/CIBIO-BU/DNAquaIMG'
 )

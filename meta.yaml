@@ -4,7 +4,6 @@ package:
 
 source:
   git_url: https://github.com/CIBIO-BU/DNAquaIMG
-  path: .
 
 requirements:
   host:
@@ -17,8 +16,6 @@ requirements:
     - pandas
     - numpy
     - biopython
-    - openpyxl
-    - PyYAML
 
 about:
   home: https://github.com/CIBIO-BU/DNAquaIMG
