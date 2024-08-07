@@ -22,20 +22,24 @@ jobs:
         python-version: 3.12
         auto-update-conda: true
         activate-environment: myenv
-        environment-file: environment.yml  # Ensure this file exists in your repo
+        environment-file: environment.yml
 
-    - name: Display Conda info
-      run: conda info
-
-    - name: Display Conda environment list
-      run: conda env list
+    - name: Initialize Conda
+      run: |
+        source $HOME/miniconda/etc/profile.d/conda.sh
+        conda init bash
+        conda config --set always_yes yes --set changeps1 no
 
     - name: Install package
       run: |
+        source $HOME/miniconda/etc/profile.d/conda.sh
         conda activate myenv
         pip install .
+      shell: bash
 
     - name: Run tests
       run: |
+        source $HOME/miniconda/etc/profile.d/conda.sh
         conda activate myenv
         pytest
+      shell: bash
