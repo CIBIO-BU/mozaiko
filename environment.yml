@@ -1,4 +1,4 @@
-name: mosaiko
+name: dnaquaimg
 channels:
   - defaults
 dependencies:

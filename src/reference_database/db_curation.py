@@ -6,6 +6,7 @@ information, assing taxonomic IDs, generate lineage files and dereplicate sequen
 
 import json
 
+
 class CrabsScriptGenerator:
     def __init__(self, json_file):
         self.json_file = json_file
@@ -21,6 +22,7 @@ class CrabsScriptGenerator:
 
     def generate_dereplicate_script(self, sh_filename):
         pass
+
 
 class DatabaseCuration:
     def __init__(self, fasta, lineage):
