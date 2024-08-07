@@ -14,16 +14,13 @@ check_conda() {
 
 # Check if env already exists
 check_env() {
-
-
-conda env crea
-    if conda env list | gre ".*${ENV_NAME}.*" >/dev/null 2>&1; then
-        echo "Conda environment '$ENV_NAME' already existis. Skipping environment creation."
+    if conda env list | grep ".*${ENV_NAME}.*" >/dev/null 2>&1; then
+        echo "Conda environment '$ENV_NAME' already exists. Skipping environment creation."
     else
-        echo "Creating Conda environmnet: $ENV_NAME"
+        echo "Creating Conda environment: $ENV_NAME"
         conda env create -f environment.yml
+    fi
 }
-
 
 # Activate Environment
 activate_env() {
@@ -34,15 +31,15 @@ activate_env() {
 
 # Clone repository
 clone_repo() {
-    if [ -d "$PACKAGE_DIR"]; then
-        echo "Directory "$PACKAGE_DIR" already existis. Skipping repository cloning."
+    if [ -d "$PACKAGE_DIR" ]; then
+        echo "Directory $PACKAGE_DIR already exists. Skipping repository cloning."
     else
         echo "Cloning repository from $REPO_URL."
         git clone $REPO_URL
     fi
 }
 
-# Install Pacakge
+# Install Package
 install_package() {
     echo "Navigating to package directory: $PACKAGE_DIR"
     cd $PACKAGE_DIR
@@ -50,7 +47,7 @@ install_package() {
     echo "Installing package"
     pip install .
 
-    echo "Instalattion complete."
+    echo "Installation complete."
 }
 
 main() {
