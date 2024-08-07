@@ -1,0 +1,8 @@
+{
+    "input": "",
+    "output": "",
+    "acc2tax": "../../taxonomy/nucl_gb.accession2taxid",
+    "taxid": "../../taxonomy/nodes.dmp",
+    "name": "../../taxonomy/names.dmp",
+    "missing": ""
+}

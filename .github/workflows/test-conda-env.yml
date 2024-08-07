@@ -1,0 +1,41 @@
+name: Test Conda Environment
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: 3.12
+        auto-update-conda: true
+        activate-environment: myenv
+        environment-file: environment.yml  # Ensure this file exists in your repo
+
+    - name: Display Conda info
+      run: conda info
+
+    - name: Display Conda environment list
+      run: conda env list
+
+    - name: Install package
+      run: |
+        conda activate myenv
+        pip install .
+
+    - name: Run tests
+      run: |
+        conda activate myenv
+        pytest
