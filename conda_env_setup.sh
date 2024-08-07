@@ -25,7 +25,7 @@ check_env() {
 # Activate Environment
 activate_env() {
     echo "Activating Conda environment: $ENV_NAME"
-    source /opt/conda/etc/profile.d/conda.sh
+    source $HOME/miniconda/etc/profile.d/conda.sh || { echo "Failed to source Conda script"; exit 1; }
     conda activate $ENV_NAME
 }
 
