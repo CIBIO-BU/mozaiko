@@ -13,15 +13,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-update-conda: true
-        python-version: 3.12
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          use-only-tar-bz2: true
+          environment-file: environment.yml
 
-    - name: Run setup script
-      run: |
-        ./conda_env_setup.sh
+      - name: Make script executable
+        run: chmod +x ./conda_env_setup.sh
+
+      - name: Run environment setup script
+        run: ./conda_env_setup.sh

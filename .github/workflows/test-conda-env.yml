@@ -24,22 +24,14 @@ jobs:
         activate-environment: myenv
         environment-file: environment.yml
 
-    - name: Initialize Conda
-      run: |
-        source $HOME/miniconda/etc/profile.d/conda.sh
-        conda init bash
-        conda config --set always_yes yes --set changeps1 no
-
     - name: Install package
       run: |
-        source $HOME/miniconda/etc/profile.d/conda.sh
         conda activate myenv
         pip install .
       shell: bash
 
     - name: Run tests
       run: |
-        source $HOME/miniconda/etc/profile.d/conda.sh
         conda activate myenv
         pytest
       shell: bash
