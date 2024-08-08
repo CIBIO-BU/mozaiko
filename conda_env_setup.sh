@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ENV_NAME="dnaquaimg"
-REPO_URL="https://github.com/CIBIO-BU/DNAquaIMG"
+REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
 PACKAGE_DIR="DNAquaIMG"
 
 # Check if Conda is installed
