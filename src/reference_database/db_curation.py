@@ -4,9 +4,9 @@ generate lineage files and dereplicate sequences.
 """
 
 import json
-import os
 import subprocess
 import sys
+import os
 
 from reference_database.sequence_import import CustomFastaImport
 
@@ -28,13 +28,11 @@ class CrabsScriptGenerator:
         """
         print("Checking if CRBAS is installed...")
         try:
-            subprocess.run(
-                ["crabs", "-h"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except FileNotFoundError:
+            subprocess.run(["crabs", "-h"],
+                           check=True,
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL)
+        except  FileNotFoundError:
             print(
                 "CRBAS is not installed. Please install CRBAS before running this script."
             )
@@ -135,7 +133,9 @@ class CrabsScriptGenerator:
         Function to run the assign_tax command from CRBAS.
         """
         self._check_if_crabs_installed()
+
         self._load_parameters()
+
         self._update_parameters()
 
         print("Generating script to assign taxonomic IDs...")
