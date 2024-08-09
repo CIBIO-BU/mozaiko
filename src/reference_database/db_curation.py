@@ -4,9 +4,9 @@ generate lineage files and dereplicate sequences.
 """
 
 import json
+import os
 import subprocess
 import sys
-import os
 
 from reference_database.sequence_import import CustomFastaImport
 
@@ -28,11 +28,13 @@ class CrabsScriptGenerator:
         """
         print("Checking if CRBAS is installed...")
         try:
-            subprocess.run(["crabs", "-h"],
-                           check=True,
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
-        except  FileNotFoundError:
+            subprocess.run(
+                ["crabs", "-h"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except FileNotFoundError:
             print(
                 "CRBAS is not installed. Please install CRBAS before running this script."
             )
@@ -117,11 +119,17 @@ class CrabsScriptGenerator:
 
         print("Checking if taxonomy files already exist...")
 
-        if os.dir.exists("taxonomy_file"):
+        if os.path.exists("taxonomy_files"):
             print("Taxonomy files found. Proceeding with the analysis.")
             return
 
-        print("Taxonomy files not found. Downloading files...")
+        else:
+            print("Taxonomy files not found. Creating taxonomy_files folder...")
+            os.makedirs("taxonomy_files")
+
+        os.chdir("taxonomy_files")
+
+        print("Downloading files...")
         command = "crabs db_download --source taxonomy"
 
         subprocess.run(command, shell=True, check=True)
