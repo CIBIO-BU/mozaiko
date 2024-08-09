@@ -3,8 +3,6 @@ Unit tests for the setup.py file.
 """
 
 import os
-import subprocess
-import sys
 import unittest
 
 from setuptools import find_packages
