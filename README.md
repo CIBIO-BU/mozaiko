@@ -2,37 +2,45 @@
 # DNAquaIMG
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Conda Build](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/test-conda-setup.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/test-conda-setup.yml)
 [![Lint Status](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml)
 [![Packge Tests](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml)
 [![codecov](https://codecov.io/gh/CIBIO-BU/DNAquaIMG/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/DNAquaIMG)
-[![Conda Build](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/test-conda-setup.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/test-conda-setup.yml)
 
-Short description
+![alt text](<Screenshot from 2024-08-09 09-46-44.png>)
+mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 ## Installation instructions
 
 ### Prerequisites
 
-How to get the software up and running locally
-Dependent services needed to run (pointers)
-Configuration instructions
+- Python 3.x
+- Conda (Miniconda or Anaconda)
+- Git
 
-### conda installation
+### Installation
 
-### Docker
+1. Clone the repository:
+   ```bash
+   git clone git@github.com:CIBIO-BU/DNAquaIMG.git
+   cd DNAquaIMG
 
-How to install and run
+2. Run the installation script:
+   ```bash
+   chmod +x conda_env_setup.sh
+   ./conda_env_setup.sh
+
+This script will:
+
+- Check if Conda is installed
+- Create a new Conda environment named "dnaquaimg" if it doesn't exist
+- Activate the Conda environment
+- Clone the DNAquaIMG repository (if not already cloned)
+- Install the DNAquaIMG package
 
 # Contacts
 
-Contact points, people responsible or an address for its developers - e.g. <bu@cibioup.pt>.
-
-        How to run the software from the ready-made Docker image
-        Prerequisites
-        How to get the software up and running locally
-        Dependent services needed to run (pointers)
-        Configuration instructions
-    How to enable debug output
+In case of enquiry, please reach out to <bu@cibioup.pt>.
 
 ## Issues/Problems
 

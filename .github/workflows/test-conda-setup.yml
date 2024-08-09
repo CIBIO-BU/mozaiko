@@ -1,5 +1,5 @@
 ---
-name: Test Conda Build
+name: Conda Installation
 
 on:
   push:
