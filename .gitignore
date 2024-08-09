@@ -11,5 +11,3 @@ src/utils/
 src/seq_derep
 **/__pycache__/
 .vscode/
-src/reference_database/db_curation.py
-src/reference_database/crabs_parameters.json

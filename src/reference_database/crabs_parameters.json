@@ -1,9 +1,9 @@
 {
     "input": "",
     "output": "",
-    "acc2tax": "../../taxonomy/nucl_gb.accession2taxid",
-    "taxid": "../../taxonomy/nodes.dmp",
-    "name": "../../taxonomy/names.dmp",
+    "acc2tax": "taxonomy_files/nucl_gb.accession2taxid",
+    "taxid": "taxonomy_files/nodes.dmp",
+    "name": "taxonomy_files/names.dmp",
     "web": "no",
     "ranks": "superkingdom+phylum+class+order+family+genus+species",
     "missing": ""

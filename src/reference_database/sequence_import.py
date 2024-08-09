@@ -28,13 +28,14 @@ class CustomFastaImport:
     Handles and transforms fasta into desired outputs.
     """
 
-    def __init__(self, data):
+    def __init__(self, data=None):
         """
         Initializes the CustomFastaImport class.
         """
         self.data = data
         self.lineage_file_loader = LineageFileLoader()
         self.lineage_file = None
+        self.fasta_file = None
 
     def _validate_input(self, input_file):
         """
@@ -192,6 +193,29 @@ class CustomFastaImport:
         """
 
         self.data.to_csv(output_name, index=False)
+
+    def df2fasta(self, output_name: str = "processed_input_fasta.fasta"):
+        """
+        Write the data frame to a fasta file.
+        """
+        output_name = input(
+            "Writing FASTA file for downstream analysis... "
+            + "Enter the path to the output file: "
+        )
+
+        if not output_name.endswith(".fasta"):
+            output_name = output_name + ".fasta"
+
+        if not output_name:
+            output_name = "processed_input_fasta.fasta"
+
+        with open(output_name, "w") as file:
+            for index, row in self.data.iterrows():
+                file.write(f">{row['seq_id']}\n{row['sequence']}\n")
+
+        self.fasta_file = output_name
+
+        return self.fasta_file
 
 
 class LineageFileLoader:

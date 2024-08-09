@@ -2,3 +2,5 @@ bio==1.7.1
 biopython==1.83
 numpy==2.0.0
 pandas==2.2.2
+reference_database_creator @ git+https://github.com/gjeunen/reference_database_creator.git
+matplotlib

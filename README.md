@@ -7,7 +7,7 @@
 [![Packge Tests](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml)
 [![codecov](https://codecov.io/gh/CIBIO-BU/DNAquaIMG/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/DNAquaIMG)
 
-![alt text](<Screenshot from 2024-08-09 09-46-44.png>)
+![alt text](<mosaiko-logo.png>)
 mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 ## Installation instructions
@@ -21,22 +21,26 @@ mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone git@github.com:CIBIO-BU/DNAquaIMG.git
    cd DNAquaIMG
+   ```
 
 2. Run the installation script:
+
    ```bash
    chmod +x conda_env_setup.sh
    ./conda_env_setup.sh
+   ```
 
 This script will:
 
-- Check if Conda is installed
-- Create a new Conda environment named "dnaquaimg" if it doesn't exist
-- Activate the Conda environment
-- Clone the DNAquaIMG repository (if not already cloned)
-- Install the DNAquaIMG package
+- Check if Conda is installed;
+- Create a new Conda environment named "dnaquaimg", if it does not yet exist;
+- Activate the Conda environment;
+- Clone the DNAquaIMG repository, if not already cloned;
+- Install the DNAquaIMG package.
 
 # Contacts
 
@@ -44,8 +48,10 @@ In case of enquiry, please reach out to <bu@cibioup.pt>.
 
 ## Issues/Problems
 
-        Where the issue tracking is i.e. github issues
-        API documentation (f applicable)
+   ```markdown
+   Where the issue tracking is i.e. github issues
+   API documentation (f applicable)
+   ```
 
 ## Dev/test/staging/production environments (when applicable)
 
