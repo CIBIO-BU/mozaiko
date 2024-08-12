@@ -3,6 +3,7 @@
 ENV_NAME="dnaquaimg"
 REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
 PACKAGE_DIR="DNAquaIMG"
+CRABS_DIR="external-scripts/crabs_v0.1.7"
 
 # Check if Conda is installed
 check_conda() {
@@ -57,12 +58,39 @@ install_package() {
     echo "Installation complete."
 }
 
+# Install CRABS v0.1.7
+install_crabs_release() {
+    echo "This tool requires CRABS v0.1.7 for downstream analysis"
+    echo "Checking if CRABS v0.1.7 is installed"
+
+    crabs_output=$(crabs --version | tail -n 1)
+    crabs_version=${crabs_output##* }
+
+    if [ "$crabs_version" != '0.1.7' ]; then
+        if [ -n "$crabs_version" ]; then
+            echo "CRABS is installed with the wrong version. Please remove current CRABS installation an install 0.1.7"
+        else
+            echo "CRABS is not installed"
+            echo "Navigating to CRABS directory: $CRABS_DIR"
+            cd "$CRABS_DIR" || { echo "Directory $CRABS_DIR does not exist"; exit 1; }
+
+            echo "Installing CRABS"
+            pip install . || { echo "Failed to install package"; exit 1; }
+
+            echo "CRABS Installation complete."
+        fi
+    else
+        echo echo "CRABS is installed with 0.1.7 version."
+    fi
+}
+
 main() {
     check_conda
     check_env
     activate_env
     clone_repo
     install_package
+    install_crabs_release
 }
 
 main

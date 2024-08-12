@@ -9,7 +9,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy==2.0.0",
-        "pandas==2.2.2",
-        "crabs==0.1.7"
+        "pandas==2.2.2"
     ],
 )
