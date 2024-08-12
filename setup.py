@@ -10,7 +10,6 @@ setup(
     install_requires=[
         "numpy==2.0.0",
         "pandas==2.2.2",
-        "crabs @ git+https://github.com/gjeunen/reference_database_creator.git",
-        "matplotlib",
+        "crabs==0.1.7"
     ],
 )

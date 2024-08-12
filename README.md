@@ -7,7 +7,7 @@
 [![Packge Tests](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml)
 [![codecov](https://codecov.io/gh/CIBIO-BU/DNAquaIMG/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/DNAquaIMG)
 
-![alt text](<mosaiko-logo.png>)
+![alt text](data/images/mosaiko-logo.png)
 mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 ## Installation instructions

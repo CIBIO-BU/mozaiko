@@ -34,6 +34,9 @@ class CrabsScriptGenerator:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+
+            print(" --- CRBAS is installed. ---")
+
         except FileNotFoundError:
             print(
                 "CRBAS is not installed. Please install CRBAS before running this script."
@@ -54,6 +57,8 @@ class CrabsScriptGenerator:
         print("Loading parameters from JSON file...")
         with open(self.json_file, encoding="UTF-8") as file:
             self.params = json.load(file)
+
+        print(" --- Parameters loaded. --- ")
 
     def _update_parameters(self):
         """
@@ -90,7 +95,7 @@ class CrabsScriptGenerator:
         self.params["missing"] = input("Enter yes or no: ")
 
         if self.params["missing"] != "yes":
-            print("Disabling missing taxonomic information retrieval")
+            print(" --- Retrival of missing taxonomic information retrieval -> disabled ---")
             self.params["missing"] = "no"
 
         if self.params["missing"] == "yes":
@@ -103,13 +108,13 @@ class CrabsScriptGenerator:
         self.params["missing"] = input("Enter yes or no: ")
 
         if self.params["missing"] != "yes":
-            print("Disabling writing of sequences with missing taxonomic lineage")
+            print(" --- Writing sequences with missing taxonomic lineage -> disabled ---")
             self.params["missing"] = "no"
 
         if self.params["missing"] == "yes":
             self.params["missing"] = "yes"
 
-        print("Parameters updated.")
+        print(" --- Parameters updated. --- ")
 
     def _download_taxonomy_files(self):
         """
