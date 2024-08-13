@@ -65,15 +65,7 @@ install_package() {
 install_crabs_release() {
     echo "This tool requires CRABS v0.1.7 for downstream analysis"
     echo "Checking if CRABS v0.1.7 is installed"
-/home/camilababo/miniconda3/lib/python3.12/site-packages/Bio/Application/__init__.py:40: BiopythonDeprecationWarning: The Bio.Application modules and modules relying on it have been deprecated.
 
-Due to the on going maintenance burden of keeping command line application
-wrappers up to date, we have decided to deprecate and eventually remove these
-modules.
-
-We instead now recommend building your command line and invoking it directly
-with the subprocess module.
-  warnings.warn(
     crabs_output=$(crabs --version | tail -n 1)
     crabs_version=${crabs_output##* }
 
