@@ -35,9 +35,9 @@ activate_env() {
     CUR_SHELL=shell.$(basename -- "${SHELL}")
     eval "$(conda "$CUR_SHELL" hook)"
 
-    set -eCRABS_DIR
-    conda activate "$ENV"
-    echo "INFO: conda environment $ENV created and activated"
+    set -e
+    conda activate "$ENV_NAME"
+    echo "INFO: conda environment $ENV_NAME created and activated"
 }
 
 # Clone repository
@@ -75,6 +75,9 @@ install_crabs_release() {
         else
             echo "CRABS is not installed. Installing CRABS v0.1.7..."
 
+            echo "Creating $EXTERNAL_SCRIPTS_DIR if it doesn't exist..."
+            mkdir -p "$EXTERNAL_SCRIPTS_DIR" || { echo "Failed to create directory $EXTERNAL_SCRIPTS_DIR"; exit 1; }
+
             echo "Moving to $EXTERNAL_SCRIPTS_DIR..."
             cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
 
@@ -90,23 +93,14 @@ install_crabs_release() {
             echo "Installing CRABS"
             pip install . || { echo "Failed to install CRABS"; exit 1; }
 
-            echo "Deleting CRABS archive and renaming directory"
+            echo "Deleting CRABS archive"
             cd ..
             rm -f "$CRABS_ARCHIVE"
-            mv "$CRABS_DIR" crabs
 
             echo "CRABS Installation complete."
         fi
     else
-        echo echo "CRABS is installed with 0.1.7 version."
-    fi
-}
-
-check_biopython_version() {
-    biopython_version=$(python -c "import Bio; print(Bio.__version__)")
-    if [ "$biopython_version" != '1.78' ]; then
-        echo "Biopython is installed with a version that is not 1.78. Due to depricated modules, please install Biopython 1.78."
-        exit 1
+        echo "CRABS is installed with version 0.1.7."
     fi
 }
 
