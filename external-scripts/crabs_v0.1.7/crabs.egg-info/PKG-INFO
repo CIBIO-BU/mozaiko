@@ -1,8 +1,0 @@
-Metadata-Version: 2.1
-Name: crabs
-Version: 0.1.7
-Summary: CRABS: Creating Reference databases for Amplicon-Based Sequencing
-Home-page: https://github.com/gjeunen/reference_database_creator
-Author: Gert-Jan Jeunen
-Author-email: gjeunen@gmail.com
-License-File: LICENSE
