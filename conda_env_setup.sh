@@ -4,9 +4,9 @@ ENV_NAME="dnaquaimg"
 REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
 PACKAGE_DIR="DNAquaIMG"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
-CRABS_DIR="external_scripts"
+EXTERNAL_SCRIPTS_DIR="external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
-CRABS_EXTRACTED_DIR="${CRABS_DIR}/reference_database_creator-0.1.7"
+CRABS_EXTRACTED_DIR="${EXTERNAL_SCRIPTS_DIR}/${CRABS_ARCHIV}"
 
 # Check if Conda is installed
 check_conda() {
@@ -76,8 +76,8 @@ install_crabs_release() {
             echo "CRABS is not installed:"
             echo "Downloading CRABS v0.1.7 from $CRABS_RELEASE."
 
-            echo "Moving to $CRABS_DIR..."
-            cd "$CRABS_DIR" || { echo "Directory $CRABS_DIR does not exist"; exit 1; }
+            echo "Moving to $EXTERNAL_SCRIPTS_DIR..."
+            cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
             wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || { echo "Failed to download CRABS"; exit 1; }
 
             echo "Unzipping CRABS"
