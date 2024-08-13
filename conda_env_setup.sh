@@ -3,7 +3,9 @@
 ENV_NAME="dnaquaimg"
 REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
 PACKAGE_DIR="DNAquaIMG"
-CRABS_DIR="external_scripts/crabs_v017"
+CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
+CRABS_DIR="external_scripts/crabs"
+CRABS_DIR=$(basename -s ".tar.gz" -a $CRABS_DIR)
 
 # Check if Conda is installed
 check_conda() {
@@ -71,11 +73,17 @@ install_crabs_release() {
             echo "CRABS is installed with the wrong version. Please remove current CRABS installation an install 0.1.7"
         else
             echo "CRABS is not installed"
+            echo "Downloading CRABS v0.1.7 from $CRABS_RELEASE"
+            wget "$CRABS_RELEASE" -O "${CRABS_DIR}.tar.gz" || { echo "Failed to download CRABS"; exit 1; }
+
+            echo "Unzipping CRABS"
+            tar -xzf "${CRABS_DIR}.tar.gz" -C "$(dirname "$CRABS_DIR")" || { echo "Failed to unzip CRABS"; exit 1; }
+
             echo "Navigating to CRABS directory: $CRABS_DIR"
             cd "$CRABS_DIR" || { echo "Directory $CRABS_DIR does not exist"; exit 1; }
 
             echo "Installing CRABS"
-            pip install . || { echo "Failed to install package"; exit 1; }
+            pip install . || { echo "Failed to install CRABS"; exit 1; }
 
             echo "CRABS Installation complete."
         fi
