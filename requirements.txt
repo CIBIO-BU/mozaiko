@@ -1,5 +1,5 @@
 bio==1.7.1
-biopython==1.83
+biopython==1.78
 numpy==2.0.0
 pandas==2.2.2
 matplotlib==3.9.1.post1
