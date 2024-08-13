@@ -11,4 +11,4 @@ src/utils/
 src/seq_derep
 **/__pycache__/
 .vscode/
-external_scripts/crabs_v017
+external_scripts/crabs

@@ -90,6 +90,11 @@ install_crabs_release() {
             echo "Installing CRABS"
             pip install . || { echo "Failed to install CRABS"; exit 1; }
 
+            echo "Deleting CRABS archive and renaming directory"
+            cd ..
+            rm -f "$CRABS_ARCHIVE"
+            mv "$CRABS_DIR" crabs
+
             echo "CRABS Installation complete."
         fi
     else

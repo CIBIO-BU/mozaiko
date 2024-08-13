@@ -1,4 +1,3 @@
-bio
 biopython==1.78
 numpy==2.0.0
 pandas==2.2.2
