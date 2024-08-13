@@ -73,15 +73,13 @@ install_crabs_release() {
         if [ -n "$crabs_version" ]; then
             echo "CRABS is installed with the wrong version. Please remove current CRABS installation an install 0.1.7"
         else
-            echo "CRABS is not installed. Installing CRABS /home/camilababo/miniconda3/lib/python3.12/site-packages/Bio/Application/__init__.py:40: BiopythonDeprecationWarning: The Bio.Application modules and modules relying on it have been deprecated.
+            echo "CRABS is not installed. Installing CRABS v0.1.7..."
 
-Due to the on going maintenance burden of keeping command line application
-wrappers up to date, we have decided to deprecate and eventually remove these
-modules.
+            echo "Moving to $EXTERNAL_SCRIPTS_DIR..."
+            cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
 
-We instead now recommend building your command line and invoking it directly
-with the subprocess module.
-  warnings.warn(CRABS"; exit 1; }
+            echo "Downloading CRABS v0.1.7"
+            wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || { echo "Failed to download CRABS"; exit 1; }
 
             echo "Unzipping CRABS"
             tar -xzf "$CRABS_ARCHIVE" || { echo "Failed to unzip CRABS"; exit 1; }
