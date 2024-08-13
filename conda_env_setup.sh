@@ -6,7 +6,6 @@ PACKAGE_DIR="DNAquaIMG"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
 EXTERNAL_SCRIPTS_DIR="external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
-CRABS_EXTRACTED_DIR="${EXTERNAL_SCRIPTS_DIR}/${CRABS_ARCHIV}"
 
 # Check if Conda is installed
 check_conda() {
@@ -35,7 +34,7 @@ activate_env() {
     CUR_SHELL=shell.$(basename -- "${SHELL}")
     eval "$(conda "$CUR_SHELL" hook)"
 
-    set -e
+    set -eCRABS_DIR
     conda activate "$ENV"
     echo "INFO: conda environment $ENV created and activated"
 }
@@ -81,10 +80,7 @@ install_crabs_release() {
             wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || { echo "Failed to download CRABS"; exit 1; }
 
             echo "Unzipping CRABS"
-            tar -xzf "$CRABS_ARCHIVE" || { echo "Failed to unzip CRABS"; exit 1; }
-
-            echo "Navigating to CRABS directory: $CRABS_EXTRACTED_DIR"
-            cd "$CRABS_EXTRACTED_DIR" || { echo "Directory $CRABS_EXTRACTED_DIR does not exist"; exit 1; }
+            tar -xzf "$CRABS_ARCHIVE" -C "$CRABS_DIR" || { echo "Failed to unzip CRABS"; exit 1; }
 
             echo "Installing CRABS"
             pip install . || { echo "Failed to install CRABS"; exit 1; }
