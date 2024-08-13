@@ -6,6 +6,7 @@ PACKAGE_DIR="DNAquaIMG"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
 EXTERNAL_SCRIPTS_DIR="external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
+CRABS_DIR="reference_database_creator-0.1.7"
 
 # Check if Conda is installed
 check_conda() {
@@ -80,7 +81,10 @@ install_crabs_release() {
             wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || { echo "Failed to download CRABS"; exit 1; }
 
             echo "Unzipping CRABS"
-            tar -xzf "$CRABS_ARCHIVE" -C "$CRABS_DIR" || { echo "Failed to unzip CRABS"; exit 1; }
+            tar -xzf "$CRABS_ARCHIVE" -C "$EXTERNAL_SCRIPTS_DIR" || { echo "Failed to unzip CRABS"; exit 1; }
+
+            echo "Navigating to CRABS directory"
+            cd "$CRABS_DIR" || { echo "Directory reference_database_creator-0.1.7 does not exist"; exit 1; }
 
             echo "Installing CRABS"
             pip install . || { echo "Failed to install CRABS"; exit 1; }
@@ -89,6 +93,14 @@ install_crabs_release() {
         fi
     else
         echo echo "CRABS is installed with 0.1.7 version."
+    fi
+}
+
+check_biopython_version() {
+    biopython_version=$(python -c "import Bio; print(Bio.__version__)")
+    if [ "$biopython_version" != '1.78' ]; then
+        echo "Biopython is installed with a version that is not 1.78. Due to depricated modules, please install Biopython 1.78."
+        exit 1
     fi
 }
 
