@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 
+from external_scripts.crabs_v017 import crabs
 from reference_database.sequence_import import CustomFastaImport
 
 
@@ -92,14 +93,16 @@ class CrabsScriptGenerator:
         print(
             "Retrieve missing taxonomic information through a web search? (yes/no, default: no)"
         )
-        self.params["missing"] = input("Enter yes or no: ")
+        self.params["web"] = input("Enter yes or no: ")
 
-        if self.params["missing"] != "yes":
-            print(" --- Retrival of missing taxonomic information retrieval -> disabled ---")
-            self.params["missing"] = "no"
+        if self.params["web"] != "yes":
+            print(
+                " --- Web-based retrival of missing taxonomic information: Disabled ---"
+            )
+            self.params["web"] = "no"
 
-        if self.params["missing"] == "yes":
-            self.params["missing"] = "yes"
+        if self.params["web"] == "yes":
+            self.params["web"] = "yes"
 
         print(
             "Write sequences for which no taxonomic lineage was found to a file?"
@@ -108,7 +111,7 @@ class CrabsScriptGenerator:
         self.params["missing"] = input("Enter yes or no: ")
 
         if self.params["missing"] != "yes":
-            print(" --- Writing sequences with missing taxonomic lineage -> disabled ---")
+            print(" --- Writing sequences with missing taxonomic lineage: Disabled ---")
             self.params["missing"] = "no"
 
         if self.params["missing"] == "yes":
@@ -137,7 +140,7 @@ class CrabsScriptGenerator:
         print("Downloading files...")
         command = "crabs db_download --source taxonomy"
 
-        subprocess.run(command, shell=True, check=True)
+        subprocess.run(command, shell=True, check=True)  # TODO: fix wrapper download
 
         print("Taxonomy files downloaded.")
 
@@ -147,23 +150,25 @@ class CrabsScriptGenerator:
         """
         self._check_if_crabs_installed()
 
+        self._download_taxonomy_files()
+
         self._load_parameters()
 
         self._update_parameters()
 
-        print("Generating script to assign taxonomic IDs...")
-        command = (
-            f"crabs assign_tax --input {self.params['input']} --output {self.params['output']}"
-            f" --acc2tax {self.params['acc2tax']} --taxid {self.params['taxid']}"
-            f" --name {self.params['name']} --missing {self.params['missing']}"
-        )
+        print("All set. Running taxonomy assignment task..")
 
-        print(f"Script generated: {command}")
-
-        print("Running script...")
-        subprocess.run(command, shell=True, check=True)
+        crabs.assign_tax(
+            input=self.params["input"],
+            output=self.params["output"],
+            ranks=None,
+            web=self.params["web"],
+            missing=self.params["missing"],
+        )  # TODO: fix wrapper assign_tax
 
     def generate_dereplicate_script(self):
         """
         Function to write the script to dereplicate sequences.
         """
+
+        self._load_parameters()

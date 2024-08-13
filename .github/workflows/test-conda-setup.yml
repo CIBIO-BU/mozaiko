@@ -1,5 +1,5 @@
 ---
-name: Conda Installation
+name: Conda Build
 
 on:
   push:

@@ -3,7 +3,7 @@
 ENV_NAME="dnaquaimg"
 REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
 PACKAGE_DIR="DNAquaIMG"
-CRABS_DIR="external-scripts/crabs_v0.1.7"
+CRABS_DIR="external_scripts/crabs_v017"
 
 # Check if Conda is installed
 check_conda() {
@@ -28,7 +28,6 @@ activate_env() {
     echo "Activating Conda environment: $ENV_NAME"
 
     # Ensure Conda is initialized
-    # This step might be needed to properly configure the shell for Conda
     CUR_SHELL=shell.$(basename -- "${SHELL}")
     eval "$(conda "$CUR_SHELL" hook)"
 
@@ -41,9 +40,11 @@ activate_env() {
 clone_repo() {
     if [ -d "$PACKAGE_DIR" ]; then
         echo "Directory $PACKAGE_DIR already exists. Skipping repository cloning."
-    else
-        echo "Cloning repository from $REPO_URL."
-        git clone "$REPO_URL" || { echo "Failed to clone repository"; exit 1; }
+    else        print("Generating script to assign taxonomic IDs...")
+        command = (
+            f"crabs assign_tax --input {self.params['input']} --output {self.params['output']}"
+            f" --acc2tax {self.params['acc2tax']} --taxid {self.params['taxid']}"
+            f" --name {self.params['name']} --missing {self.params['missing']}" echo "Failed to clone repository"; exit 1; }
     fi
 }
 
