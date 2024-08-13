@@ -65,7 +65,15 @@ install_package() {
 install_crabs_release() {
     echo "This tool requires CRABS v0.1.7 for downstream analysis"
     echo "Checking if CRABS v0.1.7 is installed"
+/home/camilababo/miniconda3/lib/python3.12/site-packages/Bio/Application/__init__.py:40: BiopythonDeprecationWarning: The Bio.Application modules and modules relying on it have been deprecated.
 
+Due to the on going maintenance burden of keeping command line application
+wrappers up to date, we have decided to deprecate and eventually remove these
+modules.
+
+We instead now recommend building your command line and invoking it directly
+with the subprocess module.
+  warnings.warn(
     crabs_output=$(crabs --version | tail -n 1)
     crabs_version=${crabs_output##* }
 
@@ -73,15 +81,18 @@ install_crabs_release() {
         if [ -n "$crabs_version" ]; then
             echo "CRABS is installed with the wrong version. Please remove current CRABS installation an install 0.1.7"
         else
-            echo "CRABS is not installed:"
-            echo "Downloading CRABS v0.1.7 from $CRABS_RELEASE."
+            echo "CRABS is not installed. Installing CRABS /home/camilababo/miniconda3/lib/python3.12/site-packages/Bio/Application/__init__.py:40: BiopythonDeprecationWarning: The Bio.Application modules and modules relying on it have been deprecated.
 
-            echo "Moving to $EXTERNAL_SCRIPTS_DIR..."
-            cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
-            wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || { echo "Failed to download CRABS"; exit 1; }
+Due to the on going maintenance burden of keeping command line application
+wrappers up to date, we have decided to deprecate and eventually remove these
+modules.
+
+We instead now recommend building your command line and invoking it directly
+with the subprocess module.
+  warnings.warn(CRABS"; exit 1; }
 
             echo "Unzipping CRABS"
-            tar -xzf "$CRABS_ARCHIVE" -C "$EXTERNAL_SCRIPTS_DIR" || { echo "Failed to unzip CRABS"; exit 1; }
+            tar -xzf "$CRABS_ARCHIVE" || { echo "Failed to unzip CRABS"; exit 1; }
 
             echo "Navigating to CRABS directory"
             cd "$CRABS_DIR" || { echo "Directory reference_database_creator-0.1.7 does not exist"; exit 1; }
