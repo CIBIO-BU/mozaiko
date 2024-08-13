@@ -18,8 +18,12 @@ class CrabsScriptGenerator:
 
     def __init__(self):
         _base_path = os.path.dirname(os.path.abspath(__file__))
-        self.assing_tax_parameters = os.path.join(_base_path, "assign_tax_parameters.json")
-        self.dereplicate_json_parameters = os.path.join(_base_path, "dereplicate_parameters.json")
+        self.assing_tax_parameters = os.path.join(
+            _base_path, "assign_tax_parameters.json"
+        )
+        self.dereplicate_json_parameters = os.path.join(
+            _base_path, "dereplicate_parameters.json"
+        )
         self.params = {}
         self.fasta_import = CustomFastaImport()
 
@@ -96,7 +100,9 @@ class CrabsScriptGenerator:
         self.params["web"] = input("Enter yes or no: ")
 
         if self.params["web"] != "yes":
-            print(" --- Web-based retrival of missing taxonomic information: Disabled ---")
+            print(
+                " --- Web-based retrival of missing taxonomic information: Disabled ---"
+            )
             self.params["web"] = "no"
 
         if self.params["web"] == "yes":
@@ -138,7 +144,7 @@ class CrabsScriptGenerator:
         print("Downloading files...")
         command = "crabs db_download --source taxonomy"
 
-        subprocess.run(command, shell=True, check=True) #TODO: fix wrapper download
+        subprocess.run(command, shell=True, check=True)  # TODO: fix wrapper download
 
         print("Taxonomy files downloaded.")
 
@@ -147,15 +153,14 @@ class CrabsScriptGenerator:
         Function to update needed parameters for the dereplicate by user request."
         """
         print(
-                "To clean-up and dereplicate the sequences, "
-                + "the following parameters are required:"
+            "To clean-up and dereplicate the sequences, "
+            + "the following parameters are required:"
         )
 
         # Retrieve processed fasta file as input
         self.params["input"] = self.fasta_import.fasta_file
 
         # TODO: write update parameters
-
 
     def run_assign_tax_command(self):
         """
@@ -185,7 +190,6 @@ class CrabsScriptGenerator:
         # print("Running script...")
         subprocess.run(command, shell=True, check=True)
 
-
     def generate_dereplicate_script(self):
         """
         Function to write the script to dereplicate sequences.
@@ -201,9 +205,11 @@ class CrabsScriptGenerator:
 
         command = (
             f"crabs dereplicate --input {self.dereplicate_json_parameters['input']}"
-            f" --output {self.}"
+            f" --output {self.dereplicate_json_parameters['output']}"
+            f" --method {self.dereplicate_json_parameters['method']}"
+            f" --ranks {self.dereplicate_json_parameters['rank']}"
         )
-        #TODO: write command
+        # TODO: write command
 
         # print(f"Script generated: {command}")
 

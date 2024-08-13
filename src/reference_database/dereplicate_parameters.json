@@ -1,6 +1,6 @@
 {
     "input": "",
     "output": "",
-    "method": "",
+    "method": "uniq_species",
     "ranks": "superkingdom+phylum+class+order+family+genus+species"
 }
