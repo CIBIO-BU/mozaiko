@@ -7,6 +7,8 @@ setup(
     author_email="camila.babo@cibio.up.pt",
     url="https://github.com/CIBIO-BU/DNAquaIMG",
     packages=find_packages(),
+    package_data={"": ["*"]},
+    include_package_data=True,
     install_requires=[
         "numpy==2.0.0",
         "pandas==2.2.2",
@@ -14,5 +16,7 @@ setup(
         "biopython==1.78",
         "tqdm",
     ],
-    scripts=["mosaiko"],
+    entry_points={
+        "console_scripts": ["mosaiko=src.mosaiko:main"],
+    },
 )
