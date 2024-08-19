@@ -14,5 +14,5 @@ setup(
         "biopython==1.78",
         "tqdm",
     ],
-    scripts=['mosaiko']
+    scripts=["mosaiko"],
 )
