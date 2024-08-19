@@ -7,14 +7,25 @@ from src.reference_database.sequence_import import CustomFastaImport
 
 
 def create_parser():
-    parser = argparse.ArgumentParser(description="mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring")
-    parser.add_argument('-i', '--input', help='Path to the input FASTA file')
-    parser.add_argument('-o', '--output', help='Path to output files (for FASTA and CSV)')
-    parser.add_argument('--csv', action='store_true', help='Generate CSV output')
-    parser.add_argument('--load_custom_fasta', action='store_true', help='Load custom FASTA file.')
-    parser.add_argument('--assign_tax', action='store_true', help='Assign taxonomic information.')
-    parser.add_argument('--dereplicate', action='store_true', help='Dereplicate sequences.')
+    parser = argparse.ArgumentParser(
+        description="mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring"
+    )
+    parser.add_argument("-i", "--input", help="Path to the input FASTA file")
+    parser.add_argument(
+        "-o", "--output", help="Path to output files (for FASTA and CSV)"
+    )
+    parser.add_argument("--csv", action="store_true", help="Generate CSV output")
+    parser.add_argument(
+        "--load_custom_fasta", action="store_true", help="Load custom FASTA file."
+    )
+    parser.add_argument(
+        "--assign_tax", action="store_true", help="Assign taxonomic information."
+    )
+    parser.add_argument(
+        "--dereplicate", action="store_true", help="Dereplicate sequences."
+    )
     return parser
+
 
 def main():
     parser = create_parser()
@@ -33,7 +44,11 @@ def main():
             fasta_import.df2fasta(args.output)
 
         if args.csv:
-            csv_output = args.output.rsplit('.', 1)[0] + '.csv' if args.output else 'processed_input_fasta.csv'
+            csv_output = (
+                args.output.rsplit(".", 1)[0] + ".csv"
+                if args.output
+                else "processed_input_fasta.csv"
+            )
             fasta_import.df2csv(csv_output)
 
         print(f"Processed {fasta_import.get_number_of_sequences()} sequences.")
@@ -42,6 +57,7 @@ def main():
 
     if args.assign_tax:
         crabs_generator.run_assign_tax_command()
+
 
 if __name__ == "__main__":
     main()
