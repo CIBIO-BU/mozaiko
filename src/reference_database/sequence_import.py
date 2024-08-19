@@ -16,6 +16,7 @@ The CustomFastaImport class contains the following methods:
 - df2csv: Write the data frame to a csv file.
 """
 
+import argparse
 import os
 import re
 
@@ -373,3 +374,20 @@ class LineageFileLoader:
             break
 
         return self.lineage_file
+
+
+def create_parser():
+    """
+    Creates an ArgumentParser object to parse the command line arguments.
+    """
+    parser = argparse.ArgumentParser(
+        description="Tool to import custom fasta files for downstream analysis."
+    )
+
+    parser.add_argument(
+        "input_file",
+        type=str,
+        help="Path to the input fasta file.",
+    )
+
+    return parser

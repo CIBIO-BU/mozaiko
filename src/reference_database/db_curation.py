@@ -144,7 +144,7 @@ class CrabsScriptGenerator:
         print("Downloading files...")
         command = "crabs db_download --source taxonomy"
 
-        subprocess.run(command, shell=True, check=True)  # TODO: fix wrapper download
+        subprocess.run(command, shell=True, check=True)
 
         print("Taxonomy files downloaded.")
 
@@ -182,7 +182,7 @@ class CrabsScriptGenerator:
             f"crabs assign_tax --input {self.params['input']} --output {self.params['output']}"
             f" --acc2tax {self.params['acc2tax']} --taxid {self.params['taxid']}"
             f" --name {self.params['name']} --web {self.params['web']}"
-            f" --rank {self.params['rank']} --missing {self.params['missing']}"
+            f" --rank {self.params['ranks']} --missing {self.params['missing']}"
         )
 
         # print(f"Script generated: {command}")
@@ -207,7 +207,7 @@ class CrabsScriptGenerator:
             f"crabs dereplicate --input {self.dereplicate_json_parameters['input']}"
             f" --output {self.dereplicate_json_parameters['output']}"
             f" --method {self.dereplicate_json_parameters['method']}"
-            f" --ranks {self.dereplicate_json_parameters['rank']}"
+            f" --ranks {self.dereplicate_json_parameters['ranks']}"
         )
         # TODO: write command
 

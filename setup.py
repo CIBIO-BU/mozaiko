@@ -12,5 +12,7 @@ setup(
         "pandas==2.2.2",
         "matplotlib==3.9.1.post1",
         "biopython==1.78",
+        "tqdm",
     ],
+    scripts=['mosaiko']
 )
