@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-from src.reference_database.sequence_import import CustomFastaImport
+
 from src.reference_database.db_curation import CrabsScriptGenerator
+from src.reference_database.sequence_import import CustomFastaImport
+
 
 def create_parser():
     parser = argparse.ArgumentParser(description="mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring")
