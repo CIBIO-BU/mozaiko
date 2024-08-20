@@ -31,7 +31,7 @@ class CrabsScriptGenerator:
         """
         Function to check if CRBAS is installed.
         """
-        print("Checking if CRBAS is installed...")
+        print("mosaiko INFO: Checking if CRBAS is installed...")
         try:
             subprocess.run(
                 ["crabs", "-h"],
@@ -40,11 +40,11 @@ class CrabsScriptGenerator:
                 stderr=subprocess.DEVNULL,
             )
 
-            print(" --- CRBAS is installed. ---")
+            print("mosaiko INFO: CRBAS is installed.")
 
         except FileNotFoundError:
             print(
-                "CRBAS is not installed. Please install CRBAS before running this script."
+                "mosaiko INFO: CRBAS is not installed. Please install CRBAS before running this script."
             )
             print(
                 "CRABS can be found at "
@@ -59,11 +59,11 @@ class CrabsScriptGenerator:
         """
         Function to load the parameters from the JSON file.
         """
-        print("Loading parameters from JSON file...")
+        print("mosaiko INFO: Loading parameters from JSON file...")
         with open(json_file, encoding="UTF-8") as file:
             self.params = json.load(file)
 
-        print(" --- Parameters loaded. --- ")
+        print("mosaiko INFO: Parameters loaded.")
 
     def _update_assign_tax_parameters(self):
         """
@@ -76,10 +76,25 @@ class CrabsScriptGenerator:
         )
 
         # Retrieve processed fasta file as input
+        if self.fasta_import.fasta_file is None:
+            print("1. Path to the input FASTA file:")
+            fasta_file = input("Enter the path to the input FASTA file: ")
+            self.fasta_import.read_fasta(fasta_file)
+
         self.params["input"] = self.fasta_import.fasta_file
 
         print("2. Path to the output file")
         self.params["output"] = input("Enter the path to the output file: ")
+
+        if not self.params["output"]:
+            print("No output file specified. Exiting...")
+            sys.exit(1)
+
+        extension = self.params["output"].split(".")[1]
+
+        if extension != "tsv":
+            print("Output file must be a TSV file. Exiting...")
+            sys.exit(1)
 
         # Optional Parameters
         print("The following requirements are optional:")
@@ -100,13 +115,13 @@ class CrabsScriptGenerator:
         self.params["web"] = input("Enter yes or no: ")
 
         if self.params["web"] != "yes":
-            print(
-                " --- Web-based retrival of missing taxonomic information: Disabled ---"
-            )
-            self.params["web"] = "no"
+            print(" Web-based retrival of missing taxonomic information: Disabled")
 
         if self.params["web"] == "yes":
-            self.params["web"] = "yes"
+            missing_file = input(
+                "Enter the path to the file with missing taxonomic information: "
+            )
+            self.params["web"] = missing_file
 
         print(
             "Write sequences for which no taxonomic lineage was found to a file?"
@@ -115,38 +130,38 @@ class CrabsScriptGenerator:
         self.params["missing"] = input("Enter yes or no: ")
 
         if self.params["missing"] != "yes":
-            print(" --- Writing sequences with missing taxonomic lineage: Disabled ---")
+            print("Writing sequences with missing taxonomic lineage: Disabled")
             self.params["missing"] = "no"
 
         if self.params["missing"] == "yes":
             self.params["missing"] = "yes"
 
-        print(" --- Parameters updated. --- ")
+        print("mosaiko INFO: Parameters updated.")
 
     def _download_taxonomy_files(self):
         """
         Functions to download the taxonomy files from the NCBI database.
         """
-        print("Downloading taxonomy files...")
-
-        print("Checking if taxonomy files already exist...")
+        print("mosaiko INFO: Checking if taxonomy files already exist...")
 
         if os.path.exists("taxonomy_files"):
-            print("Taxonomy files found. Proceeding with the analysis.")
+            print("mosaiko INFO: Taxonomy files found. Proceeding with the analysis.")
             return
 
         else:
-            print("Taxonomy files not found. Creating taxonomy_files folder...")
+            print(
+                "mosaiko INFO: Taxonomy files not found. Creating taxonomy_files folder..."
+            )
             os.makedirs("taxonomy_files")
 
         os.chdir("taxonomy_files")
 
-        print("Downloading files...")
+        print("mosaiko INFO: Downloading files...")
         command = "crabs db_download --source taxonomy"
 
         subprocess.run(command, shell=True, check=True)
 
-        print("Taxonomy files downloaded.")
+        print("mosaiko INFO: Taxonomy files downloaded.")
 
     def _update_dereplicate_parameters(self):
         """
@@ -174,7 +189,7 @@ class CrabsScriptGenerator:
 
         self._update_assign_tax_parameters()
 
-        print("All set. Running taxonomy assignment task..")
+        print(" mosaiko INFO: All set. Running taxonomy assignment task..")
 
         # print("Generating script to assign taxonomic IDs...")
 

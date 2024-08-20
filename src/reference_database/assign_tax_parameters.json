@@ -6,5 +6,5 @@
     "name": "taxonomy_files/names.dmp",
     "web": "no",
     "ranks": "superkingdom+phylum+class+order+family+genus+species",
-    "missing": ""
+    "missing": "no"
 }

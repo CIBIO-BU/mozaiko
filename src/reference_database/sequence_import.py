@@ -127,6 +127,8 @@ class CustomFastaImport:
 
         self._check_for_taxids(input_file)
 
+        self.fasta_file = self.df2fasta(output_name="processed_input.fasta")
+
         return self.data
 
     def get_taxids(self):
