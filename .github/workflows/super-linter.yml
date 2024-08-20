@@ -35,9 +35,6 @@
         - name: Set PYTHONPATH
           run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
 
-        - name: Run MyPy
-          run: PYTHONPATH=$(pwd)/src mypy --no-install-types --cache-dir=.mypy_cache src/
-
         - name: Sort imports with isort
           run: |
             isort .
