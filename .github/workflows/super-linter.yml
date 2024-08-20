@@ -29,6 +29,7 @@
             python -m pip install --upgrade pip
             pip install -r requirements.txt
             pip install isort black  # Install isort and black
+            pip install mypy
             pip install types-requests types-setuptools
 
         - name: Set PYTHONPATH
