@@ -13,4 +13,3 @@ src/seq_derep
 .vscode/
 external_scripts/crabs
 tests/test_mosaiko.py
-tests/test_db_curation.py
