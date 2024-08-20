@@ -94,7 +94,7 @@ class CustomFastaImport:
 
             if not taxid_found:
                 print(
-                    "No TaxIDs found in the fasta file. Starting lineage file upload process."
+                    "mosaiko INFO: No TaxIDs found in the fasta file. Starting lineage file upload process."
                 )
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
@@ -201,16 +201,6 @@ class CustomFastaImport:
         """
         Write the data frame to a fasta file.
         """
-        output_name = input(
-            "Writing FASTA file for downstream analysis... "
-            + "Enter the path to the output file: "
-        )
-
-        if not output_name.endswith(".fasta"):
-            output_name = output_name + ".fasta"
-
-        if not output_name:
-            output_name = "processed_input_fasta.fasta"
 
         with open(output_name, "w") as file:
             for index, row in self.data.iterrows():
