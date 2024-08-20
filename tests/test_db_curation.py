@@ -20,8 +20,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             stderr=subprocess.DEVNULL,
         )
 
-    patch("subprocess.run", side_effect=FileNotFoundError)
-
+    @patch("subprocess.run", side_effect=FileNotFoundError)
     def test_check_if_crabs_installed_not_installed(self, mock_run):
         with self.assertRaises(SystemExit):
             self.generator._check_if_crabs_installed()
