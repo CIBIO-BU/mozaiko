@@ -29,7 +29,7 @@
             python -m pip install --upgrade pip
             pip install -r requirements.txt
             pip install isort black  # Install isort and black
-            pip install types-requests types-setuptools
+            python -m mypy --install-types --non-interactive --cache-dir=.mypy_cache/
 
         - name: Set PYTHONPATH
           run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
