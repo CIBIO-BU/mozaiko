@@ -32,11 +32,11 @@
             pip install mypy
             pip install types-requests types-setuptools
 
-        - name: Run MyPy
-          run: mypy --no-install-types --cache-dir=.mypy_cache --package DNAquaIMG.src
-
         - name: Set PYTHONPATH
           run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
+
+        - name: Run MyPy
+          run: PYTHONPATH=$(pwd)/src mypy --no-install-types --cache-dir=.mypy_cache src/
 
         - name: Sort imports with isort
           run: |
