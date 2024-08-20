@@ -177,7 +177,7 @@ class CrabsScriptGenerator:
 
         # TODO: write update parameters
 
-    def run_assign_tax_command(self):
+    def run_assign_tax_command(self, json_file=None):
         """
         Function to run the assign_tax command from CRBAS.
         """
@@ -185,9 +185,11 @@ class CrabsScriptGenerator:
 
         self._download_taxonomy_files()
 
-        self._load_parameters(self.assing_tax_parameters)
-
-        self._update_assign_tax_parameters()
+        if json_file:
+            self._load_parameters(json_file)
+        else:
+            self._load_parameters(self.assing_tax_parameters)
+            self._update_assign_tax_parameters()
 
         print(" mosaiko INFO: All set. Running taxonomy assignment task..")
 

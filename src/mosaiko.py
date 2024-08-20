@@ -18,6 +18,7 @@ def create_parser():
     parser.add_argument(
         "--load_custom_fasta", action="store_true", help="Load custom FASTA file."
     )
+    parser.add_argument("--json_file", help="Path to the JSON file with parameters.")
     parser.add_argument(
         "--assign_tax", action="store_true", help="Assign taxonomic information."
     )
@@ -55,7 +56,13 @@ def main():
 
     crabs_generator = CrabsScriptGenerator()
 
-    if args.assign_tax:
+    if args.assign_tax and args.json_file:
+        crabs_generator.run_assign_tax_command(args.json_file)
+
+    if args.assign_tax and not args.json_file:
+        print(
+            "mosaiko INFO: No JSON file specified. Loading parameters from user input..."
+        )
         crabs_generator.run_assign_tax_command()
 
 

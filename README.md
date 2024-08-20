@@ -42,7 +42,25 @@ This script will:
 - Clone the DNAquaIMG repository, if not already cloned;
 - Install the DNAquaIMG package.
 
-# Contacts
+## Running mosaiko
+
+To upload custom FASTA sequences:
+
+   ```bash
+   mosaiko --load_custom_fasta --input path/to/file
+   ```
+
+To assign taxonomic information to sequences,
+the best practice is to include a JSON file that
+specifies all the correct parameters.
+A template for this JSON file can be found in
+[here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/assign_tax_parameters.json).
+
+   ```bash
+   mosaiko --assign_tax --json_file path/to/json/file
+   ```
+
+## Contacts
 
 In case of enquiry, please reach out to <bu@cibioup.pt>.
 
