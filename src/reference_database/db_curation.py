@@ -65,78 +65,78 @@ class CrabsScriptGenerator:
 
         print("mosaiko INFO: Parameters loaded.")
 
-    def _update_assign_tax_parameters(self):
-        """
-        Function to update needed parameters for the assign_tax by user request."
-        """
-        # Required Parameters
-        print(
-            "To assign the taxonomic IDs and generate the lineage files, "
-            + "the following parameters are required:"
-        )
+    # def _update_assign_tax_parameters(self):
+    #     """
+    #     Function to update needed parameters for the assign_tax by user request."
+    #     """
+    #     # Required Parameters
+    #     print(
+    #         "To assign the taxonomic IDs and generate the lineage files, "
+    #         + "the following parameters are required:"
+    #     )
 
-        # Retrieve processed fasta file as input
-        if self.fasta_import.fasta_file is None:
-            print("1. Path to the input FASTA file:")
-            fasta_file = input("Enter the path to the input FASTA file: ")
-            self.fasta_import.read_fasta(fasta_file)
+    #     # Retrieve processed fasta file as input
+    #     if self.fasta_import.fasta_file is None:
+    #         print("1. Path to the input FASTA file:")
+    #         fasta_file = input("Enter the path to the input FASTA file: ")
+    #         self.fasta_import.read_fasta(fasta_file)
 
-        self.params["input"] = self.fasta_import.fasta_file
+    #     self.params["input"] = self.fasta_import.fasta_file
 
-        print("2. Path to the output file")
-        self.params["output"] = input("Enter the path to the output file: ")
+    #     print("2. Path to the output file")
+    #     self.params["output"] = input("Enter the path to the output file: ")
 
-        if not self.params["output"]:
-            print("No output file specified. Exiting...")
-            sys.exit(1)
+    #     if not self.params["output"]:
+    #         print("No output file specified. Exiting...")
+    #         sys.exit(1)
 
-        extension = self.params["output"].split(".")[1]
+    #     extension = self.params["output"].split(".")[1]
 
-        if extension != "tsv":
-            print("Output file must be a TSV file. Exiting...")
-            sys.exit(1)
+    #     if extension != "tsv":
+    #         print("Output file must be a TSV file. Exiting...")
+    #         sys.exit(1)
 
-        # Optional Parameters
-        print("The following requirements are optional:")
+    #     # Optional Parameters
+    #     print("The following requirements are optional:")
 
-        # print("Proceed with default taxonomic ranks? " +
-        #       "(superkingdom+phylum+class+order+family+genus+species)" +
-        #       "Ente yes to proceed with default ranks, or no to specify custom ranks.")
+    #     # print("Proceed with default taxonomic ranks? " +
+    #     #       "(superkingdom+phylum+class+order+family+genus+species)" +
+    #     #       "Ente yes to proceed with default ranks, or no to specify custom ranks.")
 
-        # self.params["ranks"] = input("Enter yes or no: ")
+    #     # self.params["ranks"] = input("Enter yes or no: ")
 
-        # if self.params["ranks"] != "yes":
-        #     print("Disabling default taxonomic ranks")
-        #     self.params["ranks"] = input("Enter the taxonomic ranks to use: (separated by '+')")
+    #     # if self.params["ranks"] != "yes":
+    #     #     print("Disabling default taxonomic ranks")
+    #     #     self.params["ranks"] = input("Enter the taxonomic ranks to use: (separated by '+')")
 
-        print(
-            "Retrieve missing taxonomic information through a web search? (yes/no, default: no)"
-        )
-        self.params["web"] = input("Enter yes or no: ")
+    #     print(
+    #         "Retrieve missing taxonomic information through a web search? (yes/no, default: no)"
+    #     )
+    #     self.params["web"] = input("Enter yes or no: ")
 
-        if self.params["web"] != "yes":
-            print(" Web-based retrival of missing taxonomic information: Disabled")
+    #     if self.params["web"] != "yes":
+    #         print(" Web-based retrival of missing taxonomic information: Disabled")
 
-        if self.params["web"] == "yes":
-            missing_file = input(
-                "Enter the path to the file with missing taxonomic information: "
-            )
-            self.params["web"] = missing_file
+    #     if self.params["web"] == "yes":
+    #         missing_file = input(
+    #             "Enter the path to the file with missing taxonomic information: "
+    #         )
+    #         self.params["web"] = missing_file
 
-        print(
-            "Write sequences for which no taxonomic lineage was found to a file?"
-            + "(yes/no, default: no)"
-        )
-        self.params["missing"] = input("Enter yes or no: ")
+    #     print(
+    #         "Write sequences for which no taxonomic lineage was found to a file?"
+    #         + "(yes/no, default: no)"
+    #     )
+    #     self.params["missing"] = input("Enter yes or no: ")
 
-        if self.params["missing"] != "yes":
-            print("Writing sequences with missing taxonomic lineage: Disabled")
-            self.params["missing"] = "no"
+    #     if self.params["missing"] != "yes":
+    #         print("Writing sequences with missing taxonomic lineage: Disabled")
+    #         self.params["missing"] = "no"
 
-        if self.params["missing"] == "yes":
-            self.params["missing"] = "yes"
+    #     if self.params["missing"] == "yes":
+    #         self.params["missing"] = "yes"
 
-        print("mosaiko INFO: Parameters updated.")
+    #     print("mosaiko INFO: Parameters updated.")
 
     def _download_taxonomy_files(self):
         """
@@ -185,11 +185,7 @@ class CrabsScriptGenerator:
 
         self._download_taxonomy_files()
 
-        if json_file:
-            self._load_parameters(json_file)
-        else:
-            self._load_parameters(self.assing_tax_parameters)
-            self._update_assign_tax_parameters()
+        self._load_parameters(json_file)
 
         print(" mosaiko INFO: All set. Running taxonomy assignment task..")
 

@@ -56,14 +56,16 @@ def main():
 
     crabs_generator = CrabsScriptGenerator()
 
-    if args.assign_tax and args.json_file:
-        crabs_generator.run_assign_tax_command(args.json_file)
-
     if args.assign_tax and not args.json_file:
         print(
-            "mosaiko INFO: No JSON file specified. Loading parameters from user input..."
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters."
         )
-        crabs_generator.run_assign_tax_command()
+        print("Exiting...")
+        return
+
+    if args.assign_tax and args.json_file:
+        print("mosaiko INFO: Initiating taxonomic assignment ...")
+        crabs_generator.run_assign_tax_command(args.json_file)
 
 
 if __name__ == "__main__":
