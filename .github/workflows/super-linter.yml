@@ -36,7 +36,7 @@
           run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
 
         - name: Run MyPy
-          run: mypy --no-install-types --cache-dir=.mypy_cache src/
+          run: mypy --no-install-types --cache-dir=.mypy_cache DNAquaIMG.src
 
         - name: Sort imports with isort
           run: |
