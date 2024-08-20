@@ -81,7 +81,9 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         mock_load_params.assert_called_with("dummy.json")
         mock_download_files.assert_called_once()
         mock_run.assert_called_with(
-            "crabs assign_tax --input input_file --output output_file --acc2tax acc2tax_file --taxid taxid_file --name name_file --web web --rank rank --missing missing",
+            "crabs assign_tax --input input_file --output output_file "
+            "--acc2tax acc2tax_file --taxid taxid_file --name name_file "
+            "--web web --rank rank --missing missing",
             shell=True,
             check=True,
         )
