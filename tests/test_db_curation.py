@@ -1,3 +1,7 @@
+"""
+Unit tests for the CrabsScriptGenerator class in db_curation.py
+"""
+
 import subprocess
 import unittest
 from unittest.mock import mock_open, patch
@@ -6,12 +10,21 @@ from src.reference_database.db_curation import CrabsScriptGenerator
 
 
 class TestCrabsScriptGenerator(unittest.TestCase):
+    """
+    Class to test the CrabsScriptGenerator class in db_curation.py
+    """
 
     def setUp(self):
+        """
+        Set up the CrabsScriptGenerator object for testing.
+        """
         self.generator = CrabsScriptGenerator()
 
     @patch("subprocess.run")
     def test_check_if_crabs_installed(self, mock_subprocess):
+        """
+        Test that the _check_if_crabs_installed method runs without errors.
+        """
         self.generator._check_if_crabs_installed()
         mock_subprocess.assert_called_with(
             ["crabs", "-h"],
@@ -22,6 +35,10 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
     @patch("subprocess.run", side_effect=FileNotFoundError)
     def test_check_if_crabs_installed_not_installed(self, mock_run):
+        """
+        Test that the _check_if_crabs_installed method raises a SystemExit when crabs is not
+        installed.
+        """
         with self.assertRaises(SystemExit):
             self.generator._check_if_crabs_installed()
 
@@ -34,6 +51,9 @@ class TestCrabsScriptGenerator(unittest.TestCase):
     )
     @patch("json.load")
     def test_load_parameters(self, mock_json_load, mock_file):
+        """
+        Test that the _load_parameters method loads the parameters from a JSON file.
+        """
         mock_json_load.return_value = {"input": "input.fasta"}
         self.generator._load_parameters("dummy.json")
         mock_file.assert_called_with("dummy.json", encoding="UTF-8")
@@ -41,6 +61,10 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
     @patch("os.path.exists", return_value=True)
     def test_download_taxonomy_files_exists(self, mock_path_exists):
+        """
+        Test that the _download_taxonomy_files method does not download the taxonomy files if they
+        already exist.
+        """
         self.generator._download_taxonomy_files()
         mock_path_exists.assert_called_with("taxonomy_files")
 
@@ -49,8 +73,12 @@ class TestCrabsScriptGenerator(unittest.TestCase):
     @patch("os.chdir")
     @patch("subprocess.run")
     def test_download_taxonomy_files_not_exists(
-        self, mock_run, mock_chdir, mock_mkdir, mock_path_exists
+        self, mock_run, mock_chdir, mock_mkdir, _mock_path_exists
     ):
+        """
+        Test that the _download_taxonomy_files method downloads the taxonomy files if they do not
+        exist.
+        """
         self.generator._download_taxonomy_files()
         mock_mkdir.assert_called_with("taxonomy_files")
         mock_chdir.assert_called_with("taxonomy_files")
@@ -66,6 +94,10 @@ class TestCrabsScriptGenerator(unittest.TestCase):
     def test_run_assign_tax_command(
         self, mock_load_params, mock_download_files, mock_run
     ):
+        """
+        Test that the run_assign_tax_command method runs the assign_tax command with the correct
+        parameters.
+        """
         self.generator.params = {
             "input": "input_file",
             "output": "output_file",
