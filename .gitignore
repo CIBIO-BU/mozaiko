@@ -12,4 +12,3 @@ src/seq_derep
 **/__pycache__/
 .vscode/
 external_scripts/crabs
-tests/test_mosaiko.py
