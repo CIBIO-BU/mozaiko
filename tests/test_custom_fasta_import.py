@@ -115,7 +115,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file)
         self.fasta_import.df2csv()
-        example_file = "processed_input_fasta.csv"
+        example_file = "data/output_data/processed_input_fasta.csv"
         with open(example_file, "r", encoding="UTF-8") as f:
             lines = f.readlines()
             self.assertEqual(lines[0], "seq_id,sequence,length,taxid\n")
