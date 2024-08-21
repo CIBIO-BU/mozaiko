@@ -12,3 +12,4 @@ src/seq_derep
 **/__pycache__/
 .vscode/
 external_scripts/crabs
+data/output_data/*

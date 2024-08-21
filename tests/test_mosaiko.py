@@ -8,8 +8,6 @@ from src.mosaiko import (
     handle_taxonomic_assignment,
     main,
 )
-from src.reference_database.db_curation import CrabsScriptGenerator
-from src.reference_database.sequence_import import CustomFastaImport
 
 
 class TestMosaiko(unittest.TestCase):
