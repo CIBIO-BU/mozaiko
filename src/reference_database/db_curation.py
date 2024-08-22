@@ -17,7 +17,6 @@ class CrabsScriptGenerator:
     """
 
     def __init__(self):
-        _base_path = os.path.dirname(os.path.abspath(__file__))
         self.params = {}
         self.fasta_import = CustomFastaImport()
 

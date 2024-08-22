@@ -23,7 +23,7 @@ class TestSetup(unittest.TestCase):
         """
         Test if the package metadata is correctly defined.
         """
-        with open("setup.py", encoding='UTF-8') as file:
+        with open("setup.py", encoding="UTF-8") as file:
             metadata = file.read()
         self.assertIn('name="dnaquaimg"', metadata)
         self.assertIn('version="0.1.0"', metadata)
@@ -33,7 +33,7 @@ class TestSetup(unittest.TestCase):
         """
         Test if the find_packages function is called in the setup.py file.
         """
-        with open("setup.py", encoding='UTF-8') as file:
+        with open("setup.py", encoding="UTF-8") as file:
             metadata = file.read()
         self.assertIn("packages=find_packages()", metadata)
 
