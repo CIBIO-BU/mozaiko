@@ -18,12 +18,6 @@ class CrabsScriptGenerator:
 
     def __init__(self):
         _base_path = os.path.dirname(os.path.abspath(__file__))
-        self.assing_tax_parameters = os.path.join(
-            _base_path, "assign_tax_parameters.json"
-        )
-        self.dereplicate_json_parameters = os.path.join(
-            _base_path, "dereplicate_parameters.json"
-        )
         self.params = {}
         self.fasta_import = CustomFastaImport()
 
@@ -44,7 +38,8 @@ class CrabsScriptGenerator:
 
         except FileNotFoundError:
             print(
-                "mosaiko INFO: CRBAS is not installed. Please install CRBAS before running this script."
+                "mosaiko INFO: CRBAS is not installed. Please install CRBAS before running this \
+                    script."
             )
             print(
                 "CRABS can be found at "
@@ -163,19 +158,17 @@ class CrabsScriptGenerator:
 
         print("mosaiko INFO: Taxonomy files downloaded.")
 
-    def _update_dereplicate_parameters(self):
-        """
-        Function to update needed parameters for the dereplicate by user request."
-        """
-        print(
-            "To clean-up and dereplicate the sequences, "
-            + "the following parameters are required:"
-        )
+    # def _update_dereplicate_parameters(self):
+    #     """
+    #     Function to update needed parameters for the dereplicate by user request."
+    #     """
+    #     print(
+    #         "To clean-up and dereplicate the sequences, "
+    #         + "the following parameters are required:"
+    #     )
 
-        # Retrieve processed fasta file as input
-        self.params["input"] = self.fasta_import.fasta_file
-
-        # TODO: write update parameters
+    #     # Retrieve processed fasta file as input
+    #     self.params["input"] = self.fasta_import.fasta_file
 
     def run_assign_tax_command(self, json_file=None):
         """
@@ -203,26 +196,24 @@ class CrabsScriptGenerator:
         # print("Running script...")
         subprocess.run(command, shell=True, check=True)
 
-    def generate_dereplicate_script(self):
+    def run_dereplicate_command(self, json_file=None):
         """
         Function to write the script to dereplicate sequences.
         """
+        self._check_if_crabs_installed()
 
-        self._load_parameters(self.dereplicate_json_parameters)
-
-        self._update_dereplicate_parameters()
+        self._load_parameters(json_file)
 
         print("All set. Running dereplication...")
 
         # print("Generating script to dereplicate sequences...")
 
         command = (
-            f"crabs dereplicate --input {self.dereplicate_json_parameters['input']}"
-            f" --output {self.dereplicate_json_parameters['output']}"
-            f" --method {self.dereplicate_json_parameters['method']}"
-            f" --ranks {self.dereplicate_json_parameters['ranks']}"
+            f"crabs dereplicate --input {self.params['input']}"
+            f" --output {self.params['output']}"
+            f" --method {self.params['method']}"
+            f" --ranks {self.params['ranks']}"
         )
-        # TODO: write command
 
         # print(f"Script generated: {command}")
 

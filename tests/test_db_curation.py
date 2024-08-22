@@ -119,3 +119,32 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             shell=True,
             check=True,
         )
+
+    @patch("subprocess.run")
+    @patch(
+        "src.reference_database.db_curation.CrabsScriptGenerator._check_if_crabs_installed"
+    )
+    @patch("src.reference_database.db_curation.CrabsScriptGenerator._load_parameters")
+    def test_run_dereplicate_command(
+        self, mock_load_params, mock_check_if_crabs_installed, mock_run
+    ):
+        """
+        Test that the run_dereplicate_command method runs the dereplicate command with the correct
+        parameters.
+        """
+        self.generator.params = {
+            "input": "input_file",
+            "output": "output_file",
+            "ranks": "rank",
+            "method": "method",
+        }
+
+        self.generator.run_dereplicate_command("dummy.json")
+        mock_load_params.assert_called_with("dummy.json")
+        mock_check_if_crabs_installed.assert_called_once()
+        mock_run.assert_called_with(
+            "crabs dereplicate --input input_file --output output_file "
+            "--method method --ranks rank",
+            shell=True,
+            check=True,
+        )

@@ -63,6 +63,15 @@ def handle_taxonomic_assignment(args):
     crabs_generator.run_assign_tax_command(args.json_file)
 
 
+def handle_dereplication(args):
+    """
+    Handle the dereplication of sequences.
+    """
+    logging.info("mosaiko INFO: Initiating sequence dereplication...")
+    crabs_generator = CrabsScriptGenerator()
+    crabs_generator.run_dereplicate_command(args.json_file)
+
+
 def main():
     """
     Main function for mosaiko's CLI.
@@ -70,9 +79,11 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
+    # Verbose logging
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    # Load custom FASTA file
     if args.load_custom_fasta and not args.input:
         parser.error(
             "mosaiko INFO: --input is required when --load_custom_fasta is used."
@@ -81,10 +92,22 @@ def main():
     if args.load_custom_fasta:
         handle_custom_fasta_import(args)
 
+    # Assign taxonomic information
     if args.assign_tax and args.json_file:
         handle_taxonomic_assignment(args)
 
-    else:
+    elif args.assign_tax:
+        logging.error(
+            "No JSON file specified. Please specify a JSON file with parameters."
+        )
+        logging.error("Exiting...")
+        return
+
+    # Dereplicate sequences
+    if args.dereplicate and args.json_file:
+        handle_dereplication(args)
+
+    elif args.dereplicate:
         logging.error(
             "No JSON file specified. Please specify a JSON file with parameters."
         )
