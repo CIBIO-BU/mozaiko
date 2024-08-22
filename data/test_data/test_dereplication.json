@@ -1,0 +1,6 @@
+{
+    "input": "data/test_data/test_dereplication.tsv",
+    "output": "data/test_data/test_dereplication_output.tsv",
+    "method": "uniq_species",
+    "ranks": "superkingdom+phylum+class+order+family+genus+species"
+}

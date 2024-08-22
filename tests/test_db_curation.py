@@ -2,9 +2,13 @@
 Unit tests for the CrabsScriptGenerator class in db_curation.py
 """
 
+import csv
+import os
 import subprocess
 import unittest
 from unittest.mock import mock_open, patch
+
+from Bio import SeqIO
 
 from src.reference_database.db_curation import CrabsScriptGenerator
 
@@ -19,6 +23,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         Set up the CrabsScriptGenerator object for testing.
         """
         self.generator = CrabsScriptGenerator()
+        self.test_data_dir = "data/test_data"
 
     @patch("subprocess.run")
     def test_check_if_crabs_installed(self, mock_subprocess):
@@ -148,3 +153,22 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             shell=True,
             check=True,
         )
+
+    def test_dereplication(self):
+        """
+        Test the outout of run_dereplicate_command method with a real example.
+        """
+
+        self.generator.run_dereplicate_command("data/test_data/test_dereplication.json")
+
+        dereplicated_sequences = []
+        with open(
+            "data/test_data/test_dereplication_output.tsv", newline=""
+        ) as output_file:
+            reader = csv.reader(output_file, delimiter="\t")
+            for row in reader:
+                dereplicated_sequences.append(row)
+
+        self.assertEqual(len(dereplicated_sequences), 2)
+
+        os.remove("data/test_data/test_dereplication_output.tsv")
