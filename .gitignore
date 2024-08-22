@@ -13,3 +13,6 @@ src/seq_derep
 .vscode/
 external_scripts/crabs
 data/output_data/*
+data/test_data/test_assign_tax.fasta
+data/test_data/test_assign_tax.json
+data/test_data/test_assign_tax.fasta

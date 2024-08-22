@@ -8,8 +8,6 @@ import subprocess
 import unittest
 from unittest.mock import mock_open, patch
 
-from Bio import SeqIO
-
 from src.reference_database.db_curation import CrabsScriptGenerator
 
 
