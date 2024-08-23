@@ -169,7 +169,7 @@ class CrabsScriptGenerator:
     #     # Retrieve processed fasta file as input
     #     self.params["input"] = self.fasta_import.fasta_file
 
-    def run_assign_tax_command(self, json_file=None):
+    def run_assign_tax_command(self, json_file):
         """
         Function to run the assign_tax command from CRBAS.
         """
@@ -195,7 +195,7 @@ class CrabsScriptGenerator:
         # print("Running script...")
         subprocess.run(command, shell=True, check=True)
 
-    def run_dereplicate_command(self, json_file=None):
+    def run_dereplicate_command(self, json_file):
         """
         Function to write the script to dereplicate sequences.
         """

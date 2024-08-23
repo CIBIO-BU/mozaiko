@@ -136,8 +136,8 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         parameters.
         """
         self.generator.params = {
-            "input": "input_file",
-            "output": "output_file",
+            "input": "input_file.tsv",
+            "output": "output_file.tsv",
             "ranks": "rank",
             "method": "method",
         }
@@ -146,7 +146,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         mock_load_params.assert_called_with("dummy.json")
         mock_check_if_crabs_installed.assert_called_once()
         mock_run.assert_called_with(
-            "crabs dereplicate --input input_file --output output_file "
+            "crabs dereplicate --input input_file.tsv --output output_file.tsv "
             "--method method --ranks rank",
             shell=True,
             check=True,
