@@ -53,12 +53,21 @@ To upload custom FASTA sequences:
 To assign taxonomic information to sequences,
 the best practice is to include a JSON file that
 specifies all the correct parameters.
-A template for this JSON file can be found in
+A template for the JSON file can be found in
 [here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/assign_tax_parameters.json).
 
    ```bash
    mosaiko --assign_tax --json_file path/to/json/file
    ```
+
+To dereplicate sequences in the reference database, the --dereplicate command can be used.
+Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the
+correct parameters. The input file for this task needs to be a .tsv file.
+A template for the JSON file can be found in [here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/dereplicate_parameters.json).
+
+ ```bash
+   mosaiko --dereplicate --json_file path/to/json/file
+ ```
 
 ## Contacts
 

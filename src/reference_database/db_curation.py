@@ -203,6 +203,10 @@ class CrabsScriptGenerator:
 
         self._load_parameters(json_file)
 
+        if self.params["input"].split(".")[1] != "tsv":
+            print("mosaiko INFO: Input file must be a TSV file. Exiting...")
+            sys.exit(1)
+
         print("All set. Running dereplication...")
 
         # print("Generating script to dereplicate sequences...")
