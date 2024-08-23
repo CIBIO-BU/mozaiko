@@ -203,7 +203,11 @@ class CrabsScriptGenerator:
 
         self._load_parameters(json_file)
 
-        if self.params["input"].split(".")[1] != "tsv":
+        _, file_extension = os.path.splitext(self.params["input"])
+
+        file_extension = file_extension.lstrip(".")
+
+        if file_extension.lower() != "tsv":
             print("mosaiko INFO: Input file must be a TSV file. Exiting...")
             sys.exit(1)
 

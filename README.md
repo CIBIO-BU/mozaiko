@@ -50,24 +50,24 @@ To upload custom FASTA sequences:
    mosaiko --load_custom_fasta --input path/to/file
    ```
 
-To assign taxonomic information to sequences,
-the best practice is to include a JSON file that
-specifies all the correct parameters.
-A template for the JSON file can be found in
-[here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/assign_tax_parameters.json).
+To assign taxonomic information to sequences:
 
    ```bash
    mosaiko --assign_tax --json_file path/to/json/file
    ```
+The best practice is to include a JSON file that
+specifies all the correct parameters.
+A template for the JSON file can be found in
+[here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/assign_tax_parameters.json). This command contemplates eight parameters, five are required ('input', 'output', 'acc2tax', 'taxid' and 'name') and three are optional ('web', 'ranks' and 'missing'). 'axx2tax', 'taxid' and 'name' are related to necessary taxonomic information to complete the task, Despite being required, these fields are already filled in and are available when the taxonomic files are downloaded upon calling the command (no user action required). The 'input' related to the input FASTA file and the 'output' to the output TSV file. For the optional ones, 'web' allows for a web-search to query NCBI's EFetch for missing taxonomic information; 'ranks' allows the user to choose which ranks should represent the organism lineage; 'missing' allows the user to provide a file path to write sequences where taxonomic information was not possible to be retrieved.
+
 
 To dereplicate sequences in the reference database, the --dereplicate command can be used.
-Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the
-correct parameters. The input file for this task needs to be a .tsv file.
-A template for the JSON file can be found in [here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/dereplicate_parameters.json).
 
  ```bash
    mosaiko --dereplicate --json_file path/to/json/file
  ```
+
+Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the correct parameters. A template for the dereplication JSON file can be found in [here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/dereplicate_parameters.json). This command contemplates four parameters, two being required ('input' and 'output') and two being optional ('method', 'ranks'). Both the 'input' and 'output' should be a TSV file. For the optional ones, 'ranks' allows the user to choose which ranks should represent the organism lineage and 'method' allows the user to choose which method should be used for the dereplication. Please refer to [CRABS' original documentation](https://github.com/gjeunen/reference_database_creator/tree/main?tab=readme-ov-file#6-dereplicate) for further details.
 
 ## Contacts
 
