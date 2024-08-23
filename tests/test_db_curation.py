@@ -152,7 +152,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             check=True,
         )
 
-    def test_dereplication(self):
+    def test_dereplication_uniq_species(self):
         """
         Test the outout of run_dereplicate_command method with a real example.
         """
