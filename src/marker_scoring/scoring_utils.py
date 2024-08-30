@@ -4,22 +4,23 @@
 # https://doi.org/10.1093/bioinformatics/btq098
 
 IUPAC = {
-    'A': ['A'],
-    'C': ['C'],
-    'G': ['G'],
-    'T': ['T'],
-    'R': ['A', 'G'],
-    'Y': ['C', 'T'],
-    'S': ['G', 'C'],
-    'W': ['A', 'T'],
-    'K': ['G', 'T'],
-    'M': ['A', 'C'],
-    'B': ['C', 'G', 'T'],
-    'D': ['A', 'G', 'T'],
-    'H': ['A', 'C', 'T'],
-    'V': ['A', 'C', 'G'],
-    'N': ['A', 'C', 'G', 'T']
+    "A": ["A"],
+    "C": ["C"],
+    "G": ["G"],
+    "T": ["T"],
+    "R": ["A", "G"],
+    "Y": ["C", "T"],
+    "S": ["G", "C"],
+    "W": ["A", "T"],
+    "K": ["G", "T"],
+    "M": ["A", "C"],
+    "B": ["C", "G", "T"],
+    "D": ["A", "G", "T"],
+    "H": ["A", "C", "T"],
+    "V": ["A", "C", "G"],
+    "N": ["A", "C", "G", "T"],
 }
+
 
 def calculate_iupac_mismatches(seq1, seq2):
     """
@@ -28,6 +29,8 @@ def calculate_iupac_mismatches(seq1, seq2):
     mismatches = 0
     for base1, base2 in zip(seq1.upper(), seq2.upper()):
         if base1 != base2:
-            if not set(IUPAC[base1]).intersection(set(IUPAC[base2])):
+            if not set(IUPAC.get(base1, [base1])).intersection(
+                set(IUPAC.get(base2, [base2]))
+            ):
                 mismatches += 1
     return mismatches
