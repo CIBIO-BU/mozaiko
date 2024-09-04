@@ -1,11 +1,9 @@
 """
 Unit tests for scoring_utils.py
 """
-
 import unittest
 
 from src.marker_scoring.scoring_utils import *
-
 
 class TestScoringUtils(unittest.TestCase):
     def setUp(self):
