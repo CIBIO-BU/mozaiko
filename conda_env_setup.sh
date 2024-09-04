@@ -63,7 +63,7 @@ install_package() {
 
 # Install CRABS v0.1.7
 install_crabs_release() {
-    echo "This tool requires CRABS v0.1.7 for downstream analysis"
+    echo "mosaiko requires CRABS v0.1.7 for downstream analysis"
     echo "Checking if CRABS v0.1.7 is installed"
 
     crabs_output=$(crabs --version | tail -n 1)
@@ -104,6 +104,49 @@ install_crabs_release() {
     fi
 }
 
+install_cutadapt_package() {
+    echo "mosaiko requires cutadapt for downstream analysis"
+
+    echo "checking if cutadapt is already installed"
+
+    if command -v cutadapt &> /dev/null; then
+        current_version=$(cutadapt --version | cut -d ' ' -f2)
+        required_version="4.9"
+
+        if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" = "$required_version" ]; then
+            echo "Cutadapt version $current_version is already installed and meets the minimum requirement."
+            return 0
+        else
+            echo "Cutadapt is installed but version $current_version is outdated. Minimum required version is $required_version."
+        fi
+    else
+        echo "Cutadapt is not installed."
+    fi
+
+    echo "Installing/Upgrading cutadapt package..."
+
+    if ! apt-get install -y pipx python3-venv; then
+        echo "Failed to install pipx and python3-venv. Please check your system and try again."
+        return 1
+    fi
+
+    if ! pipx install --force cutadapt; then
+        echo "Failed to install cutadapt. Please check the error messages and try again."
+        return 1
+    fi
+
+    if command -v cutadapt &> /dev/null; then
+        echo "Cutadapt has been successfully installed."
+        cutadapt --version
+        return 0
+    else
+        echo "Cutadapt installation failed. Please check the error messages and try again."
+        return 1
+    fi
+
+
+}
+
 main() {
     check_conda
     check_env
@@ -111,6 +154,7 @@ main() {
     clone_repo
     install_package
     install_crabs_release
+    install_cutadapt_package
 }
 
 main
