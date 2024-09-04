@@ -125,12 +125,7 @@ install_cutadapt_package() {
 
     echo "Installing/Upgrading cutadapt package..."
 
-    if ! apt-get install -y pipx python3-venv; then
-        echo "Failed to install pipx and python3-venv. Please check your system and try again."
-        return 1
-    fi
-
-    if ! pipx install --force cutadapt; then
+    if ! pip install --upgrade cutadapt; then
         echo "Failed to install cutadapt. Please check the error messages and try again."
         return 1
     fi
@@ -143,8 +138,6 @@ install_cutadapt_package() {
         echo "Cutadapt installation failed. Please check the error messages and try again."
         return 1
     fi
-
-
 }
 
 main() {
