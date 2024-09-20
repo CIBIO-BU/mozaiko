@@ -27,10 +27,17 @@ def calculate_iupac_mismatches(seq1, seq2):
     Calculate the number of mismatches between two sequences, according to IUPAC ambiguity codes.
     """
     mismatches = 0
+
+    # compare the two sequences base by base
     for base1, base2 in zip(seq1.upper(), seq2.upper()):
+        # if the bases are different
         if base1 != base2:
+            # check if the bases are compatible according to IUPAC
+            # by taking the union of the sets of compatible bases
+            # and checking if the intersection is empty
             if not set(IUPAC.get(base1, [base1])).intersection(
                 set(IUPAC.get(base2, [base2]))
             ):
                 mismatches += 1
+
     return mismatches

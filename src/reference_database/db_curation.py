@@ -1,6 +1,13 @@
 """
 This modules generates scripts to borrow methods from CRBAS. Its use is intended to assing Tax IDs,
 generate lineage files and dereplicate sequences.
+
+The CrabsScriptGenerator class contains the following methods:
+    - _check_if_crabs_installed: Function to check if CRBAS is installed.
+    - _load_parameters: Function to load the parameters from the JSON file.
+    - _download_taxonomy_files: Functions to download the taxonomy files from the NCBI database.
+    - run_assign_tax_command: Function to run the assign_tax command from CRBAS.
+    - run_dereplicate_command: Function to write the script to dereplicate sequences.
 """
 
 import json
@@ -20,11 +27,11 @@ class CrabsScriptGenerator:
         self.params = {}
         self.fasta_import = CustomFastaImport()
 
-    def _check_if_crabs_installed(self):
+    def check_if_crabs_installed(self):
         """
         Function to check if CRBAS is installed.
         """
-        print("mosaiko INFO: Checking if CRBAS is installed...")
+        print("mozaiko INFO: Checking if CRBAS is installed...")
         try:
             subprocess.run(
                 ["crabs", "-h"],
@@ -33,11 +40,11 @@ class CrabsScriptGenerator:
                 stderr=subprocess.DEVNULL,
             )
 
-            print("mosaiko INFO: CRBAS is installed.")
+            print("mozaiko INFO: CRBAS is installed.")
 
         except FileNotFoundError:
             print(
-                "mosaiko INFO: CRBAS is not installed. Please install CRBAS before running this \
+                "mozaiko INFO: CRBAS is not installed. Please install CRBAS before running this \
                     script."
             )
             print(
@@ -48,16 +55,6 @@ class CrabsScriptGenerator:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             sys.exit(1)
-
-    def _load_parameters(self, json_file):
-        """
-        Function to load the parameters from the JSON file.
-        """
-        print("mosaiko INFO: Loading parameters from JSON file...")
-        with open(json_file, encoding="UTF-8") as file:
-            self.params = json.load(file)
-
-        print("mosaiko INFO: Parameters loaded.")
 
     # def _update_assign_tax_parameters(self):
     #     """
@@ -130,56 +127,54 @@ class CrabsScriptGenerator:
     #     if self.params["missing"] == "yes":
     #         self.params["missing"] = "yes"
 
-    #     print("mosaiko INFO: Parameters updated.")
+    #     print("mozaiko INFO: Parameters updated.")
 
     def _download_taxonomy_files(self):
         """
         Functions to download the taxonomy files from the NCBI database.
         """
-        print("mosaiko INFO: Checking if taxonomy files already exist...")
+        print("mozaiko INFO: Checking if taxonomy files already exist...")
 
         if os.path.exists("taxonomy_files"):
-            print("mosaiko INFO: Taxonomy files found. Proceeding with the analysis.")
+            print("mozaiko INFO: Taxonomy files found. Proceeding with the analysis.")
             return
 
         else:
             print(
-                "mosaiko INFO: Taxonomy files not found. Creating taxonomy_files folder..."
+                "mozaiko INFO: Taxonomy files not found. Creating taxonomy_files folder..."
             )
             os.makedirs("taxonomy_files")
 
         os.chdir("taxonomy_files")
 
-        print("mosaiko INFO: Downloading files...")
+        print("mozaiko INFO: Downloading files...")
         command = "crabs db_download --source taxonomy"
 
         subprocess.run(command, shell=True, check=True)
 
-        print("mosaiko INFO: Taxonomy files downloaded.")
+        print("mozaiko INFO: Taxonomy files downloaded.")
 
-    # def _update_dereplicate_parameters(self):
-    #     """
-    #     Function to update needed parameters for the dereplicate by user request."
-    #     """
-    #     print(
-    #         "To clean-up and dereplicate the sequences, "
-    #         + "the following parameters are required:"
-    #     )
+    def _load_parameters(self, json_file):
+        """
+        Function to load the parameters from JSON files.
+        """
+        print("mosaiko INFO: Loading parameters from JSON file...")
+        with open(json_file, encoding="UTF-8") as file:
+            self.params = json.load(file)
 
-    #     # Retrieve processed fasta file as input
-    #     self.params["input"] = self.fasta_import.fasta_file
+        print("mosaiko INFO: Parameters loaded.")
 
     def run_assign_tax_command(self, json_file):
         """
         Function to run the assign_tax command from CRBAS.
         """
-        self._check_if_crabs_installed()
+        self.check_if_crabs_installed()
 
         self._download_taxonomy_files()
 
         self._load_parameters(json_file)
 
-        print(" mosaiko INFO: All set. Running taxonomy assignment task..")
+        print(" mozaiko INFO: All set. Running taxonomy assignment task..")
 
         # print("Generating script to assign taxonomic IDs...")
 
@@ -199,7 +194,7 @@ class CrabsScriptGenerator:
         """
         Function to write the script to dereplicate sequences.
         """
-        self._check_if_crabs_installed()
+        self.check_if_crabs_installed()
 
         self._load_parameters(json_file)
 
@@ -208,10 +203,10 @@ class CrabsScriptGenerator:
         file_extension = file_extension.lstrip(".")
 
         if file_extension.lower() != "tsv":
-            print("mosaiko INFO: Input file must be a TSV file. Exiting...")
+            print("mozaiko INFO: Input file must be a TSV file. Exiting...")
             sys.exit(1)
 
-        print("All set. Running dereplication...")
+        print("mozaiko INFO: All set. Running dereplication...")
 
         # print("Generating script to dereplicate sequences...")
 

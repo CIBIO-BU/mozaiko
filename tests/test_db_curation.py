@@ -26,9 +26,9 @@ class TestCrabsScriptGenerator(unittest.TestCase):
     @patch("subprocess.run")
     def test_check_if_crabs_installed(self, mock_subprocess):
         """
-        Test that the _check_if_crabs_installed method runs without errors.
+        Test that the check_if_crabs_installed method runs without errors.
         """
-        self.generator._check_if_crabs_installed()
+        self.generator.check_if_crabs_installed()
         mock_subprocess.assert_called_with(
             ["crabs", "-h"],
             check=True,
@@ -39,11 +39,11 @@ class TestCrabsScriptGenerator(unittest.TestCase):
     @patch("subprocess.run", side_effect=FileNotFoundError)
     def test_check_if_crabs_installed_not_installed(self, mock_run):
         """
-        Test that the _check_if_crabs_installed method raises a SystemExit when crabs is not
+        Test that the _heck_if_crabs_installed method raises a SystemExit when crabs is not
         installed.
         """
         with self.assertRaises(SystemExit):
-            self.generator._check_if_crabs_installed()
+            self.generator.check_if_crabs_installed()
 
         mock_run.assert_called_once_with(
             ["crabs", "-h"], check=True, stdout=-3, stderr=-3
@@ -125,7 +125,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
     @patch("subprocess.run")
     @patch(
-        "src.reference_database.db_curation.CrabsScriptGenerator._check_if_crabs_installed"
+        "src.reference_database.db_curation.CrabsScriptGenerator.check_if_crabs_installed"
     )
     @patch("src.reference_database.db_curation.CrabsScriptGenerator._load_parameters")
     def test_run_dereplicate_command(

@@ -16,3 +16,5 @@ data/output_data/*
 data/test_data/test_assign_tax.fasta
 data/test_data/test_assign_tax.json
 data/test_data/test_assign_tax.fasta
+src/CRABS_pga_subset.fasta
+src/CRABS_pga.fasta

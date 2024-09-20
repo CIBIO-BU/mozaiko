@@ -163,7 +163,7 @@ class TestCustomFastaImport(unittest.TestCase):
                 mock_add_taxids.assert_not_called()
 
         mock_print.assert_called_once_with(
-            "mosaiko INFO: No TaxIDs found in the fasta file. "
+            "mozaiko INFO: No TaxIDs found in the fasta file. "
             + "Starting lineage file upload process."
         )
 

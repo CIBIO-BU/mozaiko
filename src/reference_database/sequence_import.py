@@ -94,7 +94,7 @@ class CustomFastaImport:
 
             if not taxid_found:
                 print(
-                    "mosaiko INFO: No TaxIDs found in the fasta file. Starting lineage file upload process."
+                    "mozaiko INFO: No TaxIDs found in the fasta file. Starting lineage file upload process."
                 )
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 

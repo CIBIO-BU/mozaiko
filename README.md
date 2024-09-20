@@ -8,7 +8,7 @@
 [![codecov](https://codecov.io/gh/CIBIO-BU/DNAquaIMG/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/DNAquaIMG)
 
 ![alt text](data/images/mosaiko-logo.png)
-mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
+mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 ## Installation instructions
 
