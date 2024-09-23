@@ -26,11 +26,14 @@
             python -m pip install --upgrade pip
             pip install -r requirements.txt
             pip install isort black # Install isort and black
-            pip install mypy
             pip install types-requests types-setuptools
+            pip install mypy types-requests types-setuptools
 
         - name: Set PYTHONPATH
           run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> "$GITHUB_ENV"
+
+        - name: Create MyPy cache directory
+          run: mkdir -p .mypy_cache
 
         - name: Sort imports with isort
           run: |
@@ -49,4 +52,4 @@
             LINTER_RULES_PATH: '/'
             PYTHON_MYPY_CONFIG_FILE: mypy.ini
             VALIDATE_PYTHON_MYPY: true
-            PYTHON_MYPY_ARGS: "--install-types --non-interactive --ignore-missing-imports"
+            PYTHON_MYPY_ARGS: "--non-interactive --ignore-missing-imports"
