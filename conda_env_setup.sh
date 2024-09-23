@@ -55,7 +55,7 @@ install_package() {
     echo "Navigating to package directory: $PACKAGE_DIR"
     cd "$PACKAGE_DIR" || { echo "Directory $PACKAGE_DIR does not exist"; exit 1; }
 
-    echo "Installing package"
+    echo "Installing mozaiko package"
     pip install . || { echo "Failed to install package"; exit 1; }
 
     echo "Installation complete."
@@ -63,7 +63,7 @@ install_package() {
 
 # Install CRABS v0.1.7
 install_crabs_release() {
-    echo "mosaiko requires CRABS v0.1.7 for downstream analysis"
+    #echo "mosaiko requires CRABS v0.1.7 for downstream analysis"
     echo "Checking if CRABS v0.1.7 is installed"
 
     crabs_output=$(crabs --version | tail -n 1)
@@ -105,8 +105,7 @@ install_crabs_release() {
 }
 
 install_cutadapt_package() {
-    echo "mosaiko requires cutadapt for downstream analysis"
-
+    #echo "mosaiko requires cutadapt for downstream analysis"
     echo "checking if cutadapt is already installed"
 
     if command -v cutadapt &> /dev/null; then
@@ -140,12 +139,84 @@ install_cutadapt_package() {
     fi
 }
 
+install_vsearch() {
+    #echo "mosaiko requires vsearch for downstream analysis"
+    echo "checking if vsearch is already installed"
+
+    if command -v vsearch &> /dev/null; then
+        current_version=$(vsearch --version | cut -d ' ' -f2)
+        required_version="2.13.3"
+
+        if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" = "$required_version" ]; then
+            echo "Vsearch version $current_version is already installed and meets the minimum requirement."
+            return 0
+        else
+            echo "Vsearch is installed but version $current_version is outdated. Minimum required version is $required_version."
+        fi
+    else
+        echo "Vsearch is not installed."
+    fi
+
+    echo "Installing vsearch version 2.13.3 from source..."
+
+    arch=$(uname -m)
+    os=$(uname -s)
+
+    case "${os}_${arch}" in
+        "Linux_x86_64")
+            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-linux-x86_64.tar.gz"
+            ;;
+        "Linux_aarch64")
+            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-linux-aarch64.tar.gz"
+            ;;
+        "Linux_ppc64le")
+            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-linux-ppc64le.tar.gz"
+            ;;
+        "Darwin_x86_64")
+            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-macos-x86_64.tar.gz"
+            ;;
+        *)
+            echo "Unsupported system architecture: ${os}_${arch}"
+            return 1
+            ;;
+    esac
+
+    temp_dir=$(mktemp -d)
+    cd "$temp_dir" || return 1
+
+    if ! wget "$url"; then
+        echo "Failed to download vsearch binary. Please check your internet connection and try again."
+        return 1
+    fi
+
+    tar_file=$(basename "$url")
+    tar xzf "$tar_file"
+
+    vsearch_binary=$(find . -name "vsearch" -type f -executable)
+
+    if [ -z "$vsearch_binary" ]; then
+        echo "Could not find the vsearch binary in the extracted files."
+        return 1
+    fi
+
+    if sudo cp "$vsearch_binary" /usr/local/bin/vsearch; then
+        echo "Vsearch has been successfully installed."
+        vsearch --version
+        return 0
+    else
+        echo "Failed to install vsearch. Please check the error messages and try again."
+        return 1
+    fi
+}
+
 main() {
     check_conda
     check_env
     activate_env
     clone_repo
     install_package
+    echo "mosaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
+    echo "Proceeding with installation..."
     install_crabs_release
     install_cutadapt_package
 }

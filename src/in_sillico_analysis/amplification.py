@@ -245,7 +245,7 @@ class InSilicoAmplification:
         barcode_region = row["barcode_region"]
         assay_name = row["assay_name"]
         five_prime_adapter = row["adapter"]
-        maximum_overlap = int(row["max_overlap"])
+        max_length = int(row["max_overlap"])
         overlap = int(row["overlap"])
         forward_primer = row["fw_seq"]
         reverse_primer = row[
@@ -269,7 +269,7 @@ class InSilicoAmplification:
             five_prime_adapter,
             input_fasta,
             overlap,
-            maximum_overlap,
+            max_length,
             barcode_region,
             assay_name,
             output_dirs["successful_amplification"],
@@ -278,7 +278,7 @@ class InSilicoAmplification:
         self._run_cutadapt_command(
             "pbr_no_amplification",
             five_prime_adapter,
-            input_fasta,
+            input_fasta,  # TODO: ref database
             overlap,
             None,
             barcode_region,
@@ -292,7 +292,7 @@ class InSilicoAmplification:
             five_prime_adapter,
             input_fasta,
             overlap,
-            maximum_overlap,
+            max_length,
             barcode_region,
             assay_name,
             output_dirs["inserts_pbr"],
