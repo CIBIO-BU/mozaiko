@@ -24,7 +24,7 @@ class InSilicoAmplification:
         self, data, extract_primers: bool = True, primer_table: pd.DataFrame = None
     ):
         self.data = data
-        self.output_dir = "../../data/output_data"
+        self.output_dir = "../data/output_data"
         self.extract_primers = extract_primers
         self.primers = (
             defaultdict(lambda: [None, None, None]) if extract_primers else None
@@ -39,7 +39,7 @@ class InSilicoAmplification:
             "average_size",
             "min_lenght",
             "max_lenght",
-        ]  # TODO: Define mandatory columns
+        ]  # todo: Define mandatory columns
         self.crabs_script_generator = CrabsScriptGenerator()
 
     def _check_if_cutadapt_installed(self):
@@ -178,7 +178,7 @@ class InSilicoAmplification:
 
     def _filter_sequences_by_prcnt_ambiguous_bases(
         self, input_file, out_file, max_ambiguous_percentage=0.05
-    ):
+    ): # todo: check usage
         """
         Filter DNA sequences based on the maximum allowed percentage of ambiguous bases.
 
@@ -214,13 +214,16 @@ class InSilicoAmplification:
 
         return self.primers if self.extract_primers else None
 
-    def run_cutadapt(self):
+    def _validate_fasta(self):
         """
-        This methods writes and runs the cutadapt command, responsible for the in-silico
-        amplification.
+        This method validates the input fasta.
         """
 
-        self._check_if_cutadapt_installed()
+        if not os.path.exists(self.data):
+            print("mozaiko INFO: The input file does not exist. Exiting...")
+            sys.exit(1)
+
+        print("mozaiko INFO: Input FASTA exists. Validating file extension...")
 
         _, file_extension = os.path.splitext(self.data)
 
@@ -230,16 +233,29 @@ class InSilicoAmplification:
             print("mozaiko INFO: Input file must be a FASTA file. Exiting...")
             sys.exit(1)
 
+    def run_in_silico_analysis(self):
+        """
+        This methods writes and runs the cutadapt command, responsible for the in-silico
+        amplification.
+        """
+
+        self._check_if_cutadapt_installed()
+        self.crabs_script_generator.check_if_crabs_installed()
+
+        self._validate_fasta()
+
         self.read_primer_tables()
         print("mozaiko INFO: All set. Running in-silico amplification...")
 
-        run_name = Path(input("Please enter a name for the analysis folder: "))
+        run_name = Path(input("Please enter a name for the folder where the analysis output will \
+                              be stored: "))
 
-        input_fasta = Path(input("Please enter the path to the input FASTA file: "))
-        # TODO: link fasta file to the input_fasta variable in workflow
+        input_fasta = self.data
 
         for _, row in self.primer_table.iterrows():
             self.process_comands(row, run_name, input_fasta)
+
+        print("mozaiko INFO: In-silico amplification analysis completed.")
 
     def process_comands(self, row, run_name, input_fasta):
         barcode_region = row["barcode_region"]
@@ -248,9 +264,7 @@ class InSilicoAmplification:
         max_length = int(row["max_overlap"])
         overlap = int(row["overlap"])
         forward_primer = row["fw_seq"]
-        reverse_primer = row[
-            "rev_seq"
-        ]  # TODO: check if correct reverse compliment is the correct field
+        reverse_primer = row["rev_seq"]
 
         output_dirs = {
             "successful_amplification": self.output_dir
@@ -278,7 +292,7 @@ class InSilicoAmplification:
         self._run_cutadapt_command(
             "pbr_no_amplification",
             five_prime_adapter,
-            input_fasta,  # TODO: ref database
+            input_fasta,  # todo: ref daxtabase
             overlap,
             None,
             barcode_region,
@@ -322,27 +336,48 @@ class InSilicoAmplification:
     ):
         output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
 
-        base_command = f"cutadapt -g {adapter} --output {output_file} {input_file} --no-indels -e {error_rate} --overlap {overlap} --revcomp --quiet"
+        base_command = [
+            "cutadapt",
+            "-g", adapter,
+            "--output", str(output_file),
+            str(input_file),
+            "--no-indels",
+            "-e", str(error_rate),
+            "--overlap", str(overlap),
+            "--revcomp",
+            "--quiet"
+        ]
 
         if command_type == "successful_amplification":
-            additional_args = (
-                f"--action retain --discard-untrimmed --maximum-length {max_length}"
-            )
+            additional_args = ["--action", "retain", "--discard-untrimmed", "--maximum-length", str(max_length)]
         elif command_type == "pbr_no_amplification":
-            additional_args = "--action trim --discard-untrimmed"
+            additional_args = ["--action", "trim", "--discard-untrimmed"]
         elif command_type == "inserts_pbr":
-            additional_args = (
-                f"--action trim --discard-untrimmed --maximum-length {max_length}"
-            )
+            additional_args = ["--action", "trim", "--discard-untrimmed", "--maximum-length", str(max_length)]
 
-        full_command = f"{base_command} {additional_args}"
+        full_command = base_command + additional_args
+
+        #print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        # print(f"mozaiko INFO: Input file: {input_file}")
+        # print(f"mozaiko INFO: Output file: {output_file}")
 
         try:
-            print(f"mozaiko INFO: Running cutadapt command as '{full_command}'")
-            subprocess.run(full_command, shell=True, check=True)
+            result = subprocess.run(full_command, check=True, capture_output=True, text=True)
+            #print(f"mozaiko INFO: Cutadapt stdout:\n{result.stdout}")
+            #print(f"mozaiko INFO: Cutadapt stderr:\n{result.stderr}")
+
+            # if output_file.stat().st_size == 0:
+            #     print(f"mozaiko WARNING: Output file is empty: {output_file}")
+            # else:
+            #     print(f"mozaiko INFO: Output file size: {output_file.stat().st_size} bytes")
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: cutadapt {command_type} command failed: {e}")
-            sys.exit(1)
+            print(f"mozaiko ERROR: Cutadapt stdout:\n{e.stdout}")
+            print(f"mozaiko ERROR: Cutadapt stderr:\n{e.stderr}")
+            raise  # Re-raise the exception instead of calling sys.exit()
+        except FileNotFoundError:
+            print("mozaiko ERROR: cutadapt command not found. Please ensure it's installed and in your PATH.")
+            raise
 
     def _run_pga_command(
         self,
@@ -357,21 +392,27 @@ class InSilicoAmplification:
         output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
         pga_database = database_dir / f"{barcode_region}_{assay_name}.txt"
 
-        self.crabs_script_generator.check_if_crabs_installed()
-
         minimum_percentage_identity = 0.95
         minimum_alignment_coverage = 0.99
 
-        pga_command = (
-            f"crabs pga --input {input_file} --output {output_file} "
-            f"--database {pga_database} --fwd {forward_primer} --rev {reverse_primer} "
-            f"--speed slow --percid {minimum_percentage_identity} "
-            f"--coverage {minimum_alignment_coverage} --filter_method strict"
-        )
+        pga_command = [
+            "crabs",
+            "pga",
+            "--input", str(input_file),
+            "--output", str(output_file),
+            "--database", str(pga_database),
+            "--fwd", forward_primer,
+            "--rev", reverse_primer,
+            "--speed", "slow",
+            "--percid", str(minimum_percentage_identity),
+            "--coverage", str(minimum_alignment_coverage),
+            "--filter_method", "strict"
+        ]
 
         try:
-            print(f"mozaiko INFO: Running cutadapt command as '{pga_command}'")
-            subprocess.run(pga_command, shell=True, check=True)
+            # print(f"mozaiko INFO: Running cutadapt command as '{pga_command}'")
+            subprocess.run(pga_command, check=True)
+
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: CRABS PGA command failed: {e}")
             sys.exit(1)
