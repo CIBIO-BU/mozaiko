@@ -5,11 +5,9 @@ This module contains the methods needed to perform the in-silico amplification a
 import os
 import subprocess
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
-from Bio import SeqIO
 from Bio.Seq import Seq
 
 from src.reference_database.db_curation import CrabsScriptGenerator
@@ -20,15 +18,9 @@ class InSilicoAmplification:
     This class contains the methods needed to perform the in-silico amplification analysis.
     """
 
-    def __init__(
-        self, data, extract_primers: bool = True, primer_table: pd.DataFrame = None
-    ):
+    def __init__(self, data, primer_table: pd.DataFrame = None):
         self.data = data
         self.output_dir = "../data/output_data"
-        self.extract_primers = extract_primers
-        self.primers = (
-            defaultdict(lambda: [None, None, None]) if extract_primers else None
-        )
         self.primer_table = primer_table
         self.primer_table_columns = [
             "target_group",
@@ -139,81 +131,6 @@ class InSilicoAmplification:
 
         self.primer_table = primer_table
 
-    def _detect_fwd_rev_primer_len(self, sequence):
-        """
-        Calculate the length of the forward and reverse primer.
-
-        Parameters:
-        sequence (str): DNA sequence.
-
-        Returns:
-        int: Length of the forward and reverse primer.
-        """
-
-        fwd_len = len(sequence) // 2
-        rev_len = len(sequence) - fwd_len
-
-        return fwd_len, rev_len
-
-    def _calculate_ambiguous_percentage(self, sequence):
-        """
-        Calculate the percentage of ambiguous bases in a DNA sequence.
-
-        Parameters:
-        sequence (str): The DNA sequence.
-
-        Returns:
-        float: The percentage of ambiguous bases in the sequence.
-        """
-        ambiguous_bases = set("RYWSMKHBVDN")
-
-        return sum(base in ambiguous_bases for base in sequence) / len(sequence)
-
-    def write_filtered_sequence(self, output_handle, record):
-        """
-        Write a filtered sequence to the output file.
-        """
-        sequence = str(record.seq)
-        output_handle.write(f">{record.description}\n{sequence}\n")
-
-    def _filter_sequences_by_prcnt_ambiguous_bases(
-        self, input_file, out_file, max_ambiguous_percentage=0.05
-    ): # todo: check usage
-        """
-        Filter DNA sequences based on the maximum allowed percentage of ambiguous bases.
-
-        Parameters:
-        - input_file (str): Path to the input file containing DNA sequences in FASTA format.
-        - out_file (str): Path to the output file to write the filtered sequences.
-
-        Returns:
-        - dict or None: Dictionary of extracted primers if `extract_primers` is True, otherwise
-        None.
-        """
-
-        with open(out_file, "w", encoding="UTF-8") as output_handle:
-
-            for record in SeqIO.parse(input_file, "fasta"):
-                sequence = str(record.seq)
-                ambiguous_percentage = self._calculate_ambiguous_percentage(sequence)
-
-                if ambiguous_percentage <= max_ambiguous_percentage:
-
-                    if self.extract_primers:
-                        fwd_len, rev_len = self._detect_fwd_rev_primer_len(sequence)
-                        accession_number = record.id
-                        # stores forward primer
-                        self.primers[accession_number][0] = sequence[:fwd_len]
-                        # stores reverse primer
-                        self.primers[accession_number][1] = sequence[-rev_len:]
-                        # stores sequence lenght (total lenght minus lenght of both primers)
-                        self.primers[accession_number][2] = (
-                            len(sequence) - fwd_len - rev_len
-                        )
-                    self.write_filtered_sequence(output_handle, record)
-
-        return self.primers if self.extract_primers else None
-
     def _validate_fasta(self):
         """
         This method validates the input fasta.
@@ -247,8 +164,12 @@ class InSilicoAmplification:
         self.read_primer_tables()
         print("mozaiko INFO: All set. Running in-silico amplification...")
 
-        run_name = Path(input("Please enter a name for the folder where the analysis output will \
-                              be stored: "))
+        run_name = Path(
+            input(
+                "Please enter a name for the folder where the analysis output will \
+                              be stored: "
+            )
+        )
 
         input_fasta = self.data
 
@@ -338,33 +259,51 @@ class InSilicoAmplification:
 
         base_command = [
             "cutadapt",
-            "-g", adapter,
-            "--output", str(output_file),
+            "-g",
+            adapter,
+            "--output",
+            str(output_file),
             str(input_file),
             "--no-indels",
-            "-e", str(error_rate),
-            "--overlap", str(overlap),
+            "-e",
+            str(error_rate),
+            "--overlap",
+            str(overlap),
             "--revcomp",
-            "--quiet"
+            "--quiet",
         ]
 
         if command_type == "successful_amplification":
-            additional_args = ["--action", "retain", "--discard-untrimmed", "--maximum-length", str(max_length)]
+            additional_args = [
+                "--action",
+                "retain",
+                "--discard-untrimmed",
+                "--maximum-length",
+                str(max_length),
+            ]
         elif command_type == "pbr_no_amplification":
             additional_args = ["--action", "trim", "--discard-untrimmed"]
         elif command_type == "inserts_pbr":
-            additional_args = ["--action", "trim", "--discard-untrimmed", "--maximum-length", str(max_length)]
+            additional_args = [
+                "--action",
+                "trim",
+                "--discard-untrimmed",
+                "--maximum-length",
+                str(max_length),
+            ]
 
         full_command = base_command + additional_args
 
-        #print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        # print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
         # print(f"mozaiko INFO: Input file: {input_file}")
         # print(f"mozaiko INFO: Output file: {output_file}")
 
         try:
-            result = subprocess.run(full_command, check=True, capture_output=True, text=True)
-            #print(f"mozaiko INFO: Cutadapt stdout:\n{result.stdout}")
-            #print(f"mozaiko INFO: Cutadapt stderr:\n{result.stderr}")
+            result = subprocess.run(
+                full_command, check=True, capture_output=True, text=True
+            )
+            # print(f"mozaiko INFO: Cutadapt stdout:\n{result.stdout}")
+            # print(f"mozaiko INFO: Cutadapt stderr:\n{result.stderr}")
 
             # if output_file.stat().st_size == 0:
             #     print(f"mozaiko WARNING: Output file is empty: {output_file}")
@@ -376,7 +315,9 @@ class InSilicoAmplification:
             print(f"mozaiko ERROR: Cutadapt stderr:\n{e.stderr}")
             raise  # Re-raise the exception instead of calling sys.exit()
         except FileNotFoundError:
-            print("mozaiko ERROR: cutadapt command not found. Please ensure it's installed and in your PATH.")
+            print(
+                "mozaiko ERROR: cutadapt command not found. Please ensure it's installed and in your PATH."
+            )
             raise
 
     def _run_pga_command(
@@ -398,15 +339,24 @@ class InSilicoAmplification:
         pga_command = [
             "crabs",
             "pga",
-            "--input", str(input_file),
-            "--output", str(output_file),
-            "--database", str(pga_database),
-            "--fwd", forward_primer,
-            "--rev", reverse_primer,
-            "--speed", "slow",
-            "--percid", str(minimum_percentage_identity),
-            "--coverage", str(minimum_alignment_coverage),
-            "--filter_method", "strict"
+            "--input",
+            str(input_file),
+            "--output",
+            str(output_file),
+            "--database",
+            str(pga_database),
+            "--fwd",
+            forward_primer,
+            "--rev",
+            reverse_primer,
+            "--speed",
+            "slow",
+            "--percid",
+            str(minimum_percentage_identity),
+            "--coverage",
+            str(minimum_alignment_coverage),
+            "--filter_method",
+            "strict",
         ]
 
         try:
