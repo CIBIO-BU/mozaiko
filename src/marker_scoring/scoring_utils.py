@@ -32,9 +32,7 @@ def calculate_iupac_mismatches(seq1, seq2):
     """
     mismatches = 0
 
-    # compare the two sequences base by base
     for base1, base2 in zip(seq1.upper(), seq2.upper()):
-        # if the bases are different
         if base1 != base2:
             # check if the bases are compatible according to IUPAC
             # by taking the union of the sets of compatible bases

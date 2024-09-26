@@ -31,7 +31,7 @@ class InSilicoAmplification:
             "average_size",
             "min_lenght",
             "max_lenght",
-        ]  # todo: Define mandatory columns
+        ]  # TODO: Define mandatory columns
         self.crabs_script_generator = CrabsScriptGenerator()
 
     def _check_if_cutadapt_installed(self):
@@ -80,6 +80,17 @@ class InSilicoAmplification:
             print("mozaiko INFO: The primer table must be a TSV file. Exiting...")
             sys.exit(1)
 
+        primer_table = pd.read_csv(primer_table, sep="\t", header=0)
+
+        primer_table_fields = primer_table.columns.tolist()
+
+        if primer_table_fields != self.primer_table_columns:
+            print(
+                f"mozaiko INFO: The primer table must contain the following fields: "
+                f"{self.primer_table_columns}"
+            )
+            sys.exit(1)
+
     def read_primer_tables(self):
         """
         Method to read and extract the required properties from the primer table.
@@ -97,19 +108,10 @@ class InSilicoAmplification:
 
         primer_table = pd.read_csv(primer_table, sep="\t", header=0)
 
-        primer_table_fields = primer_table.columns.tolist()
-
-        if primer_table_fields != self.primer_table_columns:
-            print(
-                f"mozaiko INFO: The primer table must contain the following fields: "
-                f"{self.primer_table_columns}"
-            )
-            sys.exit(1)
-
         for index, row in primer_table.iterrows():
 
-            foward_primer = row["fw_seq"].replace("I", "N")
-            reverse_primer = row["rev_seq"].replace("I", "N")
+            foward_primer = row["fw_seq"]
+            reverse_primer = row["rev_seq"]
 
             correct_reverse_primer = str(Seq(reverse_primer).reverse_complement())
 
@@ -152,8 +154,11 @@ class InSilicoAmplification:
 
     def run_in_silico_analysis(self):
         """
-        This methods writes and runs the cutadapt command, responsible for the in-silico
-        amplification.
+        This methods initiates the in-silico analysis. It does so by first veryfing if all required
+        tools are installed in the machine. If installed, it requests the user to upload a table
+        containing a list of primers to be evaluated and to provide a name for the folder where
+        the results of the run will be stored. At last it processes the inputed primer table to
+        iterate over each provided primer (row) and process the needed commands.
         """
 
         self._check_if_cutadapt_installed()
@@ -179,6 +184,10 @@ class InSilicoAmplification:
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
     def process_comands(self, row, run_name, input_fasta):
+        """
+        This method creates variables from the user-inputted primer table to process commands for
+        the in-silico ammplication.
+        """
         barcode_region = row["barcode_region"]
         assay_name = row["assay_name"]
         five_prime_adapter = row["adapter"]
@@ -187,50 +196,53 @@ class InSilicoAmplification:
         forward_primer = row["fw_seq"]
         reverse_primer = row["rev_seq"]
 
+        # Name output directories for each of the analysis steps
         output_dirs = {
-            "successful_amplification": self.output_dir
-            / run_name
-            / "successful_amplification",
-            "pbr_no_amplification": self.output_dir / run_name / "pbr_no_amplification",
-            "inserts_pbr": self.output_dir / run_name / "inserts_pbr",
+            "amplicon": self.output_dir / run_name / "amplicon",
+            "all_barcodes_w_pbr": self.output_dir / run_name / "all_barcodes_w_pbr",
+            "insert": self.output_dir / run_name / "insert",
             "pga": self.output_dir / run_name / "pga",
         }
 
         for dir_path in output_dirs.values():
             dir_path.mkdir(parents=True, exist_ok=True)
 
+        # "amplicon" comand makes use of --action=retain to trim the amplicon but not remove the
+        # primer binding sites (sequences before and after the PBS are removed)
         self._run_cutadapt_command(
-            "successful_amplification",
+            "amplicon",
             five_prime_adapter,
             input_fasta,
             overlap,
             max_length,
             barcode_region,
             assay_name,
-            output_dirs["successful_amplification"],
+            output_dirs["amplicon"],
         )
 
         self._run_cutadapt_command(
-            "pbr_no_amplification",
+            "all_barcodes_w_pbr",
             five_prime_adapter,
-            input_fasta,  # todo: ref daxtabase
+            input_fasta,
             overlap,
             None,
             barcode_region,
             assay_name,
-            output_dirs["pbr_no_amplification"],
+            output_dirs["all_barcodes_w_pbr"],
             error_rate=5,
         )
 
+        # "insert" makes use of --action=trim to remove the primer binding site (and the sequence
+        # before or after it)
         self._run_cutadapt_command(
-            "inserts_pbr",
+            "insert",
             five_prime_adapter,
             input_fasta,
             overlap,
             max_length,
             barcode_region,
             assay_name,
-            output_dirs["inserts_pbr"],
+            output_dirs["insert"],
         )
 
         self._run_pga_command(
@@ -240,7 +252,7 @@ class InSilicoAmplification:
             barcode_region,
             assay_name,
             output_dirs["pga"],
-            output_dirs["inserts_pbr"],
+            output_dirs["insert"],
         )
 
     def _run_cutadapt_command(
@@ -255,6 +267,11 @@ class InSilicoAmplification:
         output_dir,
         error_rate=3,
     ):
+        """
+        This method designs the commands to run with cutadapt (https://github.com/marcelm/cutadapt).
+        It first defines the output file for each barcode regions and assay name. Then defines a
+        base command, following a list of alternative commands for each of the analysis purposes.
+        """
         output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
 
         base_command = [
@@ -273,7 +290,7 @@ class InSilicoAmplification:
             "--quiet",
         ]
 
-        if command_type == "successful_amplification":
+        if command_type == "amplicon":
             additional_args = [
                 "--action",
                 "retain",
@@ -281,9 +298,9 @@ class InSilicoAmplification:
                 "--maximum-length",
                 str(max_length),
             ]
-        elif command_type == "pbr_no_amplification":
+        elif command_type == "all_barcodes_w_pbr":
             additional_args = ["--action", "trim", "--discard-untrimmed"]
-        elif command_type == "inserts_pbr":
+        elif command_type == "insert":
             additional_args = [
                 "--action",
                 "trim",
@@ -305,14 +322,14 @@ class InSilicoAmplification:
             # print(f"mozaiko INFO: Cutadapt stdout:\n{result.stdout}")
             # print(f"mozaiko INFO: Cutadapt stderr:\n{result.stderr}")
 
-            # if output_file.stat().st_size == 0:
-            #     print(f"mozaiko WARNING: Output file is empty: {output_file}")
+            if output_file.stat().st_size == 0:
+                print(f"mozaiko WARNING: Output file is empty: {output_file}")
             # else:
-            #     print(f"mozaiko INFO: Output file size: {output_file.stat().st_size} bytes")
+            # print(f"mozaiko INFO: Output file size: {output_file.stat().st_size} bytes")
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: cutadapt {command_type} command failed: {e}")
-            print(f"mozaiko ERROR: Cutadapt stdout:\n{e.stdout}")
-            print(f"mozaiko ERROR: Cutadapt stderr:\n{e.stderr}")
+            # print(f"mozaiko ERROR: Cutadapt stdout:\n{e.stdout}")
+            # print(f"mozaiko ERROR: Cutadapt stderr:\n{e.stderr}")
             raise  # Re-raise the exception instead of calling sys.exit()
         except FileNotFoundError:
             print(
@@ -330,6 +347,13 @@ class InSilicoAmplification:
         output_dir,
         database_dir,
     ):
+        """
+        This method designs the command to run Pairwise Global Alignment (PGA) with CRABS
+        (https://github.com/gjeunen/reference_database_creator).
+        It first defines the output file for each barcode regions and assay name; and the
+        input file to be used as a database to be searched against the reference sequences.
+        Finally, it states the base command to be ran.
+        """
         output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
         pga_database = database_dir / f"{barcode_region}_{assay_name}.txt"
 
