@@ -22,7 +22,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         Set up the test class and data.
         """
-        self.data_dir = "../data/test_data"
+        self.data_dir = "data/test_data"
         self.primer_list = self.data_dir + "/test_primer_table.tsv"
         self.input_data = self.data_dir + "/fasta_example_file_taxid.fasta"
         self.amplification = InSilicoAmplification(self.input_data)
@@ -62,7 +62,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.amplification._validate_primer_table(self.input_data)
 
-    def test_validate_primer_table_valid(self):
+    def test_read_primer_tables_valid(self):
         """
         Test that the _validate_primer_table method reads the primer table correctly.
         """
@@ -116,7 +116,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         test_class = InSilicoAmplification(self.input_data)
         test_class._validate_fasta()
 
-    def test_validate_primer_table_wrong_extension(self):
+    def test_validate_fasta_wrong_extension(self):
         """
         Test that the _validate_fasta method raises a SystemExit when the input data has the wrong
         extension.
