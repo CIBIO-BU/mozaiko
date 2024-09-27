@@ -2,13 +2,13 @@
 Unit tests for the InSilicoAmplification class.
 """
 
+import os
 import subprocess
 import sys
 import unittest
 from io import StringIO
-from unittest.mock import MagicMock, patch
 from pathlib import Path
-import os
+from unittest.mock import MagicMock, patch
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
@@ -54,9 +54,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 self.amplification._check_if_cutadapt_installed()
             self.assertEqual(context.exception.code, 1)  # 1 -> SystemExist
-            message = "mozaiko INFO: Cutadapt is not installed. Please install Cutadapt before \
-                    running this script. \n Cutadapt can be found at \
-                    https://cutadapt.readthedocs.io/en/stable/installation.html"
+            message = "mozaiko INFO: Cutadapt is not installed. Please install Cutadapt before running this script. \n Cutadapt can be found at https://cutadapt.readthedocs.io/en/stable/installation.html"
             self.assertEqual(message, fake_out.get_value())
 
     def test_validate_primer_table_not_exist(self):
@@ -181,17 +179,44 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_path.assert_called_once()
 
     @patch("builtins.input", side_effect=["test_folder"])
-    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.process_commands")
-    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables")
-    def test_run_in_silico_analysis_calls(self, mock_read_tables, mock_process_commands, _mock_input):
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.process_commands"
+    )
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
+    )
+    def test_run_in_silico_analysis_calls_process_commands(
+        self, mock_read_tables, mock_process_commands, _mock_input
+    ):
         """
-        Test that run_in_silico_analysis calls the process_commands the correct number of times.
+        Test that run_in_silico_analysis calls the process_commands the correct number of times and
+        with the correct arguments.
         """
         self.amplification.primer_table = MagicMock()
-        self.amplification.primer_table.iterrows.return_value =  [
-        (0, {"target_group": "Chondrichthyes", "primer_name": "Chon01", "forward_sequence": "ACACCGCCCGTCACTCTC", "reverse_sequence": "CATGTTACGACTTGCCTCCTC", "amplicon_length": "43", "expected_size": "23"}),
-        (1, {"target_group": "Vertebrate", "primer_name": "12S-V5-c", "forward_sequence": "AGGGATAACAGCGCAATC", "reverse_sequence": "TCGTTGAACAAACGAACC", "amplicon_length": "74", "expected_size": "24"})
-    ]
+        self.amplification.primer_table.iterrows.return_value = [
+            (
+                0,
+                {
+                    "target_group": "Chondrichthyes",
+                    "primer_name": "Chon01",
+                    "forward_sequence": "ACACCGCCCGTCACTCTC",
+                    "reverse_sequence": "CATGTTACGACTTGCCTCCTC",
+                    "amplicon_length": "43",
+                    "expected_size": "23",
+                },
+            ),
+            (
+                1,
+                {
+                    "target_group": "Vertebrate",
+                    "primer_name": "12S-V5-c",
+                    "forward_sequence": "AGGGATAACAGCGCAATC",
+                    "reverse_sequence": "TCGTTGAACAAACGAACC",
+                    "amplicon_length": "74",
+                    "expected_size": "24",
+                },
+            ),
+        ]
         mock_read_tables.return_value = None
 
         self.amplification.run_in_silico_analysis()
@@ -199,12 +224,26 @@ class TestInSilicoAmplification(unittest.TestCase):
         self.assertEqual(mock_process_commands.call_count, 2)
 
         mock_process_commands.assert_any_call(
-            {"target_group": "Chondrichthyes", "primer_name": "Chon01", "forward_sequence": "ACACCGCCCGTCACTCTC", "reverse_sequence": "CATGTTACGACTTGCCTCCTC", "amplicon_length": "43", "expected_size": "23"},
+            {
+                "target_group": "Chondrichthyes",
+                "primer_name": "Chon01",
+                "forward_sequence": "ACACCGCCCGTCACTCTC",
+                "reverse_sequence": "CATGTTACGACTTGCCTCCTC",
+                "amplicon_length": "43",
+                "expected_size": "23",
+            },
             Path("test_folder"),
-            self.amplification.data
-            )
+            self.amplification.data,
+        )
         mock_process_commands.assert_any_call(
-            {"target_group": "Vertebrate", "primer_name": "12S-V5-c", "forward_sequence": "AGGGATAACAGCGCAATC", "reverse_sequence": "TCGTTGAACAAACGAACC", "amplicon_length": "74", "expected_size": "24"},
+            {
+                "target_group": "Vertebrate",
+                "primer_name": "12S-V5-c",
+                "forward_sequence": "AGGGATAACAGCGCAATC",
+                "reverse_sequence": "TCGTTGAACAAACGAACC",
+                "amplicon_length": "74",
+                "expected_size": "24",
+            },
             Path("test_folder"),
-            self.amplification.data
+            self.amplification.data,
         )
