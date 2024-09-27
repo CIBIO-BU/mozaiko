@@ -26,13 +26,20 @@ IUPAC = {
 }
 
 
-def calculate_iupac_mismatches(seq1, seq2):
+def calculate_iupac_mismatches(sequence1, sequence2):
     """
     Calculate the number of mismatches between two sequences, according to IUPAC ambiguity codes.
+
+    Parameters:
+    sequence1 (str): First sequence to be analysed.
+    sequence2 (str): Second sequence to be analysed against.
+
+    Returns:
+    int: Number of mismatches found between two sequences.
     """
     mismatches = 0
 
-    for base1, base2 in zip(seq1.upper(), seq2.upper()):
+    for base1, base2 in zip(sequence1.upper(), sequence2.upper()):
         if base1 != base2:
             # check if the bases are compatible according to IUPAC
             # by taking the union of the sets of compatible bases
@@ -80,6 +87,13 @@ def calculate_ambiguous_percentage(sequence):
 def write_filtered_sequence(output_handle, record):
     """
     Write a filtered sequence to the output file.
+
+    Parameters:
+    - output_handle:
+    -record:
+
+    Returns:
+    - None
     """
     sequence = str(record.seq)
     output_handle.write(f">{record.description}\n{sequence}\n")

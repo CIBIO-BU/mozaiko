@@ -252,7 +252,7 @@ class InSilicoAmplification:
             barcode_region,
             assay_name,
             output_dirs["pga"],
-            output_dirs["insert"],
+            output_dirs["all_barcodes_w_pbr"],
         )
 
     def _run_cutadapt_command(

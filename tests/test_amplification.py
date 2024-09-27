@@ -6,9 +6,7 @@ import subprocess
 import sys
 import unittest
 from io import StringIO
-from unittest.mock import patch
-
-import pandas as pd
+from unittest.mock import MagicMock, patch
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
@@ -39,6 +37,25 @@ class TestInSilicoAmplification(unittest.TestCase):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+    @patch("subprocess.run")
+    def test_check_if_cutadapt_installed_not_found(self, mock_run):
+        """
+        Test if _check_if_cutadapt_installed method raises FileNotFoundError() when no cutadapt
+        installation is found.
+        """
+        mock_run.side_effect = FileNotFoundError()
+        with self.assertRaises(
+            SystemExit
+        ) as context:  # captures the exception into context
+            # redirect sys.stdout to a StringIO object
+            with patch("sys.stdout", new=StringIO()) as fake_out:
+                self.amplification._check_if_cutadapt_installed()
+            self.assertEqual(context.exception.code, 1)  # 1 -> SystemExist
+            message = "mozaiko INFO: Cutadapt is not installed. Please install Cutadapt before \
+                    running this script. \n Cutadapt can be found at \
+                    https://cutadapt.readthedocs.io/en/stable/installation.html"
+            self.assertEqual(message, fake_out.get_value())
 
     def test_validate_primer_table_not_exist(self):
         """
@@ -124,3 +141,39 @@ class TestInSilicoAmplification(unittest.TestCase):
         test_class = InSilicoAmplification(self.primer_list)
         with self.assertRaises(SystemExit):
             test_class._validate_fasta()
+
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification._check_if_cutadapt_installed"
+    )
+    @patch(
+        "src.reference_database.db_curation.CrabsScriptGenerator.check_if_crabs_installed"
+    )
+    @patch("src.in_silico_analysis.amplification.InSilicoAmplification._validate_fasta")
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
+    )
+    @patch("src.in_silico_analysis.amplification.Path")
+    @patch("builtins.input", side_effect=["path_to_table.tsv"])
+    def test_run_in_silico_analysis_calls(
+        self,
+        mock_check_cutadapt,
+        mock_check_crabs,
+        mock_validate_fasta,
+        mock_read_tables,
+        mock_path,
+        _mock_input,
+    ):
+        """
+        Test that run_in_silico_analysis calls the all required methods.
+        """
+
+        mock_path.return_value = "test_output_folder"
+        self.amplification.primer_table = MagicMock()
+
+        self.amplification.run_in_silico_analysis()
+
+        mock_check_cutadapt.assert_called_once()
+        mock_check_crabs.assert_called_once()
+        mock_validate_fasta.assert_called_once()
+        mock_read_tables.assert_called_once()
+        mock_path.assert_called_once()
