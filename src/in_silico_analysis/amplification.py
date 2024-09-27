@@ -91,7 +91,7 @@ class InSilicoAmplification:
             )
             sys.exit(1)
 
-    def read_primer_tables(self):
+    def read_primer_tables(self, primer_table=None):
         """
         Method to read and extract the required properties from the primer table.
         """
@@ -102,7 +102,8 @@ class InSilicoAmplification:
             f"following fields: {self.primer_table_columns}"
         )
 
-        primer_table = input("Please enter the path to the primer table: ")
+        if primer_table is None:
+            primer_table = input("Please enter the path to the primer table: ")
 
         self._validate_primer_table(primer_table)
 
@@ -152,7 +153,7 @@ class InSilicoAmplification:
             print("mozaiko INFO: Input file must be a FASTA file. Exiting...")
             sys.exit(1)
 
-    def run_in_silico_analysis(self):
+    def run_in_silico_analysis(self, primer_table=None):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
         tools are installed in the machine. If installed, it requests the user to upload a table
@@ -166,7 +167,7 @@ class InSilicoAmplification:
 
         self._validate_fasta()
 
-        self.read_primer_tables()
+        self.read_primer_tables(primer_table)
         print("mozaiko INFO: All set. Running in-silico amplification...")
 
         run_name = Path(
@@ -179,11 +180,11 @@ class InSilicoAmplification:
         input_fasta = self.data
 
         for _, row in self.primer_table.iterrows():
-            self.process_comands(row, run_name, input_fasta)
+            self.process_commands(row, run_name, input_fasta)
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
-    def process_comands(self, row, run_name, input_fasta):
+    def process_commands(self, row, run_name, input_fasta):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.

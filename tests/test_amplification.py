@@ -7,6 +7,8 @@ import sys
 import unittest
 from io import StringIO
 from unittest.mock import MagicMock, patch
+from pathlib import Path
+import os
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
@@ -177,3 +179,32 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_validate_fasta.assert_called_once()
         mock_read_tables.assert_called_once()
         mock_path.assert_called_once()
+
+    @patch("builtins.input", side_effect=["test_folder"])
+    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.process_commands")
+    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables")
+    def test_run_in_silico_analysis_calls(self, mock_read_tables, mock_process_commands, _mock_input):
+        """
+        Test that run_in_silico_analysis calls the process_commands the correct number of times.
+        """
+        self.amplification.primer_table = MagicMock()
+        self.amplification.primer_table.iterrows.return_value =  [
+        (0, {"target_group": "Chondrichthyes", "primer_name": "Chon01", "forward_sequence": "ACACCGCCCGTCACTCTC", "reverse_sequence": "CATGTTACGACTTGCCTCCTC", "amplicon_length": "43", "expected_size": "23"}),
+        (1, {"target_group": "Vertebrate", "primer_name": "12S-V5-c", "forward_sequence": "AGGGATAACAGCGCAATC", "reverse_sequence": "TCGTTGAACAAACGAACC", "amplicon_length": "74", "expected_size": "24"})
+    ]
+        mock_read_tables.return_value = None
+
+        self.amplification.run_in_silico_analysis()
+
+        self.assertEqual(mock_process_commands.call_count, 2)
+
+        mock_process_commands.assert_any_call(
+            {"target_group": "Chondrichthyes", "primer_name": "Chon01", "forward_sequence": "ACACCGCCCGTCACTCTC", "reverse_sequence": "CATGTTACGACTTGCCTCCTC", "amplicon_length": "43", "expected_size": "23"},
+            Path("test_folder"),
+            self.amplification.data
+            )
+        mock_process_commands.assert_any_call(
+            {"target_group": "Vertebrate", "primer_name": "12S-V5-c", "forward_sequence": "AGGGATAACAGCGCAATC", "reverse_sequence": "TCGTTGAACAAACGAACC", "amplicon_length": "74", "expected_size": "24"},
+            Path("test_folder"),
+            self.amplification.data
+        )
