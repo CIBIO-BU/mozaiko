@@ -106,17 +106,17 @@ class TestInSilicoAmplification(unittest.TestCase):
 
         user_input = StringIO(f"{self.primer_list}\n")
         captured_output = StringIO()
-        sys.stdin, sys.stdout = user_input, captured_output
 
-        with self.assertRaises(SystemExit):
-            self.amplification.read_primer_tables()
+        with patch('sys.stdin', user_input), patch('sys.stdout', captured_output):
+            with self.assertRaises(SystemExit):
+                self.amplification.read_primer_tables()
 
-        output = captured_output.getvalue()
+            output = captured_output.getvalue()
 
-        expected_error = "mozaiko INFO: The primer table must contain the following fields: ['x', 'y']"
-        self.assertIn((expected_error), output)
-
-        sys.stdin, sys.stdout = sys.__stdin__, sys.__stdout__
+            self.assertIn("mozaiko INFO: The primer table is missing the following required fields:", output)
+            self.assertIn("x", output)
+            self.assertIn("y", output)
+            self.assertIn("Required fields are: x, y", output)
 
     def test_validate_fasta_not_exist(self):
         """

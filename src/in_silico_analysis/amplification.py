@@ -27,11 +27,8 @@ class InSilicoAmplification:
             "barcode_region",
             "assay_name",
             "fw_seq",
-            "rev_seq",
-            "average_size",
-            "min_lenght",
-            "max_lenght",
-        ]  # TODO: Define mandatory columns
+            "rev_seq"
+        ]
         self.crabs_script_generator = CrabsScriptGenerator()
 
     def _check_if_cutadapt_installed(self):
@@ -84,11 +81,16 @@ class InSilicoAmplification:
 
         primer_table_fields = primer_table.columns.tolist()
 
-        if primer_table_fields != self.primer_table_columns:
+        required_fields = set(self.primer_table_columns)
+        provided_fields = set(primer_table_fields)
+
+        if not required_fields.issubset(provided_fields):
+            missing_fields = required_fields - provided_fields
             print(
-                f"mozaiko INFO: The primer table must contain the following fields: "
-                f"{self.primer_table_columns}"
+                f"mozaiko INFO: The primer table is missing the following required fields: "
+                f"{', '.join(missing_fields)}"
             )
+            print(f"Required fields are: {', '.join(self.primer_table_columns)}")
             sys.exit(1)
 
     def read_primer_tables(self, primer_table=None):
