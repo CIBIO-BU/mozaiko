@@ -124,7 +124,7 @@ install_cutadapt_package() {
 
     echo "Installing/Upgrading cutadapt package..."
 
-    if ! pip install --upgrade cutadapt; then
+    if ! pip install cutadapt; then
         echo "Failed to install cutadapt. Please check the error messages and try again."
         return 1
     fi
