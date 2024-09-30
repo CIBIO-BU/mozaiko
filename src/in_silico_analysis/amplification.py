@@ -311,6 +311,8 @@ class InSilicoAmplification:
                 "--maximum-length",
                 str(max_length),
             ]
+        else:
+            raise ValueError(f"Invalid command type: {command_type}")
 
         full_command = base_command + additional_args
 

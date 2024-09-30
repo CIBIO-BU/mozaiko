@@ -272,3 +272,183 @@ class TestInSilicoAmplification(unittest.TestCase):
             PosixPath("../data/output_data/test_run/pga"),
             PosixPath("../data/output_data/test_run/all_barcodes_w_pbr"),
         )
+
+    @patch("subprocess.run")
+    @patch("pathlib.Path.stat")
+    def test_run_cutadapt_command(self, mock_stat, mock_subprocess_run):
+        output_dir = Path("output")
+
+        # mock stat to return non-zero sized files
+        mock_stat.return_value = os.stat_result((0, 0, 0, 0, 0, 0, 100, 0, 0, 0))
+
+        common_args = [
+            "cutadapt",
+            "-g",
+            "ADAPTER",
+            "--output",
+            str(output_dir / "12S_Chon01.txt"),
+            str(self.input_data),
+            "--no-indels",
+            "-e",
+            "3",
+            "--overlap",
+            "20",
+            "--revcomp",
+            "--quiet",
+        ]
+
+        # Test case 1: 'amplicon' command type
+        mock_subprocess_run.reset_mock()  # reset state to complete more tests
+        self.amplification.run_cutadapt_command(
+            "amplicon", "ADAPTER", self.input_data, 20, 100, "12S", "Chon01", output_dir
+        )
+        expected_args = common_args + [
+            "--action",
+            "retain",
+            "--discard-untrimmed",
+            "--maximum-length",
+            "100",
+        ]
+        mock_subprocess_run.assert_called_with(
+            expected_args, check=True, capture_output=True, text=True
+        )
+
+        # Test case 2: 'all_barcodes_w_pbr' command type
+        mock_subprocess_run.reset_mock()
+        self.amplification.run_cutadapt_command(
+            "all_barcodes_w_pbr",
+            "ADAPTER",
+            self.input_data,
+            20,
+            None,
+            "12S",
+            "Chon01",
+            output_dir,
+        )
+        expected_args = common_args + ["--action", "trim", "--discard-untrimmed"]
+        mock_subprocess_run.assert_called_with(
+            expected_args, check=True, capture_output=True, text=True
+        )
+
+        # Test case 3: 'insert' command type
+        mock_subprocess_run.reset_mock()
+        self.amplification.run_cutadapt_command(
+            "insert", "ADAPTER", self.input_data, 20, 100, "12S", "Chon01", output_dir
+        )
+        expected_args = common_args + [
+            "--action",
+            "trim",
+            "--discard-untrimmed",
+            "--maximum-length",
+            "100",
+        ]
+        mock_subprocess_run.assert_called_with(
+            expected_args, check=True, capture_output=True, text=True
+        )
+
+        # Test case 4: Invalid command type
+        with self.assertRaises(ValueError):
+            self.amplification.run_cutadapt_command(
+                "invalid_type",
+                "ADAPTER",
+                self.input_data,
+                20,
+                100,
+                "12S",
+                "Chon01",
+                output_dir,
+            )
+
+        # Test case 5: Error handling (subprocess.CalledProcessError)
+        mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cutadapt")
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.amplification.run_cutadapt_command(
+                "amplicon",
+                "ADAPTER",
+                self.input_data,
+                20,
+                100,
+                "12S",
+                "Chon01",
+                output_dir,
+            )
+
+        # Test case 6: Error handling (FileNotFoundError)
+        mock_subprocess_run.side_effect = FileNotFoundError
+        with self.assertRaises(FileNotFoundError):
+            self.amplification.run_cutadapt_command(
+                "amplicon",
+                "ADAPTER",
+                self.input_data,
+                20,
+                100,
+                "12S",
+                "Chon01",
+                output_dir,
+            )
+
+        # Test case 7: Empty output file
+        mock_stat.return_value = os.stat_result((0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        mock_subprocess_run.side_effect = None
+        self.amplification.run_cutadapt_command(
+            "amplicon", "ADAPTER", self.input_data, 20, 100, "12S", "Chon01", output_dir
+        )
+
+    @patch("subprocess.run")
+    @patch("pathlib.Path.stat")
+    def test_run_pga_command(self, mock_stat, mock_subprocess_run):
+        output_dir = Path("output")
+        database_dir = Path("database")
+
+        mock_stat.return_value = os.stat_result((0, 0, 0, 0, 0, 0, 100, 0, 0, 0))
+
+        # Test case 1: Successful run
+        mock_subprocess_run.return_value = MagicMock(returncode=0)
+
+        self.amplification.run_pga_command(
+            self.input_data,
+            "FORWARD",
+            "REVERSE",
+            "12S",
+            "Assay1",
+            output_dir,
+            database_dir,
+        )
+        mock_subprocess_run.assert_called_with(
+            [
+                "crabs",
+                "pga",
+                "--input",
+                str(self.input_data),
+                "--output",
+                str(output_dir / "12S_Assay1.txt"),
+                "--database",
+                str(database_dir / "12S_Assay1.txt"),
+                "--fwd",
+                "FORWARD",
+                "--rev",
+                "REVERSE",
+                "--speed",
+                "slow",
+                "--percid",
+                "0.95",
+                "--coverage",
+                "0.99",
+                "--filter_method",
+                "strict",
+            ],
+            check=True,
+        )
+
+        # Test case 2: Failed run
+        mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "crabs")
+        with self.assertRaises(SystemExit):
+            self.amplification.run_pga_command(
+                self.input_data,
+                "FORWARD",
+                "REVERSE",
+                "12S",
+                "Assay1",
+                output_dir,
+                database_dir,
+            )
