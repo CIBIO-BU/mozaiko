@@ -73,16 +73,10 @@ class TestMosaiko(unittest.TestCase):
         mock_run_dereplicate_command.assert_called_with("dummy.json")
 
     @patch("argparse.ArgumentParser.parse_args")
-    @patch("mosaiko.handle_custom_fasta_import")
-    @patch("mosaiko.handle_taxonomic_assignment")
-    @patch("mosaiko.handle_dereplication")
-    def test_main_load_custom_fasta(
-        self,
-        mock_dereplication,
-        mock_taxonomic_assignment,
-        mock_custom_fasta_import,
-        mock_parse_args,
-    ):
+    @patch("src.mosaiko.CustomFastaImport")
+    def test_main_load_custom_fasta(self, mock_custom_fasta_import, mock_parse_args):
+        mock_fasta_instance = MagicMock()
+        mock_custom_fasta_import.return_value = mock_fasta_instance
 
         mock_args = MagicMock(
             load_custom_fasta=True,
@@ -97,9 +91,9 @@ class TestMosaiko(unittest.TestCase):
 
         main()
 
-        mock_custom_fasta_import.assert_called_once_with(mock_args)
-        mock_dereplication.assert_not_called()
-        mock_taxonomic_assignment.assert_not_called()
+        mock_custom_fasta_import.assert_called_once()
+        mock_fasta_instance.read_fasta.assert_called_once_with(mock_args.input)
+        mock_fasta_instance.get_number_of_sequences.assert_called_once()
 
     @patch("argparse.ArgumentParser.parse_args")
     @patch("mosaiko.handle_taxonomic_assignment")
