@@ -1,15 +1,21 @@
 """
 Unit tests for the mosaiko.py module.
 """
+
 import argparse
+import sys
 import unittest
-from unittest.mock import mock_open, patch
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from src.mosaiko import (
     create_parser,
     handle_custom_fasta_import,
     handle_dereplication,
     handle_taxonomic_assignment,
+    main,
 )
 
 
@@ -65,3 +71,77 @@ class TestMosaiko(unittest.TestCase):
         args = argparse.Namespace(json_file="dummy.json")
         handle_dereplication(args)
         mock_run_dereplicate_command.assert_called_with("dummy.json")
+
+    @patch("argparse.ArgumentParser.parse_args")
+    @patch("mosaiko.handle_custom_fasta_import")
+    @patch("mosaiko.handle_taxonomic_assignment")
+    @patch("mosaiko.handle_dereplication")
+    def test_main_load_custom_fasta(
+        self,
+        mock_dereplication,
+        mock_taxonomic_assignment,
+        mock_custom_fasta_import,
+        mock_parse_args,
+    ):
+
+        mock_args = MagicMock(
+            load_custom_fasta=True,
+            input="data/test_data/fasta_example_file_taxid.fasta",
+            assign_tax=False,
+            dereplicate=False,
+            json_file=None,
+            verbose=False,
+            output=None,
+        )
+        mock_parse_args.return_value = mock_args
+
+        main()
+
+        mock_custom_fasta_import.assert_called_once_with(mock_args)
+        mock_dereplication.assert_not_called()
+        mock_taxonomic_assignment.assert_not_called()
+
+    @patch("argparse.ArgumentParser.parse_args")
+    @patch("mosaiko.handle_taxonomic_assignment")
+    def test_main_assign_tax_without_json(
+        self, mock_taxonomic_assignment, mock_parse_args
+    ):
+        mock_parse_args.return_value = MagicMock(
+            load_custom_fasta=False,
+            input=None,
+            assign_tax=True,
+            json_file=None,
+            verbose=False,
+        )
+
+        with self.assertLogs(level="ERROR") as log:
+            main()
+
+        mock_taxonomic_assignment.assert_not_called()
+        self.assertIn(
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters.",
+            log.output[0],
+        )
+        self.assertIn("Exiting...", log.output[1])
+
+    @patch("argparse.ArgumentParser.parse_args")
+    @patch("mosaiko.handle_dereplication")
+    def test_main_dereplicate_without_json(self, mock_dereplication, mock_parse_args):
+        mock_parse_args.return_value = MagicMock(
+            load_custom_fasta=False,
+            input=None,
+            assign_tax=False,
+            dereplicate=True,
+            json_file=None,
+            verbose=False,
+        )
+
+        with self.assertLogs(level="ERROR") as log:
+            main()
+
+        mock_dereplication.assert_not_called()
+        self.assertIn(
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters.",
+            log.output[0],
+        )
+        self.assertIn("Exiting...", log.output[1])

@@ -127,9 +127,9 @@ class CustomFastaImport:
 
         self._check_for_taxids(input_file)
 
-        self.fasta_file = self.df2fasta(
-            output_name="data/output_data/processed_input.fasta"
-        )
+        # self.fasta_file = self.df2fasta(
+        #     output_name="/processed_input.fasta"
+        # )
 
         return self.data
 
@@ -200,11 +200,16 @@ class CustomFastaImport:
         self.data.to_csv(output_name, index=False)
 
     def df2fasta(
-        self, output_name: str = "data/output_data/processed_input_fasta.fasta"
+        self, output_name: str = "data/output_data//processed_input_fasta.fasta"
     ):
         """
         Write the data frame to a fasta file.
         """
+
+        output_dir = os.path.dirname(output_name)
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
         with open(output_name, "w") as file:
             for index, row in self.data.iterrows():

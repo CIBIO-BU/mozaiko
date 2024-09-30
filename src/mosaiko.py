@@ -42,23 +42,23 @@ def handle_custom_fasta_import(args):
     """
     Handle the import of a custom FASTA file.
     """
-    logging.info("mosaiko INFO: Initiating custom sequence import...")
+    print("mosaiko INFO: Initiating custom sequence import...")
     fasta_import = CustomFastaImport()
     fasta_import.read_fasta(args.input)
 
-    if args.output:
-        fasta_import.df2fasta(args.output)
-
-    logging.info(
+    print(
         f"mosaiko INFO: Processed {fasta_import.get_number_of_sequences()} sequences."
     )
+
+    if args.output:
+        fasta_import.df2fasta(args.output)
 
 
 def handle_taxonomic_assignment(args):
     """
     Handle the taxonomic assignment of sequences.
     """
-    logging.info("mosaiko INFO: Initiating taxonomic assignment...")
+    print("mosaiko INFO: Initiating taxonomic assignment...")
     crabs_generator = CrabsScriptGenerator()
     crabs_generator.run_assign_tax_command(args.json_file)
 
@@ -67,7 +67,7 @@ def handle_dereplication(args):
     """
     Handle the dereplication of sequences.
     """
-    logging.info("mosaiko INFO: Initiating sequence dereplication...")
+    print("mosaiko INFO: Initiating sequence dereplication...")
     crabs_generator = CrabsScriptGenerator()
     crabs_generator.run_dereplicate_command(args.json_file)
 
@@ -78,6 +78,7 @@ def main():
     """
     parser = create_parser()
     args = parser.parse_args()
+    print(f"Parsed args: {args}")
 
     # Verbose logging
     if args.verbose:
@@ -89,8 +90,11 @@ def main():
             "mosaiko INFO: --input is required when --load_custom_fasta is used."
         )
 
-    if args.load_custom_fasta:
+    if args.load_custom_fasta and args.input:
+        print("Loading custom FASTA...")
         handle_custom_fasta_import(args)
+    else:
+        print("Skipping custom FASTA load...")
 
     # Assign taxonomic information
     if args.assign_tax and args.json_file:
@@ -98,7 +102,7 @@ def main():
 
     elif args.assign_tax:
         logging.error(
-            "No JSON file specified. Please specify a JSON file with parameters."
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters."
         )
         logging.error("Exiting...")
         return
@@ -109,7 +113,7 @@ def main():
 
     elif args.dereplicate:
         logging.error(
-            "No JSON file specified. Please specify a JSON file with parameters."
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters."
         )
         logging.error("Exiting...")
         return
