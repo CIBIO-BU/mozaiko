@@ -20,14 +20,14 @@ class InSilicoAmplification:
 
     def __init__(self, data, primer_table: pd.DataFrame = None):
         self.data = data
-        self.output_dir = "../data/output_data"
+        self.output_dir = Path("../data/output_data")
         self.primer_table = primer_table
         self.primer_table_columns = [
             "target_group",
             "barcode_region",
             "assay_name",
             "fw_seq",
-            "rev_seq"
+            "rev_seq",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
 
@@ -186,7 +186,7 @@ class InSilicoAmplification:
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
-    def process_commands(self, row, run_name, input_fasta):
+    def process_commands(self, row: dict, run_name: str, input_fasta: Path):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
@@ -212,7 +212,7 @@ class InSilicoAmplification:
 
         # "amplicon" comand makes use of --action=retain to trim the amplicon but not remove the
         # primer binding sites (sequences before and after the PBS are removed)
-        self._run_cutadapt_command(
+        self.run_cutadapt_command(
             "amplicon",
             five_prime_adapter,
             input_fasta,
@@ -223,7 +223,7 @@ class InSilicoAmplification:
             output_dirs["amplicon"],
         )
 
-        self._run_cutadapt_command(
+        self.run_cutadapt_command(
             "all_barcodes_w_pbr",
             five_prime_adapter,
             input_fasta,
@@ -237,7 +237,7 @@ class InSilicoAmplification:
 
         # "insert" makes use of --action=trim to remove the primer binding site (and the sequence
         # before or after it)
-        self._run_cutadapt_command(
+        self.run_cutadapt_command(
             "insert",
             five_prime_adapter,
             input_fasta,
@@ -248,7 +248,7 @@ class InSilicoAmplification:
             output_dirs["insert"],
         )
 
-        self._run_pga_command(
+        self.run_pga_command(
             input_fasta,
             forward_primer,
             reverse_primer,
@@ -258,7 +258,7 @@ class InSilicoAmplification:
             output_dirs["all_barcodes_w_pbr"],
         )
 
-    def _run_cutadapt_command(
+    def run_cutadapt_command(
         self,
         command_type,
         adapter,
@@ -340,7 +340,7 @@ class InSilicoAmplification:
             )
             raise
 
-    def _run_pga_command(
+    def run_pga_command(
         self,
         input_file,
         forward_primer,

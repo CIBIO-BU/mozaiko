@@ -7,7 +7,7 @@ import subprocess
 import sys
 import unittest
 from io import StringIO
-from pathlib import Path
+from pathlib import Path, PosixPath
 from unittest.mock import MagicMock, patch
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
@@ -107,13 +107,16 @@ class TestInSilicoAmplification(unittest.TestCase):
         user_input = StringIO(f"{self.primer_list}\n")
         captured_output = StringIO()
 
-        with patch('sys.stdin', user_input), patch('sys.stdout', captured_output):
+        with patch("sys.stdin", user_input), patch("sys.stdout", captured_output):
             with self.assertRaises(SystemExit):
                 self.amplification.read_primer_tables()
 
             output = captured_output.getvalue()
 
-            self.assertIn("mozaiko INFO: The primer table is missing the following required fields:", output)
+            self.assertIn(
+                "mozaiko INFO: The primer table is missing the following required fields:",
+                output,
+            )
             self.assertIn("x", output)
             self.assertIn("y", output)
             self.assertIn("Required fields are: x, y", output)
@@ -198,22 +201,18 @@ class TestInSilicoAmplification(unittest.TestCase):
                 0,
                 {
                     "target_group": "Chondrichthyes",
-                    "primer_name": "Chon01",
-                    "forward_sequence": "ACACCGCCCGTCACTCTC",
-                    "reverse_sequence": "CATGTTACGACTTGCCTCCTC",
-                    "amplicon_length": "43",
-                    "expected_size": "23",
+                    "assay_name": "Chon01",
+                    "fw_seq": "ACACCGCCCGTCACTCTC",
+                    "rev_seq": "CATGTTACGACTTGCCTCCTC",
                 },
             ),
             (
                 1,
                 {
                     "target_group": "Vertebrate",
-                    "primer_name": "12S-V5-c",
-                    "forward_sequence": "AGGGATAACAGCGCAATC",
-                    "reverse_sequence": "TCGTTGAACAAACGAACC",
-                    "amplicon_length": "74",
-                    "expected_size": "24",
+                    "assay_name": "12S-V5-c",
+                    "fw_seq": "AGGGATAACAGCGCAATC",
+                    "rev_seq": "TCGTTGAACAAACGAACC",
                 },
             ),
         ]
@@ -226,11 +225,9 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_process_commands.assert_any_call(
             {
                 "target_group": "Chondrichthyes",
-                "primer_name": "Chon01",
-                "forward_sequence": "ACACCGCCCGTCACTCTC",
-                "reverse_sequence": "CATGTTACGACTTGCCTCCTC",
-                "amplicon_length": "43",
-                "expected_size": "23",
+                "assay_name": "Chon01",
+                "fw_seq": "ACACCGCCCGTCACTCTC",
+                "rev_seq": "CATGTTACGACTTGCCTCCTC",
             },
             Path("test_folder"),
             self.amplification.data,
@@ -238,12 +235,40 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_process_commands.assert_any_call(
             {
                 "target_group": "Vertebrate",
-                "primer_name": "12S-V5-c",
-                "forward_sequence": "AGGGATAACAGCGCAATC",
-                "reverse_sequence": "TCGTTGAACAAACGAACC",
-                "amplicon_length": "74",
-                "expected_size": "24",
+                "assay_name": "12S-V5-c",
+                "fw_seq": "AGGGATAACAGCGCAATC",
+                "rev_seq": "TCGTTGAACAAACGAACC",
             },
             Path("test_folder"),
             self.amplification.data,
+        )
+
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.run_cutadapt_command"
+    )
+    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.run_pga_command")
+    def test_process_commands(self, mock_run_pga_command, mock_run_cutadapt_command):
+        row = {
+            "target_group": "Chondrichthyes",
+            "barcode_region": "12S",
+            "assay_name": "Chon01",
+            "fw_seq": "ACACCGCCCGTCACTCTC",
+            "rev_seq": "CATGTTACGACTTGCCTCCTC",
+            "adapter": "ACACCGCCCGTCACTCTC...GAGGAGGCAAGTCGTAACATG",
+            "max_overlap": 600,
+            "overlap": 120,
+        }
+        run_name = "test_run"
+        input_fasta = self.input_data
+
+        self.amplification.process_commands(row, run_name, input_fasta)
+        self.assertEqual(mock_run_cutadapt_command.call_count, 3)
+        mock_run_pga_command.assert_called_once_with(
+            input_fasta,
+            "ACACCGCCCGTCACTCTC",
+            "CATGTTACGACTTGCCTCCTC",
+            "12S",
+            "Chon01",
+            PosixPath("../data/output_data/test_run/pga"),
+            PosixPath("../data/output_data/test_run/all_barcodes_w_pbr"),
         )
