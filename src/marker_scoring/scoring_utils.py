@@ -1,5 +1,7 @@
-from collections import defaultdict
+import os
+from pathlib import Path
 
+import pandas as pd
 from Bio import SeqIO
 
 # IUPAC Dictionary: Based on Johnson, A. D. (2010).
@@ -52,23 +54,6 @@ def calculate_iupac_mismatches(sequence1, sequence2):
     return mismatches
 
 
-def detect_fwd_rev_primer_len(sequence):
-    """
-    Calculate the length of the forward and reverse primer.
-
-    Parameters:
-    sequence (str): DNA sequence.
-
-    Returns:
-    int: Length of the forward and reverse primer.
-    """
-
-    fwd_len = len(sequence) // 2
-    rev_len = len(sequence) - fwd_len
-
-    return fwd_len, rev_len
-
-
 def calculate_ambiguous_percentage(sequence):
     """
     Calculate the percentage of ambiguous bases in a DNA sequence.
@@ -89,51 +74,121 @@ def write_filtered_sequence(output_handle, record):
     Write a filtered sequence to the output file.
 
     Parameters:
-    - output_handle:
-    -record:
-
-    Returns:
-    - None
+    - output_handle: File handle for writing
+    - record: SeqIO record object
     """
     sequence = str(record.seq)
     output_handle.write(f">{record.description}\n{sequence}\n")
 
 
-def filter_sequences_by_ambiguity(input_file, out_file, max_ambiguous_percentage=0.05):
+def filter_sequences_by_ambiguity(
+    input_path, output_dir=None, max_ambiguous_percentage=0.05
+):
     """
     Filter DNA sequences based on the maximum allowed percentage of ambiguous bases.
+    Can process either a single file or all FASTA files in a directory.
 
     Parameters:
-    - input_file (str): Path to the input file containing DNA sequences in FASTA format.
-    - out_file (str): Path to the output file to write the filtered sequences.
-    - max_ambiguous_percentage (float): Maximum allowed percentage of ambiguous bases.
+    - input_path (str or Path): Path to input file or directory containing FASTA files
+    - output_dir (str or Path): Directory to write the filtered files (optional)
+    - max_ambiguous_percentage (float): Maximum allowed percentage of ambiguous bases (0.0 to 1.0)
 
     Returns:
-    - None
+    - dict: Mapping of input files to their corresponding output files
     """
+    input_path = Path(input_path)
 
-    with open(out_file, "w", encoding="UTF-8") as output_handle:
+    # Determine if input is file or directory
+    if input_path.is_file():
+        input_files = [input_path]
+    elif input_path.is_dir():
+        input_files = list(input_path.glob("*.txt"))
+    else:
+        raise ValueError(f"Input path {input_path} does not exist")
 
-        for record in SeqIO.parse(input_file, "fasta"):
-            sequence = str(record.seq)
-            ambiguous_percentage = calculate_ambiguous_percentage(sequence)
+    if not input_files:
+        raise ValueError(f"No FASTA files found in {input_path}")
 
-            if ambiguous_percentage <= max_ambiguous_percentage:
-                write_filtered_sequence(output_handle, record)
+    if output_dir is None:
+        if input_path.is_dir():
+            output_dir = input_path / "filtered"
+        else:
+            output_dir = input_path.parent / "filtered"
+    else:
+        output_dir = Path(output_dir)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    processed_files = {}
+    for input_file in input_files:
+        output_filename = f"filtered_{input_file.name}"
+        output_path = output_dir / output_filename
+
+        with open(output_path, "w", encoding="UTF-8") as output_handle:
+            for record in SeqIO.parse(input_file, "fasta"):
+                sequence = str(record.seq)
+                ambiguous_percentage = calculate_ambiguous_percentage(sequence)
+
+                if ambiguous_percentage <= max_ambiguous_percentage:
+                    write_filtered_sequence(output_handle, record)
+
+        processed_files[str(input_file)] = str(output_path)
+
+    return processed_files
 
 
-def extract_primers(input_file):
-    primers = defaultdict(lambda: ["", "", 0])
+def read_fasta(file):
+    """
+    Helper function to read a FASTA file and return a dictionary of sequence.
+    """
+    sequences = {}
 
-    for record in SeqIO.parse(input_file, "fasta"):
-        sequence = str(record.seq)
+    with open(file, "r") as f:
+        header = None
+        sequence = ""
+        for line in f:
+            line = line.strip()
+            if line.startswith(">"):  # New record
+                if header is not None:
+                    sequences[header] = sequence
+                header = line
+                sequence = ""
+            else:
+                sequence += line
+        if header is not None:
+            sequences[header] = sequence
+    return sequences
 
-        fwd_len, rev_len = detect_fwd_rev_primer_len(sequence)
-        accession_number = record.id
-        # stores forward primer
-        primers[accession_number][0] = sequence[:fwd_len]
-        # stores reverse primer
-        primers[accession_number][1] = sequence[-rev_len:]
-        # stores sequence lenght (total lenght minus lenght of both primers)
-        primers[accession_number][2] = len(sequence) - fwd_len - rev_len
-    return primers
+
+def extract_primer_binding_sites(amplicon_file, insert_file):
+    """
+    This method overlaps the insert sequence with the amplicon sequence to extract the primer
+    binding sites. It does so by defining the foward adpter sequence as the sequence before the
+    insert, and the reverse adapter sequence as the sequence after the insert.
+    """
+    amplicon_data = read_fasta(amplicon_file)
+    insert_data = read_fasta(insert_file)
+
+    results = []
+
+    for amplicon_record, amplicon_sequence in amplicon_data.items():
+        for insert_record, insert_sequence in insert_data.items():
+
+            start_index = amplicon_sequence.find(insert_sequence)
+
+            if start_index != -1:
+                fwd_seq = amplicon_sequence[:start_index]
+                rev_seq = amplicon_sequence[start_index + len(insert_sequence) :]
+
+                fwd_seq_len = len(fwd_seq)
+                rev_seq_len = len(rev_seq)
+
+                results.append(
+                    [amplicon_record, fwd_seq, rev_seq, fwd_seq_len, rev_seq_len]
+                )
+
+    primer_dataframe = pd.DataFrame(
+        results, columns=["record", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
+    )
+
+    return primer_dataframe

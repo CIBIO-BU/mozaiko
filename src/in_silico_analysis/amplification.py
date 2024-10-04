@@ -10,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 from Bio.Seq import Seq
 
+from src.marker_scoring.scoring_utils import filter_sequences_by_ambiguity
 from src.reference_database.db_curation import CrabsScriptGenerator
 
 
@@ -18,9 +19,9 @@ class InSilicoAmplification:
     This class contains the methods needed to perform the in-silico amplification analysis.
     """
 
-    def __init__(self, data, primer_table: pd.DataFrame = None):
+    def __init__(self, data, primer_table: pd.DataFrame = None, run_name: str = None):
         self.data = data
-        self.output_dir = Path("../data/output_data")
+        self.base_output_dir = Path("../data/output_data")
         self.primer_table = primer_table
         self.primer_table_columns = [
             "target_group",
@@ -30,6 +31,36 @@ class InSilicoAmplification:
             "rev_seq",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
+        # Name output directories for each of the analysis steps
+        self.run_name = None
+        self.output_dirs = None
+
+    def _setup_output_directories(self, run_name: str) -> dict:
+        """
+        Sets up output directory structure based on run name.
+
+        Parameters:
+        - run_name: Name of the analysis run
+
+        Returns:
+        Dictionary containing Path objects for each output directory
+        """
+        if not run_name:
+            raise ValueError("Run name must be provided")
+
+        run_dir = self.base_output_dir / run_name
+
+        output_dirs = {
+            "amplicon": run_dir / "amplicon",
+            "all_barcodes_w_pbr": run_dir / "all_barcodes_w_pbr",
+            "insert": run_dir / "insert",
+            "pga": run_dir / "pga",
+        }
+
+        for dir_path in output_dirs.values():
+            dir_path.mkdir(parents=True, exist_ok=True)
+
+        return output_dirs
 
     def _check_if_cutadapt_installed(self):
         """
@@ -166,27 +197,40 @@ class InSilicoAmplification:
 
         self._check_if_cutadapt_installed()
         self.crabs_script_generator.check_if_crabs_installed()
-
         self._validate_fasta()
-
         self.read_primer_tables(primer_table)
+
         print("mozaiko INFO: All set. Running in-silico amplification...")
 
-        run_name = Path(
-            input(
-                "Please enter a name for the folder where the analysis output will \
-                              be stored: "
-            )
-        )
+        if not self.run_name:
+            self.run_name = input(
+                "Please enter a name for the folder where the analysis output will be stored: "
+            ).strip()
 
-        input_fasta = self.data
+            if not self.run_name:
+                raise ValueError("Run name cannot be empty")
+
+        self.output_dirs = self._setup_output_directories(self.run_name)
 
         for _, row in self.primer_table.iterrows():
-            self.process_commands(row, run_name, input_fasta)
+            self.process_commands(row, self.data)
+
+        directories_to_filter = ["amplicon", "all_barcodes_w_pbr", "pga"]
+        for dir_name in directories_to_filter:
+            try:
+                # print(f"Filtering sequences with ambiguous bases in {dir_name} directory...")
+                filter_sequences_by_ambiguity(
+                    input_path=self.output_dirs[dir_name],
+                    output_dir=self.output_dirs[dir_name] / "filtered",
+                    max_ambiguous_percentage=0.05,
+                )
+                # print(f"Completed filtering {dir_name} sequences")
+            except Exception as e:
+                print(f"Error filtering {dir_name} directory: {str(e)}")
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
-    def process_commands(self, row: dict, run_name: str, input_fasta: Path):
+    def process_commands(self, row: dict, input_fasta: Path):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
@@ -199,17 +243,6 @@ class InSilicoAmplification:
         forward_primer = row["fw_seq"]
         reverse_primer = row["rev_seq"]
 
-        # Name output directories for each of the analysis steps
-        output_dirs = {
-            "amplicon": self.output_dir / run_name / "amplicon",
-            "all_barcodes_w_pbr": self.output_dir / run_name / "all_barcodes_w_pbr",
-            "insert": self.output_dir / run_name / "insert",
-            "pga": self.output_dir / run_name / "pga",
-        }
-
-        for dir_path in output_dirs.values():
-            dir_path.mkdir(parents=True, exist_ok=True)
-
         # "amplicon" comand makes use of --action=retain to trim the amplicon but not remove the
         # primer binding sites (sequences before and after the PBS are removed)
         self.run_cutadapt_command(
@@ -220,9 +253,11 @@ class InSilicoAmplification:
             max_length,
             barcode_region,
             assay_name,
-            output_dirs["amplicon"],
+            self.output_dirs["amplicon"],
         )
 
+        # "insert" makes use of --action=trim to remove the primer binding site (and the sequence
+        # before or after it)
         self.run_cutadapt_command(
             "all_barcodes_w_pbr",
             five_prime_adapter,
@@ -231,12 +266,21 @@ class InSilicoAmplification:
             None,
             barcode_region,
             assay_name,
-            output_dirs["all_barcodes_w_pbr"],
+            self.output_dirs["all_barcodes_w_pbr"],
             error_rate=5,
         )
 
-        # "insert" makes use of --action=trim to remove the primer binding site (and the sequence
-        # before or after it)
+        # Filter sequences per ambiguous bases prior to their use as reference database in PGA
+        try:
+            filter_sequences_by_ambiguity(
+                input_path=self.output_dirs["all_barcodes_w_pbr"],
+                output_dir=self.output_dirs["all_barcodes_w_pbr"] / "filtered",
+                max_ambiguous_percentage=0.05,
+            )
+        except Exception as e:
+            print(f"Error filtering insert directory: {str(e)}")
+
+        # "insert" makes use of --action=trim
         self.run_cutadapt_command(
             "insert",
             five_prime_adapter,
@@ -245,7 +289,7 @@ class InSilicoAmplification:
             max_length,
             barcode_region,
             assay_name,
-            output_dirs["insert"],
+            self.output_dirs["insert"],
         )
 
         self.run_pga_command(
@@ -254,8 +298,8 @@ class InSilicoAmplification:
             reverse_primer,
             barcode_region,
             assay_name,
-            output_dirs["pga"],
-            output_dirs["all_barcodes_w_pbr"],
+            self.output_dirs["pga"],
+            self.output_dirs["all_barcodes_w_pbr"] / "filtered",
         )
 
     def run_cutadapt_command(
@@ -389,7 +433,7 @@ class InSilicoAmplification:
         ]
 
         try:
-            # print(f"mozaiko INFO: Running cutadapt command as '{pga_command}'")
+            print(f"mozaiko INFO: Running cutadapt command as '{pga_command}'")
             subprocess.run(pga_command, check=True)
 
         except subprocess.CalledProcessError as e:

@@ -155,22 +155,18 @@ class TestInSilicoAmplification(unittest.TestCase):
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
     )
-    @patch("src.in_silico_analysis.amplification.Path")
-    @patch("builtins.input", side_effect=["path_to_table.tsv"])
+    @patch("builtins.input", side_effect=["test_output_folder"])
     def test_run_in_silico_analysis_calls(
         self,
-        mock_check_cutadapt,
-        mock_check_crabs,
-        mock_validate_fasta,
+        mock_input,
         mock_read_tables,
-        mock_path,
-        _mock_input,
+        mock_validate_fasta,
+        mock_check_crabs,
+        mock_check_cutadapt,
     ):
         """
-        Test that run_in_silico_analysis calls the all required methods.
+        Test that run_in_silico_analysis calls all required methods.
         """
-
-        mock_path.return_value = "test_output_folder"
         self.amplification.primer_table = MagicMock()
 
         self.amplification.run_in_silico_analysis()
@@ -179,7 +175,8 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_check_crabs.assert_called_once()
         mock_validate_fasta.assert_called_once()
         mock_read_tables.assert_called_once()
-        mock_path.assert_called_once()
+        self.assertEqual(self.amplification.run_name, "test_output_folder")
+        self.assertIsNotNone(self.amplification.output_dirs)
 
     @patch("builtins.input", side_effect=["test_folder"])
     @patch(
@@ -229,7 +226,6 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "fw_seq": "ACACCGCCCGTCACTCTC",
                 "rev_seq": "CATGTTACGACTTGCCTCCTC",
             },
-            Path("test_folder"),
             self.amplification.data,
         )
         mock_process_commands.assert_any_call(
@@ -239,7 +235,6 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "fw_seq": "AGGGATAACAGCGCAATC",
                 "rev_seq": "TCGTTGAACAAACGAACC",
             },
-            Path("test_folder"),
             self.amplification.data,
         )
 
@@ -258,19 +253,23 @@ class TestInSilicoAmplification(unittest.TestCase):
             "max_overlap": 600,
             "overlap": 120,
         }
-        run_name = "test_run"
-        input_fasta = self.input_data
 
-        self.amplification.process_commands(row, run_name, input_fasta)
+        self.amplification.run_name = "test_run"
+        self.amplification.output_dirs = self.amplification._setup_output_directories(
+            "test_run"
+        )
+
+        self.amplification.process_commands(row, self.input_data)
+
         self.assertEqual(mock_run_cutadapt_command.call_count, 3)
         mock_run_pga_command.assert_called_once_with(
-            input_fasta,
+            self.input_data,
             "ACACCGCCCGTCACTCTC",
             "CATGTTACGACTTGCCTCCTC",
             "12S",
             "Chon01",
-            PosixPath("../data/output_data/test_run/pga"),
-            PosixPath("../data/output_data/test_run/all_barcodes_w_pbr"),
+            self.amplification.output_dirs["pga"],
+            self.amplification.output_dirs["all_barcodes_w_pbr"] / "filtered",
         )
 
     @patch("subprocess.run")
