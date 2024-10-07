@@ -30,7 +30,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         """
         self.generator.check_if_crabs_installed()
         mock_subprocess.assert_called_with(
-            ["crabs", "-h"],
+            ["crabs", "--version"],
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -46,7 +46,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             self.generator.check_if_crabs_installed()
 
         mock_run.assert_called_once_with(
-            ["crabs", "-h"], check=True, stdout=-3, stderr=-3
+            ["crabs", "--version"], check=True, stdout=-3, stderr=-3
         )
 
     @patch(

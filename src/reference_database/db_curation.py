@@ -34,7 +34,7 @@ class CrabsScriptGenerator:
         print("mozaiko INFO: Checking if CRBAS is installed...")
         try:
             subprocess.run(
-                ["crabs", "-h"],
+                ["crabs", "--version"],
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
