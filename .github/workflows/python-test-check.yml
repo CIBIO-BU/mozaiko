@@ -22,12 +22,27 @@ jobs:
         pip install pytest pytest-cov
         pip install setuptools
 
-    - name: Install CRABS
-      run: |
-        git clone https://github.com/gjeunen/reference_database_creator.git
-        cd reference_database_creator
-        pip install .
-        cd ..
+        - name: Install CRABS v0.1.7
+        run: |
+          CRABS_VERSION="0.1.7"
+          CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/v${CRABS_VERSION}.tar.gz"
+          CRABS_ARCHIVE="crabs-${CRABS_VERSION}.tar.gz"
+          CRABS_DIR="reference_database_creator-${CRABS_VERSION}"
+
+          # Download specific version
+          wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE"
+
+          # Extract and install
+          tar -xzf "$CRABS_ARCHIVE"
+          cd "$CRABS_DIR"
+          pip install .
+          cd ..
+
+          # Cleanup
+          rm -f "$CRABS_ARCHIVE"
+
+          # Verify installation
+          crabs --version
 
     - name: Install cutadapt
       run: |
