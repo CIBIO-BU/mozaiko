@@ -6,12 +6,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Dict, Optional, Union
 
 import pandas as pd
 from Bio.Seq import Seq
+from pandas import DataFrame
 
-from src.marker_scoring.scoring_utils import filter_sequences_by_ambiguity
-from src.reference_database.db_curation import CrabsScriptGenerator
+from ..marker_scoring.scoring_utils import filter_sequences_by_ambiguity
+from ..reference_database.db_curation import CrabsScriptGenerator
 
 
 class InSilicoAmplification:
@@ -19,7 +21,7 @@ class InSilicoAmplification:
     This class contains the methods needed to perform the in-silico amplification analysis.
     """
 
-    def __init__(self, data, primer_table: pd.DataFrame = None, run_name: str = None):
+    def __init__(self, data: Union[str, Path], primer_table: Optional[DataFrame] = None, run_name: Optional[str] = None):
         self.data = data
         self.base_output_dir = Path("../data/output_data")
         self.primer_table = primer_table
@@ -31,9 +33,8 @@ class InSilicoAmplification:
             "rev_seq",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
-        # Name output directories for each of the analysis steps
-        self.run_name = None
-        self.output_dirs = None
+        self.run_name: Optional[str] = run_name
+        self.output_dirs: Optional[Dict[str, Path]] = None
 
     def _setup_output_directories(self, run_name: str) -> dict:
         """
@@ -60,7 +61,14 @@ class InSilicoAmplification:
         for dir_path in output_dirs.values():
             dir_path.mkdir(parents=True, exist_ok=True)
 
+        self.output_dirs = output_dirs
+
         return output_dirs
+
+    def _ensure_output_dirs(self) -> Dict[str, Path]:
+        if self.output_dirs is None:
+            raise ValueError("Output directories not set up. Call run_in_silico_analysis first.")
+        return self.output_dirs
 
     def _check_if_cutadapt_installed(self):
         """
@@ -210,7 +218,10 @@ class InSilicoAmplification:
             if not self.run_name:
                 raise ValueError("Run name cannot be empty")
 
-        self.output_dirs = self._setup_output_directories(self.run_name)
+        self._setup_output_directories(self.run_name)
+
+        if self.primer_table is None:
+            raise ValueError("Primer table not initialized")
 
         for _, row in self.primer_table.iterrows():
             self.process_commands(row, self.data)
@@ -220,9 +231,7 @@ class InSilicoAmplification:
             try:
                 # print(f"Filtering sequences with ambiguous bases in {dir_name} directory...")
                 filter_sequences_by_ambiguity(
-                    input_path=self.output_dirs[dir_name],
-                    output_dir=self.output_dirs[dir_name] / "filtered",
-                    max_ambiguous_percentage=0.05,
+                    input_path=self.output_dirs,
                 )
                 # print(f"Completed filtering {dir_name} sequences")
             except Exception as e:
@@ -235,6 +244,8 @@ class InSilicoAmplification:
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
         """
+        output_dirs = self._ensure_output_dirs()
+
         barcode_region = row["barcode_region"]
         assay_name = row["assay_name"]
         five_prime_adapter = row["adapter"]
@@ -253,7 +264,7 @@ class InSilicoAmplification:
             max_length,
             barcode_region,
             assay_name,
-            self.output_dirs["amplicon"],
+            output_dirs["amplicon"],
         )
 
         # "insert" makes use of --action=trim to remove the primer binding site (and the sequence
@@ -266,15 +277,15 @@ class InSilicoAmplification:
             None,
             barcode_region,
             assay_name,
-            self.output_dirs["all_barcodes_w_pbr"],
+            output_dirs["all_barcodes_w_pbr"],
             error_rate=5,
         )
 
         # Filter sequences per ambiguous bases prior to their use as reference database in PGA
         try:
             filter_sequences_by_ambiguity(
-                input_path=self.output_dirs["all_barcodes_w_pbr"],
-                output_dir=self.output_dirs["all_barcodes_w_pbr"] / "filtered",
+                input_path=output_dirs["all_barcodes_w_pbr"],
+                output_dir=output_dirs["all_barcodes_w_pbr"] / "filtered",
                 max_ambiguous_percentage=0.05,
             )
         except Exception as e:
@@ -289,7 +300,7 @@ class InSilicoAmplification:
             max_length,
             barcode_region,
             assay_name,
-            self.output_dirs["insert"],
+            output_dirs["insert"],
         )
 
         self.run_pga_command(
@@ -298,8 +309,8 @@ class InSilicoAmplification:
             reverse_primer,
             barcode_region,
             assay_name,
-            self.output_dirs["pga"],
-            self.output_dirs["all_barcodes_w_pbr"] / "filtered",
+            output_dirs["pga"],
+            output_dirs["all_barcodes_w_pbr"] / "filtered",
         )
 
     def run_cutadapt_command(
@@ -365,12 +376,9 @@ class InSilicoAmplification:
         # print(f"mozaiko INFO: Output file: {output_file}")
 
         try:
-            result = subprocess.run(
+            subprocess.run(
                 full_command, check=True, capture_output=True, text=True
             )
-            # print(f"mozaiko INFO: Cutadapt stdout:\n{result.stdout}")
-            # print(f"mozaiko INFO: Cutadapt stderr:\n{result.stderr}")
-
             if output_file.stat().st_size == 0:
                 print(f"mozaiko WARNING: Output file is empty: {output_file}")
             # else:
@@ -382,7 +390,8 @@ class InSilicoAmplification:
             raise  # Re-raise the exception instead of calling sys.exit()
         except FileNotFoundError:
             print(
-                "mozaiko ERROR: cutadapt command not found. Please ensure it's installed and in your PATH."
+                "mozaiko ERROR: cutadapt command not found. Please ensure it's installed and in \
+                    your PATH."
             )
             raise
 
