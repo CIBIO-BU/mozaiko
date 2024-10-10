@@ -21,7 +21,12 @@ class InSilicoAmplification:
     This class contains the methods needed to perform the in-silico amplification analysis.
     """
 
-    def __init__(self, data: Union[str, Path], primer_table: Optional[DataFrame] = None, run_name: Optional[str] = None):
+    def __init__(
+        self,
+        data: Union[str, Path],
+        primer_table: Optional[DataFrame] = None,
+        run_name: Optional[str] = None,
+    ):
         self.data = data
         self.base_output_dir = Path("../data/output_data")
         self.primer_table = primer_table
@@ -67,7 +72,9 @@ class InSilicoAmplification:
 
     def _ensure_output_dirs(self) -> Dict[str, Path]:
         if self.output_dirs is None:
-            raise ValueError("Output directories not set up. Call run_in_silico_analysis first.")
+            raise ValueError(
+                "Output directories not set up. Call run_in_silico_analysis first."
+            )
         return self.output_dirs
 
     def _check_if_cutadapt_installed(self):
@@ -172,6 +179,7 @@ class InSilicoAmplification:
             primer_table.at[index, "overlap"] = overlap
             primer_table.at[index, "adapter"] = adapter
             primer_table.at[index, "max_overlap"] = max_len_overlap_formula
+            primer_table.at[index, "correct_reverse_primer"] = correct_reverse_primer
 
         self.primer_table = primer_table
 
@@ -208,8 +216,6 @@ class InSilicoAmplification:
         self._validate_fasta()
         self.read_primer_tables(primer_table)
 
-        print("mozaiko INFO: All set. Running in-silico amplification...")
-
         if not self.run_name:
             self.run_name = input(
                 "Please enter a name for the folder where the analysis output will be stored: "
@@ -223,8 +229,11 @@ class InSilicoAmplification:
         if self.primer_table is None:
             raise ValueError("Primer table not initialized")
 
-        for _, row in self.primer_table.iterrows():
+        print("mozaiko INFO: All set. Running in-silico amplification...")
+
+        for index, row in self.primer_table.iterrows():
             self.process_commands(row, self.data)
+            print(f"mozaiko INFO: {index + 1}/{len(self.primer_table)} processed.")
 
         directories_to_filter = ["amplicon", "all_barcodes_w_pbr", "pga"]
         for dir_name in directories_to_filter:
@@ -248,17 +257,17 @@ class InSilicoAmplification:
 
         barcode_region = row["barcode_region"]
         assay_name = row["assay_name"]
-        five_prime_adapter = row["adapter"]
+        adapter = row["adapter"]
         max_length = int(row["max_overlap"])
         overlap = int(row["overlap"])
         forward_primer = row["fw_seq"]
-        reverse_primer = row["rev_seq"]
+        reverse_primer = row["correct_reverse_primer"]
 
         # "amplicon" comand makes use of --action=retain to trim the amplicon but not remove the
         # primer binding sites (sequences before and after the PBS are removed)
         self.run_cutadapt_command(
             "amplicon",
-            five_prime_adapter,
+            adapter,
             input_fasta,
             overlap,
             max_length,
@@ -271,7 +280,7 @@ class InSilicoAmplification:
         # before or after it)
         self.run_cutadapt_command(
             "all_barcodes_w_pbr",
-            five_prime_adapter,
+            adapter,
             input_fasta,
             overlap,
             None,
@@ -294,7 +303,7 @@ class InSilicoAmplification:
         # "insert" makes use of --action=trim
         self.run_cutadapt_command(
             "insert",
-            five_prime_adapter,
+            adapter,
             input_fasta,
             overlap,
             max_length,
@@ -312,6 +321,8 @@ class InSilicoAmplification:
             output_dirs["pga"],
             output_dirs["all_barcodes_w_pbr"] / "filtered",
         )
+
+        print(f"mozaiko INFO: Completed analysis for {assay_name}.")
 
     def run_cutadapt_command(
         self,
@@ -331,6 +342,11 @@ class InSilicoAmplification:
         base command, following a list of alternative commands for each of the analysis purposes.
         """
         output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
+
+        # debug_dir = None
+        # if command_type == 'all_barcodes_w_pbr':
+        #     debug_dir = output_dir / "debug_matrices" / f"{barcode_region}_{assay_name}.txt"
+        #     debug_dir.mkdir(parents=True, exist_ok=True)
 
         base_command = [
             "cutadapt",
@@ -371,18 +387,32 @@ class InSilicoAmplification:
 
         full_command = base_command + additional_args
 
-        # print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
         # print(f"mozaiko INFO: Input file: {input_file}")
         # print(f"mozaiko INFO: Output file: {output_file}")
 
         try:
-            subprocess.run(
-                full_command, check=True, capture_output=True, text=True
+            result = subprocess.run(
+                full_command,
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
             )
             if output_file.stat().st_size == 0:
                 print(f"mozaiko WARNING: Output file is empty: {output_file}")
-            # else:
-            # print(f"mozaiko INFO: Output file size: {output_file.stat().st_size} bytes")
+
+            # if command_type == "all_barcodes_w_pbr" and debug_dir:
+            #     # Combinefolder_cutadapt3 stdout and stderr for complete debug information
+            #     debug_output = result.stdout + "\n" + result.stderr
+
+            #     # Store the complete debug output
+            #     debug_log_path = debug_dir / "debug_log.txt"
+            #     with open(debug_log_path, 'w', encoding='utf-8') as f:
+            #         f.write(debug_output)
+
+            #     print(f"mozaiko INFO: Debug log written to: {debug_log_path}")
+
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: cutadapt {command_type} command failed: {e}")
             # print(f"mozaiko ERROR: Cutadapt stdout:\n{e.stdout}")
@@ -442,7 +472,7 @@ class InSilicoAmplification:
         ]
 
         try:
-            print(f"mozaiko INFO: Running cutadapt command as '{pga_command}'")
+            print(f"mozaiko INFO: Running CRABS command as '{pga_command}'")
             subprocess.run(pga_command, check=True)
 
         except subprocess.CalledProcessError as e:

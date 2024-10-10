@@ -98,16 +98,15 @@ def filter_sequences_by_ambiguity(
     """
     input_path = Path(input_path)
 
-    # Determine if input is file or directory
     if input_path.is_file():
         input_files = [input_path]
     elif input_path.is_dir():
         input_files = list(input_path.glob("*.txt"))
     else:
-        raise ValueError(f"Input path {input_path} does not exist")
+        raise ValueError(f"mozaiko ERROR: Input path {input_path} does not exist")
 
     if not input_files:
-        raise ValueError(f"No FASTA files found in {input_path}")
+        raise ValueError(f"mozaiko ERROR: No FASTA files found in {input_path}")
 
     if output_dir is None:
         if input_path.is_dir():
@@ -121,7 +120,7 @@ def filter_sequences_by_ambiguity(
 
     processed_files = {}
     for input_file in input_files:
-        output_filename = f"filtered_{input_file.name}"
+        output_filename = f"{input_file.name}"
         output_path = output_dir / output_filename
 
         with open(output_path, "w", encoding="UTF-8") as output_handle:

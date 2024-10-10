@@ -248,7 +248,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "barcode_region": "12S",
             "assay_name": "Chon01",
             "fw_seq": "ACACCGCCCGTCACTCTC",
-            "rev_seq": "CATGTTACGACTTGCCTCCTC",
+            "correct_reverse_primer": "CATGTTACGACTTGCCTCCTC",
             "adapter": "ACACCGCCCGTCACTCTC...GAGGAGGCAAGTCGTAACATG",
             "max_overlap": 600,
             "overlap": 120,
@@ -309,7 +309,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "100",
         ]
         mock_subprocess_run.assert_called_with(
-            expected_args, check=True, capture_output=True, text=True
+            expected_args, check=True, capture_output=True, text=True, encoding='utf-8'
         )
 
         # Test case 2: 'all_barcodes_w_pbr' command type
@@ -326,7 +326,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         )
         expected_args = common_args + ["--action", "trim", "--discard-untrimmed"]
         mock_subprocess_run.assert_called_with(
-            expected_args, check=True, capture_output=True, text=True
+            expected_args, check=True, capture_output=True, text=True, encoding='utf-8'
         )
 
         # Test case 3: 'insert' command type
@@ -342,7 +342,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "100",
         ]
         mock_subprocess_run.assert_called_with(
-            expected_args, check=True, capture_output=True, text=True
+            expected_args, check=True, capture_output=True, text=True, encoding='utf-8'
         )
 
         # Test case 4: Invalid command type
