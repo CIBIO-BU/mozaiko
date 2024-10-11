@@ -118,7 +118,7 @@ def filter_sequences_by_ambiguity(
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    processed_files = {}
+    # processed_files = {}
     for input_file in input_files:
         output_filename = f"{input_file.name}"
         output_path = output_dir / output_filename
@@ -131,9 +131,11 @@ def filter_sequences_by_ambiguity(
                 if ambiguous_percentage <= max_ambiguous_percentage:
                     write_filtered_sequence(output_handle, record)
 
-        processed_files[str(input_file)] = str(output_path)
+    print(f"mozaiko INFO: Successfully filtered ambiguous sequences to {output_dir}.")
 
-    return processed_files
+    #    processed_files[str(input_file)] = str(output_path)
+
+    # return processed_files
 
 
 def read_fasta(file):

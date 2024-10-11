@@ -4,8 +4,8 @@ Unit tests for scoring_utils.py
 
 import shutil
 import unittest
+from io import StringIO
 from pathlib import Path
-from unittest.mock import mock_open
 
 import pandas as pd
 
@@ -53,7 +53,7 @@ class TestScoringUtils(unittest.TestCase):
             filter_sequences_by_ambiguity("not_real_path")
         self.assertIn("does not exist", str(context.exception))
 
-    def test_filter_sequences_by_ambiguity_empty_path(self):
+    def test_filter_sequences_by_ambiguity_empty_dir(self):
         """
         Test if filter_sequences_by_ambiguity detects a empty folder.
         """
@@ -66,6 +66,32 @@ class TestScoringUtils(unittest.TestCase):
 
         shutil.rmtree(empty_dir)
 
+    def test_filter_sequences_by_ambiguity_file(self):
+        """
+        Test if filter_sequences_by_ambiguity correctly reads a input file.
+        """
+        test_file = self.test_directory / "ambiguous_sequences.fasta"
+
+        results = filter_sequences_by_ambiguity(
+            test_file, max_ambiguous_percentage=0.25
+        )
+
+        output_dir = self.test_directory / "filtered"
+        self.assertTrue(output_dir.exists())
+
+        output_file = self.test_directory / "filtered" / "ambiguous_sequences.fasta"
+        self.assertTrue(output_file.exists())
+
+        with open(output_file) as f:
+            contents = f.read()
+
+            self.assertIn(">seq1", contents)
+            self.assertIn("ATGCATGC", contents)
+            self.assertIn(">seq2", contents)
+            self.assertIn("ATGNNTGC", contents)
+            self.assertNotIn(">seq3", contents)
+            self.assertNotIn("NNNNNNNN", contents)
+
     def test_extract_primer_binding_sites(self):
         amplicon_file = self.test_directory / "amplicon_test.fasta"
         insert_file = self.test_directory / "insert_test.fasta"
@@ -75,17 +101,25 @@ class TestScoringUtils(unittest.TestCase):
         self.assertIsInstance(result, pd.DataFrame)
 
         self.assertEqual(
-                list(result.columns),
-                ["record", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
-            )
+            list(result.columns),
+            ["record", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"],
+        )
 
-        self.assertEqual(result['record'].iloc[0], "> abc")
-        self.assertEqual(result['record'].iloc[1], "> def")
-        self.assertEqual(result['fwd_seq'].iloc[0], "ACGTAGCA")
-        self.assertEqual(result['rev_seq'].iloc[0], "ACCATCA")
-        self.assertEqual(result['fwd_seq'].iloc[1], "AGTGA")
-        self.assertEqual(result['rev_seq'].iloc[1], "GTCGATAGCAT")
-        self.assertEqual(result['fwd_seq_len'].iloc[0], 8)
-        self.assertEqual(result['rev_seq_len'].iloc[0], 7)
-        self.assertEqual(result['fwd_seq_len'].iloc[1], 5)
-        self.assertEqual(result['rev_seq_len'].iloc[1], 11)
+        self.assertEqual(result["record"].iloc[0], "> abc")
+        self.assertEqual(result["record"].iloc[1], "> def")
+        self.assertEqual(result["fwd_seq"].iloc[0], "ACGTAGCA")
+        self.assertEqual(result["rev_seq"].iloc[0], "ACCATCA")
+        self.assertEqual(result["fwd_seq"].iloc[1], "AGTGA")
+        self.assertEqual(result["rev_seq"].iloc[1], "GTCGATAGCAT")
+        self.assertEqual(result["fwd_seq_len"].iloc[0], 8)
+        self.assertEqual(result["rev_seq_len"].iloc[0], 7)
+        self.assertEqual(result["fwd_seq_len"].iloc[1], 5)
+        self.assertEqual(result["rev_seq_len"].iloc[1], 11)
+
+    def tearDown(self):
+        """
+        Clean up any files created during tests.
+        """
+        filtered_dir = self.test_directory / "filtered"
+        if filtered_dir.exists():
+            shutil.rmtree(filtered_dir)
