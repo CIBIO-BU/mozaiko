@@ -309,7 +309,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "100",
         ]
         mock_subprocess_run.assert_called_with(
-            expected_args, check=True, capture_output=True, text=True, encoding='utf-8'
+            expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
         )
 
         # Test case 2: 'all_barcodes_w_pbr' command type
@@ -319,14 +319,20 @@ class TestInSilicoAmplification(unittest.TestCase):
             "ADAPTER",
             self.input_data,
             20,
-            None,
+            100,
             "12S",
             "Chon01",
             output_dir,
         )
-        expected_args = common_args + ["--action", "trim", "--discard-untrimmed"]
+        expected_args = common_args + [
+            "--action",
+            "trim",
+            "--discard-untrimmed",
+            "--maximum-length",
+            "100",
+        ]
         mock_subprocess_run.assert_called_with(
-            expected_args, check=True, capture_output=True, text=True, encoding='utf-8'
+            expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
         )
 
         # Test case 3: 'insert' command type
@@ -342,7 +348,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "100",
         ]
         mock_subprocess_run.assert_called_with(
-            expected_args, check=True, capture_output=True, text=True, encoding='utf-8'
+            expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
         )
 
         # Test case 4: Invalid command type

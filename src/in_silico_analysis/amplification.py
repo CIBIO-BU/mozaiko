@@ -276,14 +276,12 @@ class InSilicoAmplification:
             output_dirs["amplicon"],
         )
 
-        # "insert" makes use of --action=trim to remove the primer binding site (and the sequence
-        # before or after it)
         self.run_cutadapt_command(
             "all_barcodes_w_pbr",
             adapter,
             input_fasta,
             overlap,
-            None,
+            max_length,
             barcode_region,
             assay_name,
             output_dirs["all_barcodes_w_pbr"],
@@ -373,7 +371,13 @@ class InSilicoAmplification:
                 str(max_length),
             ]
         elif command_type == "all_barcodes_w_pbr":
-            additional_args = ["--action", "trim", "--discard-untrimmed"]
+            additional_args = [
+                "--action",
+                "trim",
+                "--discard-untrimmed",
+                "--maximum-length",
+                str(max_length),
+            ]
         elif command_type == "insert":
             additional_args = [
                 "--action",
