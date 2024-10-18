@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -101,7 +102,7 @@ def filter_sequences_by_ambiguity(
     if input_path.is_file():
         input_files = [input_path]
     elif input_path.is_dir():
-        input_files = list(input_path.glob("*.txt"))
+        input_files = list(input_path.glob("*.fasta"))
     else:
         raise ValueError(f"mozaiko ERROR: Input path {input_path} does not exist")
 
@@ -118,6 +119,8 @@ def filter_sequences_by_ambiguity(
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    consecutive_Ns = re.compile(r"N{4,}")
+
     # processed_files = {}
     for input_file in input_files:
         output_filename = f"{input_file.name}"
@@ -125,17 +128,18 @@ def filter_sequences_by_ambiguity(
 
         with open(output_path, "w", encoding="UTF-8") as output_handle:
             for record in SeqIO.parse(input_file, "fasta"):
-                sequence = str(record.seq)
-                ambiguous_percentage = calculate_ambiguous_percentage(sequence)
+                upper_sequence = str(record.seq.upper())
+                ambiguous_percentage = calculate_ambiguous_percentage(upper_sequence)
 
-                if ambiguous_percentage <= max_ambiguous_percentage:
+                has_consecutive_Ns = consecutive_Ns.search(upper_sequence) is not None
+
+                if (
+                    ambiguous_percentage <= max_ambiguous_percentage
+                    and not has_consecutive_Ns
+                ):
                     write_filtered_sequence(output_handle, record)
 
     print(f"mozaiko INFO: Successfully filtered ambiguous sequences to {output_dir}.")
-
-    #    processed_files[str(input_file)] = str(output_path)
-
-    # return processed_files
 
 
 def read_fasta(file):

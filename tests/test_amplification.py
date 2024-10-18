@@ -261,7 +261,7 @@ class TestInSilicoAmplification(unittest.TestCase):
 
         self.amplification.process_commands(row, self.input_data)
 
-        self.assertEqual(mock_run_cutadapt_command.call_count, 3)
+        self.assertEqual(mock_run_cutadapt_command.call_count, 2)
         mock_run_pga_command.assert_called_once_with(
             self.input_data,
             "ACACCGCCCGTCACTCTC",
@@ -269,7 +269,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "12S",
             "Chon01",
             self.amplification.output_dirs["pga"],
-            self.amplification.output_dirs["all_barcodes_w_pbr"] / "filtered",
+            self.amplification.output_dirs["insert"] / "filtered",
         )
 
     @patch("subprocess.run")
@@ -285,7 +285,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "-g",
             "ADAPTER",
             "--output",
-            str(output_dir / "12S_Chon01.txt"),
+            str(output_dir / "12S_Chon01.fasta"),
             str(self.input_data),
             "--no-indels",
             "-e",
@@ -426,9 +426,9 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "--input",
                 str(self.input_data),
                 "--output",
-                str(output_dir / "12S_Assay1.txt"),
+                str(output_dir / "12S_Assay1.fasta"),
                 "--database",
-                str(database_dir / "12S_Assay1.txt"),
+                str(database_dir / "12S_Assay1.fasta"),
                 "--fwd",
                 "FORWARD",
                 "--rev",
@@ -436,11 +436,11 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "--speed",
                 "slow",
                 "--percid",
-                "0.95",
+                "0.75",
                 "--coverage",
                 "0.99",
                 "--filter_method",
-                "strict",
+                "relaxed",
             ],
             check=True,
         )

@@ -173,7 +173,7 @@ class InSilicoAmplification:
             # function to set the maximum lenght of overlap allowed
             # This implementation was decided internally
             max_len_overlap_formula = (
-                600 - correct_reverse_primer_lenght - forward_primer_lenght - 60
+                600 - correct_reverse_primer_lenght - forward_primer_lenght
             )
 
             primer_table.at[index, "overlap"] = overlap
@@ -238,9 +238,10 @@ class InSilicoAmplification:
         directories_to_filter = ["amplicon", "all_barcodes_w_pbr", "pga"]
         for dir_name in directories_to_filter:
             try:
+                input_path = self.output_dirs[dir_name]
                 # print(f"Filtering sequences with ambiguous bases in {dir_name} directory...")
                 filter_sequences_by_ambiguity(
-                    input_path=self.output_dirs,
+                    input_path=input_path,
                 )
                 # print(f"Completed filtering {dir_name} sequences")
             except Exception as e:
@@ -276,27 +277,17 @@ class InSilicoAmplification:
             output_dirs["amplicon"],
         )
 
-        self.run_cutadapt_command(
-            "all_barcodes_w_pbr",
-            adapter,
-            input_fasta,
-            overlap,
-            max_length,
-            barcode_region,
-            assay_name,
-            output_dirs["all_barcodes_w_pbr"],
-            error_rate=5,
-        )
-
-        # Filter sequences per ambiguous bases prior to their use as reference database in PGA
-        try:
-            filter_sequences_by_ambiguity(
-                input_path=output_dirs["all_barcodes_w_pbr"],
-                output_dir=output_dirs["all_barcodes_w_pbr"] / "filtered",
-                max_ambiguous_percentage=0.05,
-            )
-        except Exception as e:
-            print(f"Error filtering insert directory: {str(e)}")
+        # self.run_cutadapt_command(
+        #     "all_barcodes_w_pbr",
+        #     adapter,
+        #     input_fasta,
+        #     overlap,
+        #     max_length,
+        #     barcode_region,
+        #     assay_name,
+        #     output_dirs["all_barcodes_w_pbr"],
+        #     error_rate=5,
+        # )
 
         # "insert" makes use of --action=trim
         self.run_cutadapt_command(
@@ -310,6 +301,16 @@ class InSilicoAmplification:
             output_dirs["insert"],
         )
 
+        # Filter sequences per ambiguous bases prior to their use as reference database in PGA
+        try:
+            filter_sequences_by_ambiguity(
+                input_path=output_dirs["insert"],
+                output_dir=output_dirs["insert"] / "filtered",
+                max_ambiguous_percentage=0.05,
+            )
+        except Exception as e:
+            print(f"Error filtering insert directory: {str(e)}")
+
         self.run_pga_command(
             input_fasta,
             forward_primer,
@@ -317,7 +318,7 @@ class InSilicoAmplification:
             barcode_region,
             assay_name,
             output_dirs["pga"],
-            output_dirs["all_barcodes_w_pbr"] / "filtered",
+            output_dirs["insert"] / "filtered",
         )
 
         print(f"mozaiko INFO: Completed analysis for {assay_name}.")
@@ -339,11 +340,11 @@ class InSilicoAmplification:
         It first defines the output file for each barcode regions and assay name. Then defines a
         base command, following a list of alternative commands for each of the analysis purposes.
         """
-        output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
+        output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
 
         # debug_dir = None
         # if command_type == 'all_barcodes_w_pbr':
-        #     debug_dir = output_dir / "debug_matrices" / f"{barcode_region}_{assay_name}.txt"
+        #     debug_dir = output_dir / "debug_matrices" / f"{barcode_region}_{assay_name}.fasta"
         #     debug_dir.mkdir(parents=True, exist_ok=True)
 
         base_command = [
@@ -446,10 +447,10 @@ class InSilicoAmplification:
         input file to be used as a database to be searched against the reference sequences.
         Finally, it states the base command to be ran.
         """
-        output_file = output_dir / f"{barcode_region}_{assay_name}.txt"
-        pga_database = database_dir / f"{barcode_region}_{assay_name}.txt"
+        output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
+        pga_database = database_dir / f"{barcode_region}_{assay_name}.fasta"
 
-        minimum_percentage_identity = 0.95
+        minimum_percentage_identity = 0.75
         minimum_alignment_coverage = 0.99
 
         pga_command = [
@@ -472,7 +473,7 @@ class InSilicoAmplification:
             "--coverage",
             str(minimum_alignment_coverage),
             "--filter_method",
-            "strict",
+            "relaxed",
         ]
 
         try:
