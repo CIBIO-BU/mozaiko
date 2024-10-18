@@ -91,6 +91,8 @@ class TestScoringUtils(unittest.TestCase):
             self.assertIn("ATGNNTGC", contents)
             self.assertNotIn(">seq3", contents)
             self.assertNotIn("NNNNNNNN", contents)
+            self.assertNotIn(">seq4", contents)
+            self.assertNotIn("ACGTACGACGAGCATTCGAAGGTCAGTCGNNNNATTAGCTACTGATCGATCGACTAGCTCCGCATCGATGATGCATGCTAGTCGATGCATGCATCG", contents)
 
     def test_extract_primer_binding_sites(self):
         amplicon_file = self.test_directory / "amplicon_test.fasta"
