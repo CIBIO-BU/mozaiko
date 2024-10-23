@@ -476,7 +476,7 @@ class InSilicoAmplification:
         ]
 
         try:
-            print(f"mozaiko INFO: Running CRABS command as '{pga_command}'")
+            print(f"mozaiko INFO: Running CRABS command as '{' '.join(pga_command)}'")
             subprocess.run(pga_command, check=True)
 
         except subprocess.CalledProcessError as e:
