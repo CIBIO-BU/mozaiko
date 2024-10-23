@@ -58,7 +58,6 @@ class InSilicoAmplification:
 
         output_dirs = {
             "amplicon": run_dir / "amplicon",
-            "all_barcodes_w_pbr": run_dir / "all_barcodes_w_pbr",
             "insert": run_dir / "insert",
             "pga": run_dir / "pga",
         }
@@ -235,7 +234,7 @@ class InSilicoAmplification:
             self.process_commands(row, self.data)
             print(f"mozaiko INFO: {index + 1}/{len(self.primer_table)} processed.")
 
-        directories_to_filter = ["amplicon", "all_barcodes_w_pbr", "pga"]
+        directories_to_filter = ["amplicon", "pga"]
         for dir_name in directories_to_filter:
             try:
                 input_path = self.output_dirs[dir_name]
@@ -371,14 +370,14 @@ class InSilicoAmplification:
                 "--maximum-length",
                 str(max_length),
             ]
-        elif command_type == "all_barcodes_w_pbr":
-            additional_args = [
-                "--action",
-                "trim",
-                "--discard-untrimmed",
-                "--maximum-length",
-                str(max_length),
-            ]
+        # elif command_type == "all_barcodes_w_pbr":
+        #     additional_args = [
+        #         "--action",
+        #         "trim",
+        #         "--discard-untrimmed",
+        #         "--maximum-length",
+        #         str(max_length),
+        #     ]
         elif command_type == "insert":
             additional_args = [
                 "--action",

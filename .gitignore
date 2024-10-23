@@ -10,3 +10,4 @@ data/output_data/*
 data/test_data/test_assign_tax.fasta
 data/test_data/test_assign_tax.json
 data/test_data/test_assign_tax.fasta
+external_scripts/pga_tests
