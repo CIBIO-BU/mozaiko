@@ -17,7 +17,7 @@ cp "$CRABS_PATH" "${CRABS_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
 sed -i.bak '
     /print(f'\''filtering alignments based on parameter settings'\'')/ a\    whole_percent = float(COV)*100
     s/tcov >= float(COV) and/tcov >= whole_percent and/
-    s/tcov >= float(COV)"/tcov >= whole_percent"/
+    s/tcov >= float(COV):"/tcov >= whole_percent:"/
 ' "$CRABS_PATH"
 
 # Restore executable permissions
