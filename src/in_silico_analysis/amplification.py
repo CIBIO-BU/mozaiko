@@ -449,8 +449,8 @@ class InSilicoAmplification:
         output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
         pga_database = database_dir / f"{barcode_region}_{assay_name}.fasta"
 
-        minimum_percentage_identity = 0.75
-        minimum_alignment_coverage = 0.99
+        minimum_percentage_identity = 0.75 # Decimal Percentage [0 - 1.0]
+        minimum_alignment_coverage = 99 # Whole Percentage [0 - 100]
 
         pga_command = [
             "crabs",
