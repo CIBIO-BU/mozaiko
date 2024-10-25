@@ -1,18 +1,26 @@
 """
 This module contains the methods needed to perform the in-silico amplification analysis.
+
+PBS: Primer Binding Site
 """
 
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Dict, Optional, Union
 
 import pandas as pd
+from Bio import SeqIO
 from Bio.Seq import Seq
 from pandas import DataFrame
 
-from ..marker_scoring.scoring_utils import filter_sequences_by_ambiguity
+from ..marker_scoring.scoring_utils import (
+    filter_sequences_by_ambiguity,
+    write_filtered_sequence,
+)
 from ..reference_database.db_curation import CrabsScriptGenerator
 
 
@@ -59,7 +67,8 @@ class InSilicoAmplification:
         output_dirs = {
             "amplicon": run_dir / "amplicon",
             "insert": run_dir / "insert",
-            "pga": run_dir / "pga",
+            "all_complete_pbs": run_dir / "all_complete_pbs",
+            "incomplete_pbs": run_dir / "incomplete_pbs",
         }
 
         for dir_path in output_dirs.values():
@@ -191,8 +200,6 @@ class InSilicoAmplification:
             print("mozaiko INFO: The input file does not exist. Exiting...")
             sys.exit(1)
 
-        print("mozaiko INFO: Input FASTA exists. Validating file extension...")
-
         _, file_extension = os.path.splitext(self.data)
 
         file_extension = file_extension.lstrip(".")
@@ -200,6 +207,90 @@ class InSilicoAmplification:
         if file_extension.lower() != "fasta":
             print("mozaiko INFO: Input file must be a FASTA file. Exiting...")
             sys.exit(1)
+
+    def _count_sequences(self, fasta_file):
+        """
+        Count the number of sequences in a FASTA file.
+
+        Parameter:
+        - fasta_file: Path to the FASTA file
+
+        Returns:
+        - int: Number of sequences
+        """
+        return sum(1 for _ in SeqIO.parse(fasta_file, "fasta"))
+
+    def remove_intersection_sequences(self, input_path, filter_path):
+        """
+        This method removes any sequences that are present in both files. As such, it filters the
+        sequences present in one file (filter_path) from the other (input_path).
+        """
+        input_path = Path(input_path)
+        filter_path = Path(filter_path)
+
+        if input_path.is_file():
+            input_files = [input_path]
+        elif input_path.is_dir():
+            input_files = list(input_path.glob("*.fasta"))
+        else:
+            raise ValueError(f"mozaiko ERROR: Input path {input_path} does not exist")
+
+        if not input_files:
+            raise ValueError(f"mozaiko ERROR: No FASTA files found in {input_path}")
+
+        if filter_path.is_file():
+            filter_files = [filter_path]
+        elif filter_path.is_dir():
+            filter_files = list(filter_path.glob("*.fasta"))
+        else:
+            raise ValueError(f"mozaiko ERROR: Input path {filter_path} does not exist")
+
+        if not filter_files:
+            raise ValueError(f"mozaiko ERROR: No FASTA files found in {filter_path}")
+
+        filter_primer_mapping = {f.stem: f for f in filter_files}
+
+        results = {}
+
+        for input_file in input_files:
+            if input_file.stem not in filter_primer_mapping:
+                print(
+                    f"mozaiko INFO: No incomplete PBSs found for {input_file}, all PBS are complete."
+                )
+                continue
+
+            matching_primer = filter_primer_mapping[input_file.stem]
+
+            all_PBS_count = self._count_sequences(input_file)
+            incomplete_psb_count = self._count_sequences(matching_primer)
+
+            filtered_sequences = set()
+            for record in SeqIO.parse(matching_primer, "fasta"):
+                seq_string = str(record.seq).upper()
+                filtered_sequences.add(seq_string)
+
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
+                retained_sequences = []
+
+                for record in SeqIO.parse(input_file, "fasta"):
+                    seq_string = str(record.seq).upper()
+                    if seq_string not in filtered_sequences:
+                        retained_sequences.append(record)
+
+                with open(temp_file.name, "w") as output_handle:
+                    for record in retained_sequences:
+                        write_filtered_sequence(output_handle, record)
+
+                shutil.move(temp_file.name, input_file)
+
+                results[input_file] = {
+                    "retained_sequences": len(retained_sequences),
+                    "filter_file_used": matching_primer,
+                }
+
+            print(
+                f"    For {input_file.stem}: {results[input_file]['retained_sequences']} sequences were retained."
+            )
 
     def run_in_silico_analysis(self, primer_table=None):
         """
@@ -232,19 +323,40 @@ class InSilicoAmplification:
 
         for index, row in self.primer_table.iterrows():
             self.process_commands(row, self.data)
-            print(f"mozaiko INFO: {index + 1}/{len(self.primer_table)} processed.")
+            print(
+                f"   --------   {index + 1}/{len(self.primer_table)} processed   --------   "
+            )
 
-        directories_to_filter = ["amplicon", "pga"]
+        directories_to_filter = ["amplicon", "all_complete_pbs", "incomplete_pbs"]
         for dir_name in directories_to_filter:
             try:
                 input_path = self.output_dirs[dir_name]
-                # print(f"Filtering sequences with ambiguous bases in {dir_name} directory...")
                 filter_sequences_by_ambiguity(
                     input_path=input_path,
                 )
-                # print(f"Completed filtering {dir_name} sequences")
             except Exception as e:
-                print(f"Error filtering {dir_name} directory: {str(e)}")
+                print(f"mozaiko ERROR: Error filtering {dir_name} directory: {str(e)}")
+
+        print("mozaiko INFO: Number of inserts that were amplified successfully...")
+        filter_inserts_path = self.output_dirs["insert"] / "filtered"
+        insert_files = list(filter_inserts_path.glob("*.fasta"))
+        for file in insert_files:
+            number_of_sequences = self._count_sequences(file)
+            print(f"    For {file.stem}, {number_of_sequences} were retained.")
+
+        print(
+            "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."
+        )
+        self.remove_intersection_sequences(
+            self.output_dirs["all_complete_pbs"] / "filtered",
+            self.output_dirs["incomplete_pbs"] / "filtered",
+        )
+
+        print("mozaiko INFO: Number of inserts with incomplete PBS...")
+        self.remove_intersection_sequences(
+            self.output_dirs["incomplete_pbs"] / "filtered",
+            self.output_dirs["insert"] / "filtered",
+        )
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
@@ -264,7 +376,7 @@ class InSilicoAmplification:
         reverse_primer = row["correct_reverse_primer"]
 
         # "amplicon" comand makes use of --action=retain to trim the amplicon but not remove the
-        # primer binding sites (sequences before and after the PBS are removed)
+        # PBS (sequences before and after the PBS are removed)
         self.run_cutadapt_command(
             "amplicon",
             adapter,
@@ -275,18 +387,6 @@ class InSilicoAmplification:
             assay_name,
             output_dirs["amplicon"],
         )
-
-        # self.run_cutadapt_command(
-        #     "all_barcodes_w_pbr",
-        #     adapter,
-        #     input_fasta,
-        #     overlap,
-        #     max_length,
-        #     barcode_region,
-        #     assay_name,
-        #     output_dirs["all_barcodes_w_pbr"],
-        #     error_rate=5,
-        # )
 
         # "insert" makes use of --action=trim
         self.run_cutadapt_command(
@@ -310,14 +410,28 @@ class InSilicoAmplification:
         except Exception as e:
             print(f"Error filtering insert directory: {str(e)}")
 
+        # Retrieve all inserts with a PBS
         self.run_pga_command(
             input_fasta,
             forward_primer,
             reverse_primer,
             barcode_region,
             assay_name,
-            output_dirs["pga"],
+            output_dirs["all_complete_pbs"],
             output_dirs["insert"] / "filtered",
+            "relaxed",
+        )
+
+        # Retrieve all inserts with incomplete PBS
+        self.run_pga_command(
+            input_fasta,
+            forward_primer,
+            reverse_primer,
+            barcode_region,
+            assay_name,
+            output_dirs["incomplete_pbs"],
+            output_dirs["insert"] / "filtered",
+            "strict",
         )
 
         print(f"mozaiko INFO: Completed analysis for {assay_name}.")
@@ -370,14 +484,6 @@ class InSilicoAmplification:
                 "--maximum-length",
                 str(max_length),
             ]
-        # elif command_type == "all_barcodes_w_pbr":
-        #     additional_args = [
-        #         "--action",
-        #         "trim",
-        #         "--discard-untrimmed",
-        #         "--maximum-length",
-        #         str(max_length),
-        #     ]
         elif command_type == "insert":
             additional_args = [
                 "--action",
@@ -391,7 +497,7 @@ class InSilicoAmplification:
 
         full_command = base_command + additional_args
 
-        print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        # print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
         # print(f"mozaiko INFO: Input file: {input_file}")
         # print(f"mozaiko INFO: Output file: {output_file}")
 
@@ -404,18 +510,9 @@ class InSilicoAmplification:
                 encoding="utf-8",
             )
             if output_file.stat().st_size == 0:
-                print(f"mozaiko WARNING: Output file is empty: {output_file}")
-
-            # if command_type == "all_barcodes_w_pbr" and debug_dir:
-            #     # Combinefolder_cutadapt3 stdout and stderr for complete debug information
-            #     debug_output = result.stdout + "\n" + result.stderr
-
-            #     # Store the complete debug output
-            #     debug_log_path = debug_dir / "debug_log.txt"
-            #     with open(debug_log_path, 'w', encoding='utf-8') as f:
-            #         f.write(debug_output)
-
-            #     print(f"mozaiko INFO: Debug log written to: {debug_log_path}")
+                print(
+                    f"mozaiko WARNING: No {command_type}s retrieved for {output_file.stem}."
+                )
 
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: cutadapt {command_type} command failed: {e}")
@@ -438,6 +535,7 @@ class InSilicoAmplification:
         assay_name,
         output_dir,
         database_dir,
+        filter,
     ):
         """
         This method designs the command to run Pairwise Global Alignment (PGA) with CRABS
@@ -449,8 +547,8 @@ class InSilicoAmplification:
         output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
         pga_database = database_dir / f"{barcode_region}_{assay_name}.fasta"
 
-        minimum_percentage_identity = 0.75 # Decimal Percentage [0 - 1.0]
-        minimum_alignment_coverage = 99 # Whole Percentage [0 - 100]
+        minimum_percentage_identity = 0.75  # Decimal Percentage [0 - 1.0]
+        minimum_alignment_coverage = 99  # Whole Percentage [0 - 100]
 
         pga_command = [
             "crabs",
@@ -472,12 +570,17 @@ class InSilicoAmplification:
             "--coverage",
             str(minimum_alignment_coverage),
             "--filter_method",
-            "relaxed",
+            str(filter),
         ]
 
         try:
-            print(f"mozaiko INFO: Running CRABS command as '{' '.join(pga_command)}'")
-            subprocess.run(pga_command, check=True)
+            # print(f"mozaiko INFO: Running CRABS command as '{' '.join(pga_command)}'")
+            subprocess.run(
+                pga_command,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
+            )
 
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: CRABS PGA command failed: {e}")

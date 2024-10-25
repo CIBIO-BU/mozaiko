@@ -137,9 +137,9 @@ def filter_sequences_by_ambiguity(
                     ambiguous_percentage <= max_ambiguous_percentage
                     and not has_consecutive_Ns
                 ):
-                    SeqIO.write(record, output_handle, "fasta")
+                    write_filtered_sequence(output_handle, record)
 
-    print(f"mozaiko INFO: Successfully filtered ambiguous sequences to {output_dir}.")
+    # print(f"mozaiko INFO: Successfully filtered ambiguous sequences in {input_path} to {output_dir}.")
 
 
 def read_fasta(file):

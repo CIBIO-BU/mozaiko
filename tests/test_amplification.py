@@ -8,7 +8,7 @@ import sys
 import unittest
 from io import StringIO
 from pathlib import Path, PosixPath
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
@@ -156,9 +156,19 @@ class TestInSilicoAmplification(unittest.TestCase):
         "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
     )
     @patch("builtins.input", side_effect=["test_output_folder"])
+    @patch("pathlib.Path.is_dir", return_value=True)
+    @patch("pathlib.Path.glob", return_value=[Path("dummy.fasta")])
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data=">seq1\nATGC\n>seq2\nATGC"
+    )
+    @patch("Bio.SeqIO.parse")
     def test_run_in_silico_analysis_calls(
         self,
-        mock_input,
+        _mock_input,
+        _mock_dir,
+        _mock_glob,
+        _mock_parse,
+        _mock_open,
         mock_read_tables,
         mock_validate_fasta,
         mock_check_crabs,
@@ -185,8 +195,17 @@ class TestInSilicoAmplification(unittest.TestCase):
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
     )
+    @patch("pathlib.Path.is_dir", return_value=True)
+    @patch("pathlib.Path.glob", return_value=[Path("dummy.fasta")])
+    @patch("os.path.exists", return_value=True)
     def test_run_in_silico_analysis_calls_process_commands(
-        self, mock_read_tables, mock_process_commands, _mock_input
+        self,
+        _mock_is_dir,
+        _mock_glob,
+        _mock_exists,
+        mock_read_tables,
+        mock_process_commands,
+        _mock_input,
     ):
         """
         Test that run_in_silico_analysis calls the process_commands the correct number of times and
@@ -262,15 +281,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         self.amplification.process_commands(row, self.input_data)
 
         self.assertEqual(mock_run_cutadapt_command.call_count, 2)
-        mock_run_pga_command.assert_called_once_with(
-            self.input_data,
-            "ACACCGCCCGTCACTCTC",
-            "CATGTTACGACTTGCCTCCTC",
-            "12S",
-            "Chon01",
-            self.amplification.output_dirs["pga"],
-            self.amplification.output_dirs["insert"] / "filtered",
-        )
+        self.assertEqual(mock_run_pga_command.call_count, 2)
 
     @patch("subprocess.run")
     @patch("pathlib.Path.stat")
@@ -395,6 +406,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "Assay1",
             output_dir,
             database_dir,
+            "relaxed",
         )
         mock_subprocess_run.assert_called_with(
             [
@@ -415,11 +427,13 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "--percid",
                 "0.75",
                 "--coverage",
-                "0.99",
+                "99",
                 "--filter_method",
                 "relaxed",
             ],
             check=True,
+            stdout=-3,
+            stderr=-2,
         )
 
         # Test case 2: Failed run
@@ -433,4 +447,5 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "Assay1",
                 output_dir,
                 database_dir,
+                "strict",
             )
