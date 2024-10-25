@@ -145,6 +145,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         with self.assertRaises(SystemExit):
             test_class._validate_fasta()
 
+    @patch('shutil.copytree')
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification._check_if_cutadapt_installed"
     )
@@ -164,15 +165,16 @@ class TestInSilicoAmplification(unittest.TestCase):
     @patch("Bio.SeqIO.parse")
     def test_run_in_silico_analysis_calls(
         self,
-        _mock_input,
-        _mock_dir,
-        _mock_glob,
         _mock_parse,
         _mock_open,
+        _mock_glob,
+        _mock_dir,
+        _mock_input,
         mock_read_tables,
         mock_validate_fasta,
         mock_check_crabs,
         mock_check_cutadapt,
+        _mock_copytree
     ):
         """
         Test that run_in_silico_analysis calls all required methods.
@@ -188,6 +190,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         self.assertEqual(self.amplification.run_name, "test_output_folder")
         self.assertIsNotNone(self.amplification.output_dirs)
 
+    @patch('shutil.copytree')
     @patch("builtins.input", side_effect=["test_folder"])
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification.process_commands"
@@ -198,14 +201,21 @@ class TestInSilicoAmplification(unittest.TestCase):
     @patch("pathlib.Path.is_dir", return_value=True)
     @patch("pathlib.Path.glob", return_value=[Path("dummy.fasta")])
     @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data=">seq1\nATGC\n>seq2\nATGC"
+    )
+    @patch("Bio.SeqIO.parse")
     def test_run_in_silico_analysis_calls_process_commands(
         self,
-        _mock_is_dir,
-        _mock_glob,
+        _mock_parse,
+        _mock_open,
         _mock_exists,
+        _mock_glob,
+        _mock_is_dir,
         mock_read_tables,
         mock_process_commands,
         _mock_input,
+        _mock_copytree
     ):
         """
         Test that run_in_silico_analysis calls the process_commands the correct number of times and
