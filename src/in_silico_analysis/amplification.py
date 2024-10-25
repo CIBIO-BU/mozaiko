@@ -62,13 +62,13 @@ class InSilicoAmplification:
         if not run_name:
             raise ValueError("Run name must be provided")
 
-        run_dir = self.base_output_dir / run_name
+        self.run_dir = self.base_output_dir / run_name
 
         output_dirs = {
-            "amplicon": run_dir / "amplicon",
-            "insert": run_dir / "insert",
-            "all_complete_pbs": run_dir / "all_complete_pbs",
-            "incomplete_pbs": run_dir / "incomplete_pbs",
+            "amplicon": self.run_dir / "amplicon",
+            "insert": self.run_dir / "insert",
+            "all_complete_pbs": self.run_dir / "all_complete_pbs",
+            "incomplete_pbs": self.run_dir / "incomplete_pbs"
         }
 
         for dir_path in output_dirs.values():
@@ -343,6 +343,10 @@ class InSilicoAmplification:
         for file in insert_files:
             number_of_sequences = self._count_sequences(file)
             print(f"    For {file.stem}, {number_of_sequences} were retained.")
+
+        # Copy PGA output before filtering sequences
+        all_inserts_path = self.run_dir / "all_inserts"
+        shutil.copytree(filter_inserts_path, all_inserts_path)
 
         print(
             "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."

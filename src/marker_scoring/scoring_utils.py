@@ -141,7 +141,6 @@ def filter_sequences_by_ambiguity(
 
     # print(f"mozaiko INFO: Successfully filtered ambiguous sequences in {input_path} to {output_dir}.")
 
-
 def read_fasta(file):
     """
     Helper function to read a FASTA file and return a dictionary of sequence.
