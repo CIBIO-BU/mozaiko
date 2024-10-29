@@ -84,8 +84,8 @@ def handle_in_silico_analysis(args):
     Handle the in-silico analysis process.
     """
     print("mozaiko INFO: Initiating in-silico analysis...")
-    in_silico_generator = InSilicoAmplification()
-    in_silico_generator.run_in_silico_analysis(args.input)
+    in_silico_generator = InSilicoAmplification(args.input)
+    in_silico_generator.run_in_silico_analysis()
 
 def main():
     """

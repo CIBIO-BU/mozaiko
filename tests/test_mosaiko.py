@@ -85,6 +85,7 @@ class TestMosaiko(unittest.TestCase):
             dereplicate=False,
             json_file=None,
             verbose=False,
+            in_silico_analysis=False,
             output=None,
         )
         mock_parse_args.return_value = mock_args
@@ -113,7 +114,7 @@ class TestMosaiko(unittest.TestCase):
 
         mock_taxonomic_assignment.assert_not_called()
         self.assertIn(
-            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters.",
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file.",
             log.output[0],
         )
         self.assertIn("Exiting...", log.output[1])
@@ -135,7 +136,7 @@ class TestMosaiko(unittest.TestCase):
 
         mock_dereplication.assert_not_called()
         self.assertIn(
-            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameters.",
+            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file.",
             log.output[0],
         )
         self.assertIn("Exiting...", log.output[1])
