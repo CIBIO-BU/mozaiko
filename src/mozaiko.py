@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-This module contains the command line interface for mosaiko.
+This module contains the command line interface for mozaiko.
 """
 
 import argparse
@@ -14,10 +14,10 @@ from src.in_silico_analysis.amplification import InSilicoAmplification
 
 def create_parser():
     """
-    Create an argument parser for the mosaiko's CLI.
+    Create an argument parser for the mozaiko's CLI.
     """
     parser = argparse.ArgumentParser(
-        description="mosaiko: Piecing Together Complete Genetic Coverage for Biomonitoring"
+        description="mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring"
     )
     parser.add_argument(
         "-i", "--input", help="Path to the input FASTA file"
@@ -50,12 +50,12 @@ def handle_custom_fasta_import(args):
     """
     Handle the import of a custom FASTA file.
     """
-    print("mosaiko INFO: Initiating custom sequence import...")
+    print("mozaiko INFO: Initiating custom sequence import...")
     fasta_import = CustomFastaImport()
     fasta_import.read_fasta(args.input)
 
     print(
-        f"mosaiko INFO: Processed {fasta_import.get_number_of_sequences()} sequences."
+        f"mozaiko INFO: Processed {fasta_import.get_number_of_sequences()} sequences."
     )
 
     if args.output:
@@ -66,7 +66,7 @@ def handle_taxonomic_assignment(args):
     """
     Handle the taxonomic assignment of sequences.
     """
-    print("mosaiko INFO: Initiating taxonomic assignment...")
+    print("mozaiko INFO: Initiating taxonomic assignment...")
     crabs_generator = CrabsScriptGenerator()
     crabs_generator.run_assign_tax_command(args.json_file)
 
@@ -75,7 +75,7 @@ def handle_dereplication(args):
     """
     Handle the dereplication of sequences.
     """
-    print("mosaiko INFO: Initiating sequence dereplication...")
+    print("mozaiko INFO: Initiating sequence dereplication...")
     crabs_generator = CrabsScriptGenerator()
     crabs_generator.run_dereplicate_command(args.json_file)
 
@@ -89,7 +89,7 @@ def handle_in_silico_analysis(args):
 
 def main():
     """
-    Main function for mosaiko's CLI.
+    Main function for mozaiko's CLI.
     """
     parser = create_parser()
     args = parser.parse_args()
@@ -117,7 +117,7 @@ def main():
 
     elif args.assign_tax:
         logging.error(
-            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file."
+            "mozaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file."
         )
         logging.error("Exiting...")
         return
@@ -128,7 +128,7 @@ def main():
 
     elif args.dereplicate:
         logging.error(
-            "mosaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file."
+            "mozaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file."
         )
         logging.error("Exiting...")
         return

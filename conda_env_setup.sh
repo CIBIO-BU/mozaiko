@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ENV_NAME="dnaquaimg"
+ENV_NAME="mozaiko"
 REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
 PACKAGE_DIR="DNAquaIMG"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
@@ -63,7 +63,7 @@ install_package() {
 
 # Install CRABS v0.1.7
 install_crabs_release() {
-    #echo "mosaiko requires CRABS v0.1.7 for downstream analysis"
+    #echo "mozaiko requires CRABS v0.1.7 for downstream analysis"
     echo "Checking if CRABS v0.1.7 is installed"
 
     crabs_output=$(crabs --version | tail -n 1)
@@ -127,7 +127,7 @@ install_crabs_release() {
 }
 
 install_cutadapt_package() {
-    #echo "mosaiko requires cutadapt for downstream analysis"
+    #echo "mozaiko requires cutadapt for downstream analysis"
     echo "checking if cutadapt is already installed"
 
     if command -v cutadapt &> /dev/null; then
@@ -162,7 +162,7 @@ install_cutadapt_package() {
 }
 
 install_vsearch() {
-    #echo "mosaiko requires vsearch for downstream analysis"
+    #echo "mozaiko requires vsearch for downstream analysis"
     echo "checking if vsearch is already installed"
 
     if command -v vsearch &> /dev/null; then
@@ -237,7 +237,7 @@ main() {
     activate_env
     clone_repo
     install_package
-    echo "mosaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
+    echo "mozaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
     echo "Proceeding with installation..."
     install_crabs_release
     install_cutadapt_package
