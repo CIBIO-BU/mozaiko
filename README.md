@@ -69,6 +69,15 @@ To dereplicate sequences in the reference database, the --dereplicate command ca
 
 Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the correct parameters. A template for the dereplication JSON file can be found in [here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/dereplicate_parameters.json). This command contemplates four parameters, two being required ('input' and 'output') and two being optional ('method', 'ranks'). Both the 'input' and 'output' should be a TSV file. For the optional ones, 'ranks' allows the user to choose which ranks should represent the organism lineage and 'method' allows the user to choose which method should be used for the dereplication. Please refer to [CRABS' original documentation](https://github.com/gjeunen/reference_database_creator/tree/main?tab=readme-ov-file#6-dereplicate) for further details.
 
+To run the in-silico amplification analysis, the --in_silico_analysis command can be used.
+
+ ```bash
+   mosaiko --in_silico_analysis --input path/to/fasta/file
+ ```
+
+The in-silico analysis command will run the amplification process. It requires a FASTA file to be provided as input. This FASTA file should consider headers and sequences in different lines, with the header formatted as ">AB123 | taxid=1234". After running the command, the user will be prompted to provide a primer table and a name for the folder where results will be outputted. The primer table must be provided as a TSV file with following fields: ["target_group", "barcode_region" "assay_name", "fw_seq", "rev_seq"]. After all inputs are validated, the workflow will perform in-silico amplification, retriving amplicons and inserts where amplification was successful (< 3 mismatches) and inserts where amplification was unsuccessful due to too many mismatches (> 3 mismatches) or due to incomplete forward or reverse primer-binding sites.
+
+
 ## Contacts
 
 In case of enquiry, please reach out to <bu@cibioup.pt>.
