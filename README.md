@@ -24,6 +24,8 @@ mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
    ```bash
    git clone git@github.com:CIBIO-BU/DNAquaIMG.git
+   ```
+      ```bash
    cd DNAquaIMG
    ```
 
@@ -31,7 +33,15 @@ mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
    ```bash
    chmod +x conda_env_setup.sh
+   ```
+      ```bash
    ./conda_env_setup.sh
+   ```
+
+3. Install the CLI script:
+
+   ```bash
+   pip install -e .
    ```
 
 This script will:
