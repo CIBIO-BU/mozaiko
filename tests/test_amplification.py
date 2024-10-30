@@ -279,7 +279,8 @@ class TestInSilicoAmplification(unittest.TestCase):
             "fw_seq": "ACACCGCCCGTCACTCTC",
             "correct_reverse_primer": "CATGTTACGACTTGCCTCCTC",
             "adapter": "ACACCGCCCGTCACTCTC...GAGGAGGCAAGTCGTAACATG",
-            "max_overlap": 600,
+            "min_read_length": 60,
+            "max_read_length": 600,
             "overlap": 120,
         }
 
@@ -315,19 +316,21 @@ class TestInSilicoAmplification(unittest.TestCase):
             "20",
             "--revcomp",
             "--quiet",
+            "--minimum-length",
+            "30",
+            "--maximum-length",
+            "100",
+            "--discard-untrimmed"
         ]
 
         # Test case 1: 'amplicon' command type
         mock_subprocess_run.reset_mock()  # reset state to complete more tests
         self.amplification.run_cutadapt_command(
-            "amplicon", "ADAPTER", self.input_data, 20, 100, "12S", "Chon01", output_dir
+            "amplicon", "ADAPTER", self.input_data, 20, 30, 100, "12S", "Chon01", output_dir
         )
         expected_args = common_args + [
             "--action",
-            "retain",
-            "--discard-untrimmed",
-            "--maximum-length",
-            "100",
+            "retain"
         ]
         mock_subprocess_run.assert_called_with(
             expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
@@ -336,14 +339,11 @@ class TestInSilicoAmplification(unittest.TestCase):
         # Test case 3: 'insert' command type
         mock_subprocess_run.reset_mock()
         self.amplification.run_cutadapt_command(
-            "insert", "ADAPTER", self.input_data, 20, 100, "12S", "Chon01", output_dir
+            "insert", "ADAPTER", self.input_data, 20, 30, 100, "12S", "Chon01", output_dir
         )
         expected_args = common_args + [
             "--action",
-            "trim",
-            "--discard-untrimmed",
-            "--maximum-length",
-            "100",
+            "trim"
         ]
         mock_subprocess_run.assert_called_with(
             expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
@@ -356,6 +356,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "ADAPTER",
                 self.input_data,
                 20,
+                30,
                 100,
                 "12S",
                 "Chon01",
@@ -370,6 +371,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "ADAPTER",
                 self.input_data,
                 20,
+                30,
                 100,
                 "12S",
                 "Chon01",
@@ -384,6 +386,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "ADAPTER",
                 self.input_data,
                 20,
+                30,
                 100,
                 "12S",
                 "Chon01",
@@ -394,7 +397,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_stat.return_value = os.stat_result((0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
         mock_subprocess_run.side_effect = None
         self.amplification.run_cutadapt_command(
-            "amplicon", "ADAPTER", self.input_data, 20, 100, "12S", "Chon01", output_dir
+            "amplicon", "ADAPTER", self.input_data, 20, 30, 100, "12S", "Chon01", output_dir
         )
 
     @patch("subprocess.run")
@@ -459,3 +462,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 database_dir,
                 "strict",
             )
+
+    def tearDown(self):
+        if os.path.exists("dummy.fasta"):
+            os.remove("dummy.fasta")
