@@ -44,6 +44,8 @@ class InSilicoAmplification:
             "assay_name",
             "fw_seq",
             "rev_seq",
+            "min_read_length",
+            "max_read_length"
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
         self.run_name: Optional[str] = run_name
@@ -147,6 +149,11 @@ class InSilicoAmplification:
             print(f"Required fields are: {', '.join(self.primer_table_columns)}")
             sys.exit(1)
 
+        listed_required_fields = list(required_fields)
+        if primer_table[listed_required_fields].isnull().any().any():
+            print("mozaiko INFO: The primer table contains rows with missing values. Please fill in all required columns.")
+            sys.exit(1)
+
     def read_primer_tables(self, primer_table=None):
         """
         Method to read and extract the required properties from the primer table.
@@ -178,15 +185,14 @@ class InSilicoAmplification:
             overlap = min(forward_primer_lenght, correct_reverse_primer_lenght)
             adapter = foward_primer + "..." + correct_reverse_primer
 
-            # function to set the maximum lenght of overlap allowed
-            # This implementation was decided internally
-            max_len_overlap_formula = (
-                600 - correct_reverse_primer_lenght - forward_primer_lenght
-            )
+            # Uncomment to set the maximum length for the amplicon according to Ilumina
+            # max_len_formula = (
+            #     600 - correct_reverse_primer_lenght - forward_primer_lenght
+            # )
+            # primer_table.at[index, "max_length"] = max_len_formula
 
             primer_table.at[index, "overlap"] = overlap
             primer_table.at[index, "adapter"] = adapter
-            primer_table.at[index, "max_overlap"] = max_len_overlap_formula
             primer_table.at[index, "correct_reverse_primer"] = correct_reverse_primer
 
         self.primer_table = primer_table
@@ -374,7 +380,9 @@ class InSilicoAmplification:
         barcode_region = row["barcode_region"]
         assay_name = row["assay_name"]
         adapter = row["adapter"]
-        max_length = int(row["max_overlap"])
+        max_length = int(row["max_read_length"])
+        if "min_read_length" in row.keys():
+            min_length = int(row["min_read_length"])
         overlap = int(row["overlap"])
         forward_primer = row["fw_seq"]
         reverse_primer = row["correct_reverse_primer"]
@@ -386,6 +394,7 @@ class InSilicoAmplification:
             adapter,
             input_fasta,
             overlap,
+            min_length,
             max_length,
             barcode_region,
             assay_name,
@@ -398,6 +407,7 @@ class InSilicoAmplification:
             adapter,
             input_fasta,
             overlap,
+            min_length,
             max_length,
             barcode_region,
             assay_name,
@@ -446,6 +456,7 @@ class InSilicoAmplification:
         adapter,
         input_file,
         overlap,
+        min_length,
         max_length,
         barcode_region,
         assay_name,
@@ -478,30 +489,30 @@ class InSilicoAmplification:
             str(overlap),
             "--revcomp",
             "--quiet",
+            "--minimum-length",
+            str(min_length),
+            "--maximum-length",
+            str(max_length),
+            "--discard-untrimmed"
         ]
 
         if command_type == "amplicon":
+
             additional_args = [
                 "--action",
-                "retain",
-                "--discard-untrimmed",
-                "--maximum-length",
-                str(max_length),
+                "retain"
             ]
         elif command_type == "insert":
             additional_args = [
                 "--action",
-                "trim",
-                "--discard-untrimmed",
-                "--maximum-length",
-                str(max_length),
+                "trim"
             ]
         else:
             raise ValueError(f"Invalid command type: {command_type}")
 
         full_command = base_command + additional_args
 
-        # print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
         # print(f"mozaiko INFO: Input file: {input_file}")
         # print(f"mozaiko INFO: Output file: {output_file}")
 
