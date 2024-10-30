@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="dnaquaimg",
+    name="mozaiko",
     version="0.1.0",
     author="Camila Babo",
     author_email="camila.babo@cibio.up.pt",
@@ -17,6 +17,6 @@ setup(
         "tqdm",
     ],
     entry_points={
-        "console_scripts": ["mozaiko=mozaiko:main"],
+        "console_scripts": ["mozaiko=src.mozaiko:main"],
     },
 )

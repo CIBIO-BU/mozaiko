@@ -25,7 +25,7 @@ class TestSetup(unittest.TestCase):
         """
         with open("setup.py", encoding="UTF-8") as file:
             metadata = file.read()
-        self.assertIn('name="dnaquaimg"', metadata)
+        self.assertIn('name="mozaiko"', metadata)
         self.assertIn('version="0.1.0"', metadata)
         self.assertIn('url="https://github.com/CIBIO-BU/DNAquaIMG"', metadata)
 

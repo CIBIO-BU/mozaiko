@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from mozaiko import (
+from src.mozaiko import (
     create_parser,
     handle_custom_fasta_import,
     handle_dereplication,
