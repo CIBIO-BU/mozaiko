@@ -17,6 +17,6 @@ setup(
         "tqdm",
     ],
     entry_points={
-        "console_scripts": ["mozaiko=src.mozaiko:main"],
+        "console_scripts": ["mozaiko=mozaiko:main"],
     },
 )
