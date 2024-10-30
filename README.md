@@ -41,10 +41,10 @@ mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 This script will:
 
 - Check if Conda is installed;
-- Create a new Conda environment named "dnaquaimg", if it does not yet exist;
+- Create a new Conda environment named "mozaiko", if it does not yet exist;
 - Activate the Conda environment;
 - Clone the DNAquaIMG repository, if not already cloned;
-- Install the DNAquaIMG package.
+- Install the mozaiko package.
 
 ## Running mosaiko
 

@@ -242,11 +242,11 @@ main() {
     activate_env
     clone_repo
     install_package
+    install_entry_points
     echo "mozaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
     echo "Proceeding with installation..."
     install_crabs_release
     install_cutadapt_package
-    install_entry_points
     echo "Instalation complete"
 }
 
