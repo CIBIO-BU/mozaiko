@@ -38,13 +38,20 @@ mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
    ./conda_env_setup.sh
    ```
 
-This script will:
+3. Activate the environment:
+
+      ```bash
+   conda activate mozaiko
+   ```
+
+Th installation script will:
 
 - Check if Conda is installed;
 - Create a new Conda environment named "mozaiko", if it does not yet exist;
 - Activate the Conda environment;
 - Clone the DNAquaIMG repository, if not already cloned;
-- Install the mozaiko package.
+- Install the mozaiko package;
+- Install required dependencies and tools.
 
 ## Running mosaiko
 
@@ -85,14 +92,3 @@ The in-silico analysis command will run the amplification process. It requires a
 ## Contacts
 
 In case of enquiry, please reach out to <bu@cibioup.pt>.
-
-## Issues/Problems
-
-   ```markdown
-   Where the issue tracking is i.e. github issues
-   API documentation (f applicable)
-   ```
-
-## Dev/test/staging/production environments (when applicable)
-
-institution-name/repository-name
