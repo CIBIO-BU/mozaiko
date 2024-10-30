@@ -38,12 +38,6 @@ mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
    ./conda_env_setup.sh
    ```
 
-3. Install the CLI script:
-
-   ```bash
-   pip install -e .
-   ```
-
 This script will:
 
 - Check if Conda is installed;

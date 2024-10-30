@@ -231,6 +231,11 @@ install_vsearch() {
     fi
 }
 
+install_entry_points() {
+    echo "Installing CLI commands."
+    pip install -e .
+}
+
 main() {
     check_conda
     check_env
@@ -241,6 +246,8 @@ main() {
     echo "Proceeding with installation..."
     install_crabs_release
     install_cutadapt_package
+    install_entry_points
+    echo "Instalation complete"
 }
 
 main
