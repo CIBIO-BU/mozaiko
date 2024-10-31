@@ -45,7 +45,7 @@ class InSilicoAmplification:
             "fw_seq",
             "rev_seq",
             "min_read_length",
-            "max_read_length"
+            "max_read_length",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
         self.run_name: Optional[str] = run_name
@@ -70,7 +70,7 @@ class InSilicoAmplification:
             "amplicon": self.run_dir / "amplicon",
             "insert": self.run_dir / "insert",
             "all_complete_pbs": self.run_dir / "all_complete_pbs",
-            "incomplete_pbs": self.run_dir / "incomplete_pbs"
+            "incomplete_pbs": self.run_dir / "incomplete_pbs",
         }
 
         for dir_path in output_dirs.values():
@@ -151,7 +151,9 @@ class InSilicoAmplification:
 
         listed_required_fields = list(required_fields)
         if primer_table[listed_required_fields].isnull().any().any():
-            print("mozaiko INFO: The primer table contains rows with missing values. Please fill in all required columns.")
+            print(
+                "mozaiko INFO: The primer table contains rows with missing values. Please fill in all required columns."
+            )
             sys.exit(1)
 
     def read_primer_tables(self, primer_table=None):
@@ -493,20 +495,14 @@ class InSilicoAmplification:
             str(min_length),
             "--maximum-length",
             str(max_length),
-            "--discard-untrimmed"
+            "--discard-untrimmed",
         ]
 
         if command_type == "amplicon":
 
-            additional_args = [
-                "--action",
-                "retain"
-            ]
+            additional_args = ["--action", "retain"]
         elif command_type == "insert":
-            additional_args = [
-                "--action",
-                "trim"
-            ]
+            additional_args = ["--action", "trim"]
         else:
             raise ValueError(f"Invalid command type: {command_type}")
 

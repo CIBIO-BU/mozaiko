@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 from pathlib import Path
@@ -141,6 +142,7 @@ def filter_sequences_by_ambiguity(
 
     # print(f"mozaiko INFO: Successfully filtered ambiguous sequences in {input_path} to {output_dir}.")
 
+
 def read_fasta(file):
     """
     Helper function to read a FASTA file and return a dictionary of sequence.
@@ -196,3 +198,90 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     )
 
     return primer_dataframe
+
+
+# currently not needed, can be written later for aditional information
+def create_sequence_count_table(primer_table, analysis_folder):
+    """
+    This method creates a TSV file that contemplates the total number of sequences retrieved after
+    each analysis step per primer.
+
+    Parameters:
+    - primer_table: path to the primer table.
+    - analysis_folder: path to the run folder (output of the in silico analysis proccess).
+    """
+    pass
+
+
+def create_MultiBarcodeTools_input(insert_folder, output_file):
+    """
+    Process all FASTA files in a given folder and write extracted information to a TSV file.
+
+    Parameters:
+    - folder_path:Path to the folder containing FASTA files
+    - output_file: Path and ame of the output TSV file
+    """
+    with open(output_file, "w") as tsv_file:
+        tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")
+
+        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
+            os.path.join(insert_folder, "*.fa")
+        )
+
+        for fasta_path in fasta_files:
+            primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+
+            with open(fasta_path, "r") as fasta:
+
+                current_header = None
+                current_sequence = []
+
+                for line in fasta:
+                    line = line.strip()
+
+                    if line.startswith(">"):
+                        if current_header and current_sequence:
+                            process_sequence(
+                                current_header, current_sequence, primer_name, tsv_file
+                            )
+
+                        current_header = line[1:]
+                        current_sequence = []
+
+                    elif line:
+                        current_sequence.append(line)
+
+                if current_header and current_sequence:
+                    process_sequence(
+                        current_header, current_sequence, primer_name, tsv_file
+                    )
+
+    print(f"Conversion complete. Output written to {output_file}")
+
+
+def process_sequence(header, sequence_lines, primer_name, tsv_file):
+    """
+    Process a single FASTA sequence and write to TSV.
+
+    Parameters:
+    - header : FASTA header line
+    - sequence_lines : ist of sequence lines
+    - barcode_name : Name of the barcode/primer
+    - tsv_out : Output TSV file handle
+    """
+    full_sequence = "".join(sequence_lines)
+
+    if "|" in header:
+        parts = header.split("|")
+
+        if len(parts) >= 2:
+            seq_ID = parts[0].strip()
+            species_name = parts[1].strip()
+
+            tsv_file.write(
+                f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
+            )
+        else:
+            print(f"Warning: Incorrect header format: {header}")
+    else:
+        print(f"Warning: Unexpected header format: {header}")
