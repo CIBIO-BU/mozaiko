@@ -6,7 +6,7 @@ import sys
 import unittest
 from io import StringIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from pandas._testing import assert_frame_equal
 
@@ -125,4 +125,34 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
-        pass
+        self.all_inserts_folder = "data/test_data"  # mock
+        self.otl = "data/test_data/test_otl.tsv"
+        self.metric_sys_ex = MetricsSystemExecutor(self.all_inserts_folder, self.otl)
+
+    @patch("os.listdir")
+    @patch("os.path.join")
+    @patch("os.path.exists")
+    @patch("src.marker_scoring.metrics_system.ReferenceDatabaseQuality")
+    def test_calculate_reference_database_quality(
+        self, mock_ref_db_class, mock_path_exists, mock_path_join, mock_os_listdir
+    ):
+        mock_os_listdir.return_value = ["primer1.fasta", "primer2.fasta"]
+
+        mock_ref_db_object = mock_ref_db_class.return_value
+        mock_ref_db_object.barcode_coverage_score.side_effect = [0.5, 0.8]
+
+        mock_path_exists.return_value = True
+
+        ref_bd_scores = self.metric_sys_ex.calculate_reference_database_quality()
+
+        mock_os_listdir.assert_called_once_with(self.all_inserts_folder)
+
+        mock_path_join.assert_has_calls(
+            [
+                call(self.all_inserts_folder, "primer1.fasta"),
+                call(self.all_inserts_folder, "primer2.fasta"),
+            ]
+        )
+
+        mock_ref_db_object.barcode_coverage_score.assert_has_calls([call()] * 2)
+        self.assertEqual(ref_bd_scores, {"primer1": 0.5, "primer2": 0.8})
