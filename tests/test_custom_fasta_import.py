@@ -36,7 +36,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         empty_file = os.path.join(self.data_dir, "empty_fasta.fasta")
         with self.assertRaises(ValueError) as context:
-            self.fasta_import.read_fasta(empty_file)
+            self.fasta_import.read_fasta(empty_file, check_taxid=True)
         self.assertEqual(str(context.exception), "Input file is empty.")
 
     def test_txt_file(self):
@@ -45,7 +45,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         txt_file = os.path.join(self.data_dir, "not_fasta_example.txt")
         with self.assertRaises(ValueError) as context:
-            self.fasta_import.read_fasta(txt_file)
+            self.fasta_import.read_fasta(txt_file, check_taxid=True)
         self.assertEqual(str(context.exception), "Input file must be a fasta file.")
 
     def test_missing_file(self):
@@ -54,7 +54,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         missing_file = os.path.join(self.data_dir, "no_file.fasta")
         with self.assertRaises(FileNotFoundError) as context:
-            self.fasta_import.read_fasta(missing_file)
+            self.fasta_import.read_fasta(missing_file, check_taxid=True)
         self.assertEqual(
             str(context.exception), "Input file does not exist in the directory."
         )
@@ -65,35 +65,36 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         not_string = 1
         with self.assertRaises(ValueError) as context:
-            self.fasta_import.read_fasta(not_string)
+            self.fasta_import.read_fasta(not_string, check_taxid=True)
         self.assertEqual(str(context.exception), "Directory must be a string.")
 
     def test_read_fasta(self):
         """
         Test if read_fasta reads the fasta file correctly.
         """
-        data = self.fasta_import.read_fasta(self.fasta_taxid_file)
+        data = self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
+        print(data)
         self.assertEqual(data.shape, (3, 4))
 
     def test_get_number_of_sequences(self):
         """
         Test if get_number_of_sequences returns the correct number of sequences.
         """
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.assertEqual(self.fasta_import.get_number_of_sequences(), 3)
 
     def test_get_sequence_lengths(self):
         """
         Test if get_sequence_lengths returns the correct lengths of the sequences.
         """
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.assertEqual(self.fasta_import.get_sequence_lengths(), [16, 19, 8])
 
     def test_get_sequence_ids(self):
         """
         Test if get_sequence_ids returns the correct sequence IDs.
         """
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.assertEqual(
             self.fasta_import.get_sequence_ids(),
             ["CM074756.1", "NC_088426.1", "PP475397.1"],
@@ -103,7 +104,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         Test if get_sequences returns the correct sequences.
         """
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.assertEqual(
             self.fasta_import.get_sequences(),
             ["GTTATTGTAGCTTATC", "GCATAAAGCATGGCACTGA", "GTTATTGA"],
@@ -113,7 +114,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         Test if df2fasta correctly writes the data to a fasta file.
         """
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.fasta_import.df2csv()
         example_file = "data/output_data/processed_input_fasta.csv"
         with open(example_file, "r", encoding="UTF-8") as f:
@@ -128,7 +129,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         Test if get_taxids returns the correct taxids.
         """
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.assertEqual(self.fasta_import.get_taxids(), ["8481", "12345", "106731"])
 
     def test_check_for_taxids_with_taxid(self):
@@ -136,7 +137,7 @@ class TestCustomFastaImport(unittest.TestCase):
         Test if _check_for_taxids requests lineage file if taxids are found.
         """
         self.fasta_import.add_taxids = MagicMock()
-        self.fasta_import.read_fasta(self.fasta_taxid_file)
+        self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.fasta_import.add_taxids.assert_called_once_with(self.fasta_taxid_file)
 
     @patch("builtins.print")
@@ -157,13 +158,15 @@ class TestCustomFastaImport(unittest.TestCase):
             return_value="dummy_lineage.tsv",
         ) as mock_load_lineage_file:
             with patch.object(self.fasta_import, "add_taxids") as mock_add_taxids:
-                self.fasta_import.read_fasta(self.fasta_file)  # Use real fasta file so
+                self.fasta_import.read_fasta(
+                    self.fasta_file, check_taxid=True
+                )  # Use real fasta file so
                 # FileNotFoundError isn't raised
 
                 mock_add_taxids.assert_not_called()
 
         mock_print.assert_called_once_with(
-            "mozaiko INFO: No TaxIDs found in the fasta file. "
+            "mozaiko INFO: No TaxIDs found in the FASTA file. "
             + "Starting lineage file upload process."
         )
 

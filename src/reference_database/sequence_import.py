@@ -5,7 +5,7 @@ transforming custom data into desired inputs/outputs.
 The CustomFastaImport class contains the following methods:
 - _validate_input: Validates the input provided by the user.
 - _add_taxids: Joins the TaxIDs of sequences in the data.
-- _check_for_taxids: Checks if fasta file contains TaxIDs.
+- check_for_taxids: Checks if fasta file contains TaxIDs.
 - _request_lineage_file: Requests users to upload lineage file if no taxids are found in fasta file.
 - read_fasta: Reads a fasta file.
 - get_taxids: Returns the TaxIDs of the sequences in the data.
@@ -79,7 +79,7 @@ class CustomFastaImport:
 
         return self.data
 
-    def _check_for_taxids(self, input_file):
+    def check_for_taxids(self, input_file):
         """
         Checks if fasta file contains TaxIDs.
         """
@@ -94,11 +94,11 @@ class CustomFastaImport:
 
             if not taxid_found:
                 print(
-                    "mozaiko INFO: No TaxIDs found in the fasta file. Starting lineage file upload process."
+                    "mozaiko INFO: No TaxIDs found in the FASTA file. Starting lineage file upload process."
                 )
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
-    def read_fasta(self, input_file):
+    def read_fasta(self, input_file, sep="|", check_taxid=False):
         """
         Reads a fasta file.
 
@@ -116,16 +116,29 @@ class CustomFastaImport:
             data_dict = {"seq_id": [], "sequence": [], "length": []}
 
             for seq in records:
-                name, sequence = seq.id, str(seq.seq)
+                name, sequence, description = seq.id, str(seq.seq), seq.description
                 seq_len = len(sequence)
 
                 data_dict["seq_id"].append(name)
                 data_dict["sequence"].append(sequence)
                 data_dict["length"].append(seq_len)
 
+                if self.check_for_taxids is False:
+                    data_dict = {
+                        "seq_id": [],
+                        "sequence": [],
+                        "length": [],
+                        "taxa_info": [],
+                    }
+                    description = description.split(sep)
+                    taxa_info = description[1].strip()
+
+                    data_dict["taxa_info"].append(taxa_info)
+
             self.data = pd.DataFrame(data_dict)
 
-        self._check_for_taxids(input_file)
+        if check_taxid is True:
+            self.check_for_taxids(input_file)
 
         # self.fasta_file = self.df2fasta(
         #     output_name="/processed_input.fasta"
@@ -258,7 +271,7 @@ class LineageFileLoader:
         If your FASTA file does contain Taxonomic IDs for all sequences, please make sure these
         are present in each sequence header.
         For correct reading, these must be identified with 'taxid=' beforehand.
-        For example: 'CM074756.1;taxid=8481'.
+        For example: 'CM074756.1|taxid=8481'.
         ---------------------------------------------------------------------------------------
         """
 
