@@ -3,12 +3,14 @@ Unit tests for metrics_system.py
 """
 import unittest
 
+from pathlib import Path
 from src.marker_scoring.metrics_system import *
 
 class TestReferenceDatabaseQuality(unittest.TestCase):
     def setUp(self):
-        self.inserts_file = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/test_data/test_amplicon_reffb.fasta"
-        self.otl = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/test_data/test_otl.tsv"
+        self.test_directory = Path("data/test_data")
+        self.inserts_file = str(self.test_directory / "test_amplicon_reffb.fasta")
+        self.otl = str(self.test_directory / "test_otl.tsv")
         self.ref_bd_cls = ReferenceDatabaseQuality(self.inserts_file, self.otl)
 
     def test_calculate_number_of_barcodes_per_taxon(self):
