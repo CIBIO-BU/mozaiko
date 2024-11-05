@@ -51,11 +51,11 @@ class TestInSilicoAmplification(unittest.TestCase):
             SystemExit
         ) as context:  # captures the exception into context
             # redirect sys.stdout to a StringIO object
-            with patch("sys.stdout", new=StringIO()) as fake_out:
+            with patch("sys.stdout", new=StringIO()) as mock_stdout:
                 self.amplification._check_if_cutadapt_installed()
             self.assertEqual(context.exception.code, 1)  # 1 -> SystemExist
             message = "mozaiko INFO: Cutadapt is not installed. Please install Cutadapt before running this script. \n Cutadapt can be found at https://cutadapt.readthedocs.io/en/stable/installation.html"
-            self.assertEqual(message, fake_out.get_value())
+            self.assertEqual(message, mock_stdout.get_value())
 
     def test_validate_primer_table_not_exist(self):
         """

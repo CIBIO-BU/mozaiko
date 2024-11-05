@@ -13,10 +13,13 @@ class ReferenceDatabaseQuality:
         self.otl = otl
         self.total_taxa = None
 
-    def _validate_otl(self):
+    def _validate_otl(self, otl=None):
         """
         This method validates the inputed Operational Taxonomic List (OTL).
         """
+        if otl is not None:
+            self.otl = otl
+
         if not os.path.exists(self.otl):
             print("mozaiko INFO: The OTL does not exist. Exiting...")
             sys.exit(1)
@@ -37,13 +40,8 @@ class ReferenceDatabaseQuality:
             print(f"mozaiko ERROR: The OTL must contain a column labeled 'taxa'.")
             sys.exit(1)
 
-        num_empty_rows = otl_table["taxa"].isnull().sum()
-        if num_empty_rows > 0:
-            print(
-                f"mozaiko WARNING: The OTL contains {num_empty_rows} empty row(s). Removing them \
-                    from the analysis."
-            )
         otl_table = otl_table.dropna(subset=["taxa"])
+        print(otl_table)
 
         self.otl = otl_table
 
@@ -84,7 +82,9 @@ class ReferenceDatabaseQuality:
 
         return barcodes_per_species
 
-    def calculate_percentage_of_taxa_w_x_barcodes(self, barcode_threshold=1, total_taxa=None):
+    def calculate_percentage_of_taxa_w_x_barcodes(
+        self, barcode_threshold=1, total_taxa=None
+    ):
         """
         This method calculates the percentage of taxa with more than X barcodes.
 
@@ -110,7 +110,9 @@ class ReferenceDatabaseQuality:
         if total_taxa is not None:
             percentage_of_taxa_w_x_barcodes = (threshold_valid_taxa * 100) / total_taxa
         else:
-            percentage_of_taxa_w_x_barcodes = (threshold_valid_taxa * 100) / self.total_taxa
+            percentage_of_taxa_w_x_barcodes = (
+                threshold_valid_taxa * 100
+            ) / self.total_taxa
         percentage_of_taxa_w_x_barcodes = round(percentage_of_taxa_w_x_barcodes, 2)
 
         return percentage_of_taxa_w_x_barcodes

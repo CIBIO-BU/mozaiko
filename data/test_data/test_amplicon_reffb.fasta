@@ -12,3 +12,15 @@ GGGTAGA
 GATGCA
 >ABC.7 | speciesD
 GTCAGCAT
+>ABC.4 | speciesA
+GTGCTAGT
+>ABC.5 | speciesA
+GTGCTAGG
+>ABC.6 | speciesA
+GTGCTAGA
+>ABC.7 | speciesA
+GTGCTAGCC
+>ABC.8 | speciesA
+GTGCTAGCCACGT
+>DEF.6 | speciesB
+GTGGGGGACGTACG
