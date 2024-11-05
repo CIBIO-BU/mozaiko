@@ -84,7 +84,7 @@ class ReferenceDatabaseQuality:
 
         return barcodes_per_species
 
-    def calculate_percentage_of_taxa_w_x_barcodes(self, barcode_threshold=1):
+    def calculate_percentage_of_taxa_w_x_barcodes(self, barcode_threshold=1, total_taxa=None):
         """
         This method calculates the percentage of taxa with more than X barcodes.
 
@@ -107,7 +107,10 @@ class ReferenceDatabaseQuality:
             if value > barcode_threshold:
                 threshold_valid_taxa += 1
 
-        percentage_of_taxa_w_x_barcodes = (threshold_valid_taxa * 100) / self.total_taxa
+        if total_taxa is not None:
+            percentage_of_taxa_w_x_barcodes = (threshold_valid_taxa * 100) / total_taxa
+        else:
+            percentage_of_taxa_w_x_barcodes = (threshold_valid_taxa * 100) / self.total_taxa
         percentage_of_taxa_w_x_barcodes = round(percentage_of_taxa_w_x_barcodes, 2)
 
         return percentage_of_taxa_w_x_barcodes

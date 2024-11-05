@@ -114,6 +114,8 @@ class CustomFastaImport:
         with open(input_file, "r", encoding="UTF-8") as fasta_file:
             records = SeqIO.parse(fasta_file, "fasta")
             data_dict = {"seq_id": [], "sequence": [], "length": []}
+            if not check_taxid:
+                data_dict["taxa_info"] = []
 
             for seq in records:
                 name, sequence, description = seq.id, str(seq.seq), seq.description
@@ -123,26 +125,15 @@ class CustomFastaImport:
                 data_dict["sequence"].append(sequence)
                 data_dict["length"].append(seq_len)
 
-                if self.check_for_taxids is False:
-                    data_dict = {
-                        "seq_id": [],
-                        "sequence": [],
-                        "length": [],
-                        "taxa_info": [],
-                    }
-                    description = description.split(sep)
-                    taxa_info = description[1].strip()
-
+                if not check_taxid:
+                    description_parts = description.split(sep)
+                    taxa_info = description_parts[1].strip() if len(description_parts) > 1 else ""
                     data_dict["taxa_info"].append(taxa_info)
 
             self.data = pd.DataFrame(data_dict)
 
-        if check_taxid is True:
+        if check_taxid:
             self.check_for_taxids(input_file)
-
-        # self.fasta_file = self.df2fasta(
-        #     output_name="/processed_input.fasta"
-        # )
 
         return self.data
 
