@@ -118,6 +118,12 @@ class TestScoringUtils(unittest.TestCase):
         self.assertEqual(result["fwd_seq_len"].iloc[1], 5)
         self.assertEqual(result["rev_seq_len"].iloc[1], 11)
 
+    def test_sequence_count_tracking(self):
+        """
+        Method to test the sequence_count_tracking implemenation.
+        """
+        pass
+
     def tearDown(self):
         """
         Clean up any files created during tests.
