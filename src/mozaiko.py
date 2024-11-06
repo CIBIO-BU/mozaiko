@@ -7,9 +7,9 @@ This module contains the command line interface for mozaiko.
 import argparse
 import logging
 
+from src.in_silico_analysis.amplification import InSilicoAmplification
 from src.reference_database.db_curation import CrabsScriptGenerator
 from src.reference_database.sequence_import import CustomFastaImport
-from src.in_silico_analysis.amplification import InSilicoAmplification
 
 
 def create_parser():
@@ -19,18 +19,14 @@ def create_parser():
     parser = argparse.ArgumentParser(
         description="mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring"
     )
-    parser.add_argument(
-        "-i", "--input", help="Path to the input FASTA file"
-        )
+    parser.add_argument("-i", "--input", help="Path to the input FASTA file")
     parser.add_argument(
         "-o", "--output", help="Path to processed FASTA file (optional)"
     )
     parser.add_argument(
         "--load_custom_fasta", action="store_true", help="Load custom FASTA file."
     )
-    parser.add_argument(
-        "--json_file", help="Path to the JSON file with parameters."
-        )
+    parser.add_argument("--json_file", help="Path to the JSON file with parameters.")
     parser.add_argument(
         "--assign_tax", action="store_true", help="Assign taxonomic information."
     )
@@ -79,6 +75,7 @@ def handle_dereplication(args):
     crabs_generator = CrabsScriptGenerator()
     crabs_generator.run_dereplicate_command(args.json_file)
 
+
 def handle_in_silico_analysis(args):
     """
     Handle the in-silico analysis process.
@@ -86,6 +83,7 @@ def handle_in_silico_analysis(args):
     print("mozaiko INFO: Initiating in-silico analysis...")
     in_silico_generator = InSilicoAmplification(args.input)
     in_silico_generator.run_in_silico_analysis()
+
 
 def main():
     """

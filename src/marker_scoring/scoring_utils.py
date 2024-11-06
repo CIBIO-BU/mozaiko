@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -200,88 +201,187 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     return primer_dataframe
 
 
-# currently not needed, can be written later for aditional information
-def create_sequence_count_table(primer_table, analysis_folder):
+def sequence_count_tracking(original_database, analysis_folder):
     """
-    This method creates a TSV file that contemplates the total number of sequences retrieved after
-    each analysis step per primer.
+    This method tracks sequence count per each analysis step.
 
     Parameters:
-    - primer_table: path to the primer table.
-    - analysis_folder: path to the run folder (output of the in silico analysis proccess).
+    - original_database: path to the FASTA file containing the original inputted database.
+    - analysis_folder: path to the folder contaning the analysis outcomes.
+
+    Output:
+    - sequence_count_track (Dataframe): TSV file containing the number of sequences in the original
+    database and the number of sequences considered after each analysis step.
     """
-    pass
+    try:
+        file_list = []
 
+        for root, dirs, files in os.walk(analysis_folder):
+            for file in files:
+                file_list.append(os.path.join(root, file))
 
-def create_MultiBarcodeTools_input(insert_folder, output_file):
-    """
-    Process all FASTA files in a given folder and write extracted information to a TSV file.
+        if os.path.exists(original_database):
+            file_list.append(original_database)
+            original_dir = "original_database"
+        else:
+            print(f"mozaiko WARNING: Original database file not found.")
+            original_dir = "original_database_not_found"
 
-    Parameters:
-    - folder_path:Path to the folder containing FASTA files
-    - output_file: Path and ame of the output TSV file
-    """
-    with open(output_file, "w") as tsv_file:
-        tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")
+        sequence_counts = {}
 
-        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
-            os.path.join(insert_folder, "*.fa")
+        for file_path in file_list:
+            try:
+                count_result = subprocess.run(
+                    ["grep", "-c", "^>", file_path],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                count = int(count_result.stdout.strip())
+                sequence_counts[file_path] = count
+            except subprocess.CalledProcessError as e:
+                print(f"mozaiko ERROR: Error processing file {file_path}: {e}")
+                sequence_counts[file_path] = "NA"
+            except ValueError as e:
+                print(
+                    f"mozaiko ERROR: Error counting sequences for file {file_path}: {e}"
+                )
+                sequence_counts[file_path] = "NA"
+
+        records = []
+
+        for path, count in sequence_counts.items():
+            if path == original_database:
+                primer_name = "original_database"
+                directory = original_dir
+
+            else:
+                primer_name = ((os.path.basename(path)).split("."))[0]
+                directory = path.split("/")[-2]
+                if directory == "filtered":
+                    directory = (path.split("/")[-3]) + "-" + directory
+
+            sequence_count = count
+
+            records.append(
+                {
+                    "primer_name": primer_name,
+                    "analysis_step": directory,
+                    "number_of_sequences": sequence_count,
+                }
+            )
+
+        df = pd.DataFrame(records)
+        df_pivoted = df.pivot(
+            index="primer_name", columns="analysis_step", values="number_of_sequences"
         )
 
-        for fasta_path in fasta_files:
-            primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+        analysis_order = [
+            "original_database",
+            "amplicon",
+            "amplicon-filtered",
+            "insert",
+            "insert-filtered",
+            "all_complete_pbs",
+            "all_complete_pbs-filtered",
+            "all_inserts",
+            "all_inserts_filtered",
+        ]
+        existing_cols = [col for col in analysis_order if col in df_pivoted.columns]
 
-            with open(fasta_path, "r") as fasta:
+        df_pivoted = df_pivoted[existing_cols].fillna("NA")
 
-                current_header = None
-                current_sequence = []
+        run_name = os.path.basename(analysis_folder)
+        output_name = "sequence_count_track.tsv"
+        output_path = analysis_folder + "/" + run_name + "-" + output_name
 
-                for line in fasta:
-                    line = line.strip()
+        df_pivoted.to_csv(
+            output_path, sep="\t", index=True, header=True, index_label=""
+        )
 
-                    if line.startswith(">"):
-                        if current_header and current_sequence:
-                            process_sequence(
-                                current_header, current_sequence, primer_name, tsv_file
-                            )
+        print(
+            f"mozaiko INFO: Sequence count tracking file successfully saved to {output_path}."
+        )
 
-                        current_header = line[1:]
-                        current_sequence = []
+        return df_pivoted
 
-                    elif line:
-                        current_sequence.append(line)
-
-                if current_header and current_sequence:
-                    process_sequence(
-                        current_header, current_sequence, primer_name, tsv_file
-                    )
-
-    print(f"Conversion complete. Output written to {output_file}")
+    except Exception as e:
+        print(f"mozaiko ERROR: Unexpected error occurred: {e}")
+        return None
 
 
-def process_sequence(header, sequence_lines, primer_name, tsv_file):
-    """
-    Process a single FASTA sequence and write to TSV.
+"""
+Methods needed for MultiBarcodeTools. Insertion into tool still undecided.
+"""
+# def create_MultiBarcodeTools_input(insert_folder, output_file):
+#     """
+#     Process all FASTA files in a given folder and write extracted information to a TSV file.
 
-    Parameters:
-    - header : FASTA header line
-    - sequence_lines : ist of sequence lines
-    - barcode_name : Name of the barcode/primer
-    - tsv_out : Output TSV file handle
-    """
-    full_sequence = "".join(sequence_lines)
+#     Parameters:
+#     - folder_path:Path to the folder containing FASTA files
+#     - output_file: Path and ame of the output TSV file
+#     """
+#     with open(output_file, "w") as tsv_file:
+#         tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")
 
-    if "|" in header:
-        parts = header.split("|")
+#         fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
+#             os.path.join(insert_folder, "*.fa")
+#         )
 
-        if len(parts) >= 2:
-            seq_ID = parts[0].strip()
-            species_name = parts[1].strip()
+#         for fasta_path in fasta_files:
+#             primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
 
-            tsv_file.write(
-                f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
-            )
-        else:
-            print(f"Warning: Incorrect header format: {header}")
-    else:
-        print(f"Warning: Unexpected header format: {header}")
+#             with open(fasta_path, "r") as fasta:
+
+#                 current_header = None
+#                 current_sequence = []
+
+#                 for line in fasta:
+#                     line = line.strip()
+
+#                     if line.startswith(">"):
+#                         if current_header and current_sequence:
+#                             process_sequence(
+#                                 current_header, current_sequence, primer_name, tsv_file
+#                             )
+
+#                         current_header = line[1:]
+#                         current_sequence = []
+
+#                     elif line:
+#                         current_sequence.append(line)
+
+#                 if current_header and current_sequence:
+#                     process_sequence(
+#                         current_header, current_sequence, primer_name, tsv_file
+#                     )
+
+#     print(f"Conversion complete. Output written to {output_file}")
+
+
+# def process_sequence(header, sequence_lines, primer_name, tsv_file):
+#     """
+#     Process a single FASTA sequence and write to TSV.
+
+#     Parameters:
+#     - header : FASTA header line
+#     - sequence_lines : ist of sequence lines
+#     - barcode_name : Name of the barcode/primer
+#     - tsv_out : Output TSV file handle
+#     """
+#     full_sequence = "".join(sequence_lines)
+
+#     if "|" in header:
+#         parts = header.split("|")
+
+#         if len(parts) >= 2:
+#             seq_ID = parts[0].strip()
+#             species_name = parts[1].strip()
+
+#             tsv_file.write(
+#                 f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
+#             )
+#         else:
+#             print(f"Warning: Incorrect header format: {header}")
+#     else:
+#         print(f"Warning: Unexpected header format: {header}")

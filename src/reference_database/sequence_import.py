@@ -127,7 +127,11 @@ class CustomFastaImport:
 
                 if not check_taxid:
                     description_parts = description.split(sep)
-                    taxa_info = description_parts[1].strip() if len(description_parts) > 1 else ""
+                    taxa_info = (
+                        description_parts[1].strip()
+                        if len(description_parts) > 1
+                        else ""
+                    )
                     data_dict["taxa_info"].append(taxa_info)
 
             self.data = pd.DataFrame(data_dict)
