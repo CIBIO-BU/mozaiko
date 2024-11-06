@@ -3,6 +3,7 @@ Unit tests for scoring_utils.py
 """
 
 import shutil
+import tempfile
 import unittest
 from io import StringIO
 from pathlib import Path
@@ -92,7 +93,10 @@ class TestScoringUtils(unittest.TestCase):
             self.assertNotIn(">seq3", contents)
             self.assertNotIn("NNNNNNNN", contents)
             self.assertNotIn(">seq4", contents)
-            self.assertNotIn("ACGTACGACGAGCATTCGAAGGTCAGTCGNNNNATTAGCTACTGATCGATCGACTAGCTCCGCATCGATGATGCATGCTAGTCGATGCATGCATCG", contents)
+            self.assertNotIn(
+                "ACGTACGACGAGCATTCGAAGGTCAGTCGNNNNATTAGCTACTGATCGATCGACTAGCTCCGCATCGATGATGCATGCTAGTCGATGCATGCATCG",
+                contents,
+            )
 
     def test_extract_primer_binding_sites(self):
         amplicon_file = self.test_directory / "amplicon_test.fasta"
@@ -118,12 +122,6 @@ class TestScoringUtils(unittest.TestCase):
         self.assertEqual(result["fwd_seq_len"].iloc[1], 5)
         self.assertEqual(result["rev_seq_len"].iloc[1], 11)
 
-    def test_sequence_count_tracking(self):
-        """
-        Method to test the sequence_count_tracking implemenation.
-        """
-        pass
-
     def tearDown(self):
         """
         Clean up any files created during tests.
@@ -131,3 +129,52 @@ class TestScoringUtils(unittest.TestCase):
         filtered_dir = self.test_directory / "filtered"
         if filtered_dir.exists():
             shutil.rmtree(filtered_dir)
+
+
+class TestSequenceCountTracking(unittest.TestCase):
+    def setUp(self):
+        self.analysis_folder = tempfile.TemporaryDirectory()
+        self.original_database = tempfile.NamedTemporaryFile(
+            delete=False, suffix=".fasta"
+        )
+
+        with open(self.original_database.name, "w") as f:
+            f.write(">seq\nAGTGCA\n>seq2\nGTCAGCGA\n>seq3\nGGGGCA")
+
+        self.analysis_subfolder = os.path.join(self.analysis_folder.name, "amplicon")
+        os.makedirs(self.analysis_subfolder, exist_ok=True)
+        self.analysis_file = tempfile.NamedTemporaryFile(
+            delete=False,
+            dir=self.analysis_subfolder,
+            prefix="amplicon_",
+            suffix=".fasta",
+        )
+        with open(self.analysis_file.name, "w") as f:
+            f.write(">seq1\nGTCA\n>seq2\nGTCGGG")
+
+    def tearDown(self):
+        self.analysis_folder.cleanup()
+        if os.path.exists(self.original_database.name):
+            os.remove(self.original_database.name)
+        if os.path.exists(self.analysis_file.name):
+            os.remove(self.analysis_file.name)
+
+    def test_sequence_count_tracking(self):
+        df_pivoted = sequence_count_tracking(
+            self.original_database.name, self.analysis_folder.name
+        )
+
+        self.assertIsInstance(df_pivoted, pd.DataFrame)
+
+        run_name = os.path.basename(self.analysis_folder.name)
+        output_path = os.path.join(
+            self.analysis_folder.name, f"{run_name}-sequence_count_track.tsv"
+        )
+        self.assertTrue(os.path.exists(output_path))
+
+        result_df = pd.read_csv(output_path, sep="\t")
+        self.assertIn("original_database", result_df.columns)
+        self.assertIn("amplicon", result_df.columns)
+
+        self.assertEqual(df_pivoted.loc["original_database", "original_database"], 3)
+        self.assertEqual(df_pivoted.iloc[0, 1], 2)

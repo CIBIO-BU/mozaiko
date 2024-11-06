@@ -309,7 +309,6 @@ def sequence_count_tracking(original_database, analysis_folder):
         print(f"mozaiko ERROR: Unexpected error occurred: {e}")
         return None
 
-
 """
 Methods needed for MultiBarcodeTools. Insertion into tool still undecided.
 """
