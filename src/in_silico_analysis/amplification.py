@@ -189,15 +189,15 @@ class InSilicoAmplification:
 
             correct_reverse_primer = str(Seq(reverse_primer).reverse_complement())
 
-            forward_primer_lenght = len(foward_primer)
-            correct_reverse_primer_lenght = len(correct_reverse_primer)
+            forward_primer_length = len(foward_primer)
+            correct_reverse_primer_length = len(correct_reverse_primer)
 
-            overlap = min(forward_primer_lenght, correct_reverse_primer_lenght)
+            overlap = min(forward_primer_length, correct_reverse_primer_length)
             adapter = foward_primer + "..." + correct_reverse_primer
 
             # Uncomment to set the maximum length for the amplicon according to Ilumina
             # max_len_formula = (
-            #     600 - correct_reverse_primer_lenght - forward_primer_lenght
+            #     600 - correct_reverse_primer_length - forward_primer_length
             # )
             # primer_table.at[index, "max_length"] = max_len_formula
 

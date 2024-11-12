@@ -171,7 +171,7 @@ class ReferenceDatabaseQuality:
 
 
 class Binding:
-    def __init__(self, number_of_mismatches: int = None):
+    def __init__(self, number_of_mismatches = None):
         self.amplification_instance = InSilicoAmplification()
         if number_of_mismatches is None:
             number_of_mismatches = (
