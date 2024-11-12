@@ -34,6 +34,7 @@ class InSilicoAmplification:
         data: Union[str, Path],
         primer_table: Optional[DataFrame] = None,
         run_name: Optional[str] = None,
+        number_of_mismatches: int = 3,
     ):
         self.data = data
         self.base_output_dir = Path("../data/output_data")
@@ -50,6 +51,13 @@ class InSilicoAmplification:
         self.crabs_script_generator = CrabsScriptGenerator()
         self.run_name: Optional[str] = run_name
         self.output_dirs: Optional[Dict[str, Path]] = None
+        self.number_of_mismatches = number_of_mismatches
+
+    def get_number_of_mismatches(self):
+        """
+        Gets the defined number of mismatches to use as variables in other external classes.
+        """
+        return self.number_of_mismatches
 
     def _setup_output_directories(self, run_name: str) -> dict:
         """
@@ -463,13 +471,16 @@ class InSilicoAmplification:
         barcode_region,
         assay_name,
         output_dir,
-        error_rate=3,
+        number_of_mismatches=3,
     ):
         """
         This method designs the commands to run with cutadapt (https://github.com/marcelm/cutadapt).
         It first defines the output file for each barcode regions and assay name. Then defines a
         base command, following a list of alternative commands for each of the analysis purposes.
         """
+        if self.number_of_mismatches != number_of_mismatches:
+            number_of_mismatches = self.number_of_mismatches
+
         output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
 
         # debug_dir = None
@@ -486,7 +497,7 @@ class InSilicoAmplification:
             str(input_file),
             "--no-indels",
             "-e",
-            str(error_rate),
+            str(number_of_mismatches),
             "--overlap",
             str(overlap),
             "--revcomp",

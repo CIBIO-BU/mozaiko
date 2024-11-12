@@ -115,12 +115,13 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
         self.assertEqual(percentage2, expected_percentage2)
 
-    def test_barcode_coverage_store(self):
-        bcs_rounded = self.ref_bd_cls.barcode_coverage_score()
+    def test_ratio_barcoded_taxa(self):
+        rbt_rounded = self.ref_bd_cls.ratio_barcoded_taxa()
 
-        expected_bcs_rounded = 25.0  # 12.5 (3/6 * 0.25) + 12.5 (1/6 * 0.75)
+        expected_bcs_rounded = 3.0
+        expected_output = (16.67, 3.0)
 
-        self.assertEqual(bcs_rounded, expected_bcs_rounded)
+        self.assertEqual(rbt_rounded, expected_output)
 
 
 class TestMetricsSystemExecutor(unittest.TestCase):
@@ -139,7 +140,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_os_listdir.return_value = ["primer1.fasta", "primer2.fasta"]
 
         mock_ref_db_object = mock_ref_db_class.return_value
-        mock_ref_db_object.barcode_coverage_score.side_effect = [0.5, 0.8]
+        mock_ref_db_object.ratio_barcoded_taxa.side_effect = [(12, 0.5), (14, 0.8)]
 
         mock_path_exists.return_value = True
 
@@ -154,5 +155,5 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             ]
         )
 
-        mock_ref_db_object.barcode_coverage_score.assert_has_calls([call()] * 2)
-        self.assertEqual(ref_bd_scores, {"primer1": 0.5, "primer2": 0.8})
+        mock_ref_db_object.ratio_barcoded_taxa.assert_has_calls([call()] * 2)
+        self.assertEqual(ref_bd_scores, {"primer1": (12, 0.5), "primer2": (14, 0.8)})

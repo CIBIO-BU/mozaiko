@@ -91,4 +91,4 @@ The in-silico analysis command will run the amplification process. It requires a
 
 ## Contacts
 
-In case of enquiry, please reach out to <bu@cibioup.pt>.
+In case of enquiry, please reach out to <bu@biopolis.up.pt>.

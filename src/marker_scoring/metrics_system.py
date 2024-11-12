@@ -4,6 +4,7 @@ import sys
 import pandas as pd
 
 from src.reference_database.sequence_import import CustomFastaImport
+from src.in_silico_analysis.amplification import InSilicoAmplification
 
 
 class ReferenceDatabaseQuality:
@@ -139,10 +140,9 @@ class ReferenceDatabaseQuality:
 
         self.total_taxa = total_taxa
 
-    def barcode_coverage_score(self):
+    def ratio_barcoded_taxa(self):
         """
-        This method calculates the Barcode Coverage Score (BCS).
-        * Will be used as acceptance criteria for ranking primer pair performance (>0.65)
+        This method calculates the Ratio of Barcoded Taxa (RBT).
 
         Parameters:
         - barcoded_taxa_one: float
@@ -151,7 +151,7 @@ class ReferenceDatabaseQuality:
             Percentage of taxa with more than one barcode.
 
         Output:
-        - bcs: float
+        - rbt: float
             Barcode Coverage Score
         """
         self.import_otl()
@@ -163,11 +163,21 @@ class ReferenceDatabaseQuality:
             barcode_threshold=1
         )
 
-        bcs = (0.75 * barcoded_taxa_one) + (0.25 * barcoded_taxa_two)
+        rbt = barcoded_taxa_two / barcoded_taxa_one
 
-        bcs_rounded = round(bcs, 2)
+        rbt_rounded = round(rbt, 2)
 
-        return bcs_rounded
+        return barcoded_taxa_one, rbt_rounded
+
+
+class Binding:
+    def __init__(self, number_of_mismatches: int = None):
+        self.amplification_instance = InSilicoAmplification()
+        if number_of_mismatches is None:
+            number_of_mismatches = (
+                self.amplification_instance.get_number_of_mismatches()
+            )
+        self.number_of_mismatches = number_of_mismatches
 
 
 class MetricsSystemExecutor:
@@ -184,6 +194,13 @@ class MetricsSystemExecutor:
     def calculate_reference_database_quality(self):
         """
         This method processed the Reference Database Quality evaluation.
+        It calculates the Barcode Coverage Score (BCS) for each primer and stores the results.
+
+        Output:
+        - ref_bd_scores: dict
+            A dictionary where the key is the primer name and the value is a tuple containing
+            the percentage of taxa with more than five barcodes and the rounded Ratio of Barcoded
+            Taxa.
         """
         ref_bd_scores = {}
 
@@ -192,7 +209,7 @@ class MetricsSystemExecutor:
                 fasta_file = os.path.join(self.all_inserts_folder, filename)
                 primer_name = filename.split(".")[0]
                 cls = ReferenceDatabaseQuality(fasta_file, self.otl)
-                score = cls.barcode_coverage_score()
-                ref_bd_scores[primer_name] = score
+                bt_1, rbt = cls.ratio_barcoded_taxa()
+                ref_bd_scores[primer_name] = bt_1, rbt
 
         return ref_bd_scores
