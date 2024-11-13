@@ -31,7 +31,7 @@ class InSilicoAmplification:
 
     def __init__(
         self,
-        data: Union[str, Path],
+        data: Path,
         primer_table: Optional[DataFrame] = None,
         run_name: Optional[str] = None,
         number_of_mismatches: int = 3,
