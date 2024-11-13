@@ -45,8 +45,6 @@ class InSilicoAmplification:
             "assay_name",
             "fw_seq",
             "rev_seq",
-            "min_read_length",
-            "max_read_length",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
         self.run_name: Optional[str] = run_name
@@ -164,7 +162,9 @@ class InSilicoAmplification:
             )
             sys.exit(1)
 
-    def read_primer_tables(self, primer_table=None):
+    def read_primer_tables(
+        self, primer_table=None, max_len_according_to_ilumina: bool = True
+    ):
         """
         Method to read and extract the required properties from the primer table.
         """
@@ -195,11 +195,20 @@ class InSilicoAmplification:
             overlap = min(forward_primer_length, correct_reverse_primer_length)
             adapter = foward_primer + "..." + correct_reverse_primer
 
-            # Uncomment to set the maximum length for the amplicon according to Ilumina
-            # max_len_formula = (
-            #     600 - correct_reverse_primer_length - forward_primer_length
-            # )
-            # primer_table.at[index, "max_length"] = max_len_formula
+            if max_len_according_to_ilumina is True:
+                max_len_formula = (
+                    600 - correct_reverse_primer_length - forward_primer_length
+                )
+                primer_table.at[index, "max_read_length"] = max_len_formula
+
+            else:
+                if (
+                    "min_read_length" not in self.primer_table_columns
+                    and "max_read_length" not in self.primer_table_columns
+                ):
+                    raise ValueError(
+                        "mozaiko ERROR: When max_len_according_to_ilumina is False, the primer table must contain 'min_read_length' and 'max_read_length' columns."
+                    )
 
             primer_table.at[index, "overlap"] = overlap
             primer_table.at[index, "adapter"] = adapter
@@ -308,7 +317,9 @@ class InSilicoAmplification:
                 f"    For {input_file.stem}: {results[input_file]['retained_sequences']} sequences were retained."
             )
 
-    def run_in_silico_analysis(self, primer_table=None):
+    def run_in_silico_analysis(
+        self, primer_table=None, max_len_according_to_ilumina: bool = True
+    ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
         tools are installed in the machine. If installed, it requests the user to upload a table
@@ -320,7 +331,11 @@ class InSilicoAmplification:
         self._check_if_cutadapt_installed()
         self.crabs_script_generator.check_if_crabs_installed()
         self._validate_fasta()
-        self.read_primer_tables(primer_table)
+
+        if max_len_according_to_ilumina is True:
+            self.read_primer_tables(primer_table, max_len_according_to_ilumina=True)
+        if max_len_according_to_ilumina is False:
+            self.read_primer_tables(primer_table, max_len_according_to_ilumina=False)
 
         if not self.run_name:
             self.run_name = input(

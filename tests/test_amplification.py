@@ -10,6 +10,9 @@ from io import StringIO
 from pathlib import Path, PosixPath
 from unittest.mock import MagicMock, mock_open, patch
 
+import pandas as pd
+from Bio.Seq import Seq
+
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
 
@@ -145,7 +148,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         with self.assertRaises(SystemExit):
             test_class._validate_fasta()
 
-    @patch('shutil.copytree')
+    @patch("shutil.copytree")
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification._check_if_cutadapt_installed"
     )
@@ -174,7 +177,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_validate_fasta,
         mock_check_crabs,
         mock_check_cutadapt,
-        _mock_copytree
+        _mock_copytree,
     ):
         """
         Test that run_in_silico_analysis calls all required methods.
@@ -190,7 +193,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         self.assertEqual(self.amplification.run_name, "test_output_folder")
         self.assertIsNotNone(self.amplification.output_dirs)
 
-    @patch('shutil.copytree')
+    @patch("shutil.copytree")
     @patch("builtins.input", side_effect=["test_folder"])
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification.process_commands"
@@ -215,7 +218,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_read_tables,
         mock_process_commands,
         _mock_input,
-        _mock_copytree
+        _mock_copytree,
     ):
         """
         Test that run_in_silico_analysis calls the process_commands the correct number of times and
@@ -320,18 +323,23 @@ class TestInSilicoAmplification(unittest.TestCase):
             "30",
             "--maximum-length",
             "100",
-            "--discard-untrimmed"
+            "--discard-untrimmed",
         ]
 
         # Test case 1: 'amplicon' command type
         mock_subprocess_run.reset_mock()  # reset state to complete more tests
         self.amplification.run_cutadapt_command(
-            "amplicon", "ADAPTER", self.input_data, 20, 30, 100, "12S", "Chon01", output_dir
+            "amplicon",
+            "ADAPTER",
+            self.input_data,
+            20,
+            30,
+            100,
+            "12S",
+            "Chon01",
+            output_dir,
         )
-        expected_args = common_args + [
-            "--action",
-            "retain"
-        ]
+        expected_args = common_args + ["--action", "retain"]
         mock_subprocess_run.assert_called_with(
             expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
         )
@@ -339,12 +347,17 @@ class TestInSilicoAmplification(unittest.TestCase):
         # Test case 3: 'insert' command type
         mock_subprocess_run.reset_mock()
         self.amplification.run_cutadapt_command(
-            "insert", "ADAPTER", self.input_data, 20, 30, 100, "12S", "Chon01", output_dir
+            "insert",
+            "ADAPTER",
+            self.input_data,
+            20,
+            30,
+            100,
+            "12S",
+            "Chon01",
+            output_dir,
         )
-        expected_args = common_args + [
-            "--action",
-            "trim"
-        ]
+        expected_args = common_args + ["--action", "trim"]
         mock_subprocess_run.assert_called_with(
             expected_args, check=True, capture_output=True, text=True, encoding="utf-8"
         )
@@ -397,7 +410,15 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_stat.return_value = os.stat_result((0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
         mock_subprocess_run.side_effect = None
         self.amplification.run_cutadapt_command(
-            "amplicon", "ADAPTER", self.input_data, 20, 30, 100, "12S", "Chon01", output_dir
+            "amplicon",
+            "ADAPTER",
+            self.input_data,
+            20,
+            30,
+            100,
+            "12S",
+            "Chon01",
+            output_dir,
         )
 
     @patch("subprocess.run")
@@ -461,6 +482,61 @@ class TestInSilicoAmplification(unittest.TestCase):
                 output_dir,
                 database_dir,
                 "strict",
+            )
+
+    def test_read_primer_tables_max_len_true(self):
+        self.amplification.read_primer_tables(
+            self.primer_list, max_len_according_to_ilumina=True
+        )
+        self.assertIsNotNone(self.amplification.primer_table)
+
+        for index, row in self.amplification.primer_table.iterrows():
+            foward_primer = row["fw_seq"]
+            reverse_primer = row["rev_seq"]
+            correct_reverse_primer = str(Seq(reverse_primer).reverse_complement())
+            forward_primer_length = len(foward_primer)
+            correct_reverse_primer_length = len(correct_reverse_primer)
+            expected_max_length = (
+                600 - correct_reverse_primer_length - forward_primer_length
+            )
+            self.assertEqual(row["max_read_length"], expected_max_length)
+
+    def test_read_primer_tables_max_len_false(self):
+        self.amplification.primer_table_columns = [
+            "target_group",
+            "barcode_region",
+            "assay_name",
+            "fw_seq",
+            "rev_seq",
+            "min_read_length",
+            "max_read_length",
+        ]
+        self.amplification.read_primer_tables(
+            self.primer_list, max_len_according_to_ilumina=False
+        )
+        self.assertIsNotNone(self.amplification.primer_table)
+        self.assertIn("min_read_length", self.amplification.primer_table.columns)
+        self.assertIn("max_read_length", self.amplification.primer_table.columns)
+
+        test_primer_table = pd.read_csv(self.primer_list, sep="\t")
+
+        for index, row in self.amplification.primer_table.iterrows():
+            expected_min_read_length = test_primer_table.loc[index, "min_read_length"]
+            expected_max_read_length = test_primer_table.loc[index, "max_read_length"]
+            self.assertEqual(row["min_read_length"], expected_min_read_length)
+            self.assertEqual(row["max_read_length"], expected_max_read_length)
+
+    def test_read_primer_tables_max_len_false_missing_cols(self):
+        self.amplification.primer_table_columns = [
+            "target_group",
+            "barcode_region",
+            "assay_name",
+            "fw_seq",
+            "rev_seq",
+        ]
+        with self.assertRaises(ValueError):
+            self.amplification.read_primer_tables(
+                self.primer_list, max_len_according_to_ilumina=False
             )
 
     def tearDown(self):
