@@ -32,8 +32,8 @@ class InSilicoAmplification:
     def __init__(
         self,
         data: Path,
-        primer_table: Optional[DataFrame] = None,
-        run_name: Optional[str] = None,
+        primer_table: DataFrame = None,
+        run_name: str = None,
         number_of_mismatches: int = 3,
     ):
         self.data = data
@@ -47,8 +47,8 @@ class InSilicoAmplification:
             "rev_seq",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
-        self.run_name: Optional[str] = run_name
-        self.output_dirs: Optional[Dict[str, Path]] = None
+        self.run_name: str = run_name
+        self.output_dirs: Path = None
         self.number_of_mismatches = number_of_mismatches
 
     def get_number_of_mismatches(self):
