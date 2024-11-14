@@ -161,6 +161,10 @@ class InSilicoAmplification:
             )
             sys.exit(1)
 
+        if not primer_table["assay_name"].is_unique:
+            print("mozaiko INFO: The 'assay_name' column contains duplicate values. Each assay name must be unique.")
+            sys.exit(1)
+
     def read_primer_tables(
         self, primer_table=None, max_len_according_to_ilumina: bool = True
     ):
