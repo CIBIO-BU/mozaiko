@@ -208,7 +208,7 @@ class CustomFastaImport:
         self.data.to_csv(output_name, index=False)
 
     def df2fasta(
-        self, output_name: str = "data/output_data//processed_input_fasta.fasta"
+        self, output_name: str = "data/output_data/processed_input_fasta.fasta"
     ):
         """
         Write the data frame to a fasta file.

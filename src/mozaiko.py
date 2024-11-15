@@ -47,15 +47,22 @@ def handle_custom_fasta_import(args):
     Handle the import of a custom FASTA file.
     """
     print("mozaiko INFO: Initiating custom sequence import...")
-    fasta_import = CustomFastaImport()
-    fasta_import.read_fasta(args.input)
 
-    print(
-        f"mozaiko INFO: Processed {fasta_import.get_number_of_sequences()} sequences."
-    )
+    try:
+        fasta_import = CustomFastaImport()
+        fasta_import.read_fasta(args.input)
 
-    if args.output:
-        fasta_import.df2fasta(args.output)
+        print(
+            f"mozaiko INFO: Processed {fasta_import.get_number_of_sequences()} sequences."
+        )
+
+        if args.output:
+            print(f"mozaiko INFO: Saving output to {args.output}...")
+            fasta_import.df2fasta(args.output)
+
+    except Exception as e:
+        logging.error(f"mozaiko ERROR: Failed to process the FASTA file: {e}")
+        raise
 
 
 def handle_taxonomic_assignment(args):
@@ -103,7 +110,7 @@ def main():
             "mozaiko INFO: No FASTA file specified. Please specify a FASTA file with parameter --input."
         )
 
-    if args.load_custom_fasta and args.input:
+    if args.load_custom_fasta:
         print("Loading custom FASTA...")
         handle_custom_fasta_import(args)
 
