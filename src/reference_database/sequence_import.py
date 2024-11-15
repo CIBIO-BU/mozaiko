@@ -214,6 +214,11 @@ class CustomFastaImport:
         Write the data frame to a fasta file.
         """
 
+        if not output_name.lower().endswith((".fasta", ".fa")):
+            raise ValueError(
+                f"mozaiko ERROR: Invalid output file name. File must have a '.fasta' extension."
+            )
+
         output_dir = os.path.dirname(output_name)
 
         if not os.path.exists(output_dir):
