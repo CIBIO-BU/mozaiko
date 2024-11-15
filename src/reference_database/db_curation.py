@@ -162,15 +162,14 @@ class CrabsScriptGenerator:
 
         if not os.path.exists(json_file):
             print("mozaiko INFO: The JSON file does not exist. Exiting...")
-            sys.exit(1)
+            raise FileNotFoundError(f"mozaiko INFO: {json_file} not found.")
 
         _, file_extension = os.path.splitext(json_file)
 
         file_extension = file_extension.lstrip(".")
 
         if file_extension.lower() != "json":
-            print("mozaiko INFO: The provided file is not a JSON file. Exiting...")
-            sys.exit(1)
+            raise ValueError(f"mozaiko INFO: Invalid file type: {file_extension}. Expected a .json file.")
 
     def _load_parameters(self, json_file):
         """

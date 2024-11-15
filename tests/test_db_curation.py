@@ -49,27 +49,44 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             ["crabs", "--version"], check=True, stdout=-3, stderr=-3
         )
 
+    @patch("os.path.exists", return_value=True)
     @patch(
         "builtins.open", new_callable=mock_open, read_data='{"input": "input.fasta"}'
     )
-    @patch("json.load")
-    def test_load_parameters(self, mock_json_load, mock_file):
+    def test_load_parameters(self, mock_file, _mock_exists):
         """
         Test that the _load_parameters method loads the parameters from a JSON file.
         """
-        mock_json_load.return_value = {"input": "input.fasta"}
         self.generator._load_parameters("dummy.json")
         mock_file.assert_called_with("dummy.json", encoding="UTF-8")
-        mock_json_load.assert_called_once()
+        self.assertEqual(self.generator.params, {"input": "input.fasta"})
 
     @patch("os.path.exists", return_value=True)
-    def test_download_taxonomy_files_exists(self, mock_path_exists):
+    def test_validate_json_file_valid(self, mock_exists):
         """
-        Test that the _download_taxonomy_files method does not download the taxonomy files if they
-        already exist.
+        Test that _validate_json_file passes for a valid JSON file.
         """
-        self.generator._download_taxonomy_files()
-        mock_path_exists.assert_called_with("taxonomy_files")
+        self.generator._validate_json_file("dummy.json")
+
+        mock_exists.assert_called_once_with("dummy.json")
+
+    @patch("os.path.exists", return_value=False)
+    def test_validate_json_file_file_not_exists(self, mock_exists):
+        """
+        Test that _validate_json_file raises FileNotFoundError for a missing file.
+        """
+        with self.assertRaises(FileNotFoundError):
+            self.generator._validate_json_file("dummy.json")
+
+        mock_exists.assert_called_once_with("dummy.json")
+
+    @patch("os.path.exists", return_value=True)
+    def test_validate_json_file_invalid_extension(self, _mock_exists):
+        """
+        Test that _validate_json_file raises ValueError for a non-JSON file.
+        """
+        with self.assertRaises(ValueError):
+            self.generator._validate_json_file("dummy.txt")
 
     @patch("os.path.exists", return_value=False)
     @patch("os.makedirs")

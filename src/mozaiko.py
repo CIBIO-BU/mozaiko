@@ -106,6 +106,7 @@ def main():
     if args.load_custom_fasta and args.input:
         print("Loading custom FASTA...")
         handle_custom_fasta_import(args)
+
     else:
         print("Skipping custom FASTA load...")
 
