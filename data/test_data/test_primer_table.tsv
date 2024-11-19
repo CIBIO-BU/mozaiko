@@ -1,3 +1,3 @@
-target_group	barcode_region	assay_name	fw_seq	rev_seq	average_size	min_read_length	max_read_length
+target_group	barcode_region	assay_name	fwd_seq	rev_seq	average_size	min_read_length	max_read_length
 Chondrichthyes	12S	Chon01	ACACCGCCCGTCACTCTC	CATGTTACGACTTGCCTCCTC	43	23	93
 Vertebrate	12S	12S-V5-c	AGGGATAACAGCGCAATC	TCGTTGAACAAACGAACC	74	24	124

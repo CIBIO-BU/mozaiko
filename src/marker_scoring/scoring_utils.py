@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 from Bio import SeqIO
+from Bio.Seq import Seq
 
 # IUPAC Dictionary: Based on Johnson, A. D. (2010).
 # An extended IUPAC nomenclature code for polymorphic nucleic acids.
@@ -172,14 +173,32 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     This method overlaps the insert sequence with the amplicon sequence to extract the primer
     binding sites. It does so by defining the foward adpter sequence as the sequence before the
     insert, and the reverse adapter sequence as the sequence after the insert.
+
+    The function assumes that sequence headers in both files contain matching identifiers
+    that can be used to pair the correct sequences together.
     """
+    amplicon_basename = str(amplicon_file).split("/")[-1]
+
     amplicon_data = read_fasta(amplicon_file)
     insert_data = read_fasta(insert_file)
 
     results = []
 
-    for amplicon_record, amplicon_sequence in amplicon_data.items():
-        for insert_record, insert_sequence in insert_data.items():
+    def get_seq_id(header):
+        clean_header = header.replace(">", "")
+        return clean_header.split("|")[0]
+
+    amplicon_dict = {
+        get_seq_id(header): (header, seq) for header, seq in amplicon_data.items()
+    }
+    insert_dict = {
+        get_seq_id(header): (header, seq) for header, seq in insert_data.items()
+    }
+
+    for seq_id in insert_dict:
+        if seq_id in amplicon_dict:
+            amplicon_header, amplicon_sequence = amplicon_dict[seq_id]
+            insert_header, insert_sequence = insert_dict[seq_id]
 
             start_index = amplicon_sequence.find(insert_sequence)
 
@@ -191,11 +210,28 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
                 rev_seq_len = len(rev_seq)
 
                 results.append(
-                    [amplicon_record, fwd_seq, rev_seq, fwd_seq_len, rev_seq_len]
+                    [amplicon_header, fwd_seq, rev_seq, fwd_seq_len, rev_seq_len]
                 )
 
+            else:
+                print(
+                    f"mozaiko WARNING: Insert sequence not found within amplicon for ID {seq_id} in {amplicon_basename}"
+                )
+        else:
+            print(
+                f"mozaiko WARNING: No matching amplicon found for insert ID {seq_id} in {amplicon_basename}"
+            )
+
+    if not results:
+        print(
+            "mozaiko WARNING: No matching sequences found between amplicon and insert files."
+        )
+        return pd.DataFrame(
+            columns=["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
+        )
+
     primer_dataframe = pd.DataFrame(
-        results, columns=["record", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
+        results, columns=["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
     )
 
     return primer_dataframe
@@ -210,7 +246,7 @@ def sequence_count_tracking(original_database, analysis_folder):
     - analysis_folder: path to the folder contaning the analysis outcomes.
 
     Output:
-    - sequence_count_track (Dataframe): TSV file containing the number of sequences in the original
+    - sequence_count_track (Dataframe): TSV file containing the number of sequenc21h45 	22h03es in the original
     database and the number of sequences considered after each analysis step.
     """
     try:
@@ -309,78 +345,74 @@ def sequence_count_tracking(original_database, analysis_folder):
         print(f"mozaiko ERROR: Unexpected error occurred: {e}")
         return None
 
-"""
-Methods needed for MultiBarcodeTools. Insertion into tool still undecided.
-"""
-# def create_MultiBarcodeTools_input(insert_folder, output_file):
-#     """
-#     Process all FASTA files in a given folder and write extracted information to a TSV file.
 
-#     Parameters:
-#     - folder_path:Path to the folder containing FASTA files
-#     - output_file: Path and ame of the output TSV file
-#     """
-#     with open(output_file, "w") as tsv_file:
-#         tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")
+def create_MultiBarcodeTools_input(insert_folder, output_file):
+    """
+    Process all FASTA files in a given folder and write extracted information to a TSV file.
 
-#         fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
-#             os.path.join(insert_folder, "*.fa")
-#         )
+    Parameters:
+    - folder_path:Path to the folder containing FASTA files
+    - output_file: Path and ame of the output TSV file
+    """
+    with open(output_file, "w") as tsv_file:
+        tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")
 
-#         for fasta_path in fasta_files:
-#             primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta"))
 
-#             with open(fasta_path, "r") as fasta:
+        for fasta_path in fasta_files:
+            primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
 
-#                 current_header = None
-#                 current_sequence = []
+            with open(fasta_path, "r") as fasta:
 
-#                 for line in fasta:
-#                     line = line.strip()
+                current_header = None
+                current_sequence = []
 
-#                     if line.startswith(">"):
-#                         if current_header and current_sequence:
-#                             process_sequence(
-#                                 current_header, current_sequence, primer_name, tsv_file
-#                             )
+                for line in fasta:
+                    line = line.strip()
 
-#                         current_header = line[1:]
-#                         current_sequence = []
+                    if line.startswith(">"):
+                        if current_header and current_sequence:
+                            process_sequence(
+                                current_header, current_sequence, primer_name, tsv_file
+                            )
 
-#                     elif line:
-#                         current_sequence.append(line)
+                        current_header = line[1:]
+                        current_sequence = []
 
-#                 if current_header and current_sequence:
-#                     process_sequence(
-#                         current_header, current_sequence, primer_name, tsv_file
-#                     )
+                    elif line:
+                        current_sequence.append(line)
 
-#     print(f"Conversion complete. Output written to {output_file}")
+                if current_header and current_sequence:
+                    process_sequence(
+                        current_header, current_sequence, primer_name, tsv_file
+                    )
+
+    print(f"Conversion complete. Output written to {output_file}")
 
 
-# def process_sequence(header, sequence_lines, primer_name, tsv_file):
-#     """
-#     Process a single FASTA sequence and write to TSV.
+def process_sequence(header, sequence_lines, primer_name, tsv_file):
+    """
+    Process a single FASTA sequence and write to TSV.
 
-#     Parameters:
-#     - header : FASTA header line
-#     - sequence_lines : ist of sequence lines
-#     - barcode_name : Name of the barcode/primer
-#     - tsv_out : Output TSV file handle
-#     """
-#     full_sequence = "".join(sequence_lines)
+    Parameters:
+    - header : FASTA header line
+    - sequence_lines : ist of sequence lines
+    - barcode_name : Name of the barcode/primer
+    - tsv_out : Output TSV file handle
+    """
+    full_sequence = "".join(sequence_lines)
 
-#     if "|" in header:
-#         parts = header.split("|")
+    if "|" in header:
+        parts = header.split("|")
 
-#         if len(parts) >= 2:
-#             seq_ID = parts[0].strip()
-#             species_name = parts[1].strip()
+        if len(parts) >= 2:
+            seq_ID = parts[0].strip()
+            species_name = parts[1].strip()
 
-#             tsv_file.write(
-#                 f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
-#             )
-#         else:
-#             print(f"Warning: Incorrect header format: {header}")
-#     else:
-#         print(f"Warning: Unexpected header format: {header}")
+            tsv_file.write(
+                f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
+            )
+        else:
+            print(f"Warning: Incorrect header format: {header}")
+    else:
+        print(f"Warning: Unexpected header format: {header}")

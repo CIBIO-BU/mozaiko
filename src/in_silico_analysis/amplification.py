@@ -31,19 +31,19 @@ class InSilicoAmplification:
 
     def __init__(
         self,
-        data: Path,
+        data: Optional[Path] = None,
         primer_table: Optional[DataFrame] = None,
         run_name: Optional[str] = None,
         number_of_mismatches: int = 3,
     ):
-        self.data = data
+        self.data: Optional[Path] = data
         self.base_output_dir = Path("../data/output_data")
         self.primer_table = primer_table
         self.primer_table_columns = [
             "target_group",
             "barcode_region",
             "assay_name",
-            "fw_seq",
+            "fwd_seq",
             "rev_seq",
         ]
         self.crabs_script_generator = CrabsScriptGenerator()
@@ -121,7 +121,7 @@ class InSilicoAmplification:
             print(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
-    def _validate_primer_table(self, primer_table):
+    def validate_primer_table(self, primer_table):
         """
         Function to validate the primer table.
         """
@@ -162,7 +162,9 @@ class InSilicoAmplification:
             sys.exit(1)
 
         if not primer_table["assay_name"].is_unique:
-            print("mozaiko INFO: The 'assay_name' column contains duplicate values. Each assay name must be unique.")
+            print(
+                "mozaiko INFO: The 'assay_name' column contains duplicate values. Each assay name must be unique."
+            )
             sys.exit(1)
 
     def read_primer_tables(
@@ -181,13 +183,13 @@ class InSilicoAmplification:
         if primer_table is None:
             primer_table = input("Please enter the path to the primer table: ")
 
-        self._validate_primer_table(primer_table)
+        self.validate_primer_table(primer_table)
 
         primer_table = pd.read_csv(primer_table, sep="\t", header=0)
 
         for index, row in primer_table.iterrows():
 
-            foward_primer = row["fw_seq"]
+            foward_primer = row["fwd_seq"]
             reverse_primer = row["rev_seq"]
 
             correct_reverse_primer = str(Seq(reverse_primer).reverse_complement())
@@ -356,7 +358,10 @@ class InSilicoAmplification:
         print("mozaiko INFO: All set. Running in-silico amplification...")
 
         for index, row in self.primer_table.iterrows():
-            self.process_commands(row, self.data)
+            if self.data:
+                self.process_commands(row, self.data)
+            else:
+                raise ValueError('mozaiko ERROR: No input data was found.')
             print(
                 f"   --------   {index + 1}/{len(self.primer_table)} processed   --------   "
             )
@@ -412,7 +417,7 @@ class InSilicoAmplification:
         if "min_read_length" in row.keys():
             min_length = int(row["min_read_length"])
         overlap = int(row["overlap"])
-        forward_primer = row["fw_seq"]
+        forward_primer = row["fwd_seq"]
         reverse_primer = row["correct_reverse_primer"]
 
         # "amplicon" comand makes use of --action=retain to trim the amplicon but not remove the

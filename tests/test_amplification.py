@@ -66,13 +66,13 @@ class TestInSilicoAmplification(unittest.TestCase):
         not exist.
         """
         with self.assertRaises(SystemExit):
-            self.amplification._validate_primer_table("nonexistent_file.tsv")
+            self.amplification.validate_primer_table("nonexistent_file.tsv")
 
     def test_validate_primer_table_valid(self):
         """
         Test that the _validate_primer_table method validates the primer table correctly.
         """
-        self.amplification._validate_primer_table(self.primer_list)
+        self.amplification.validate_primer_table(self.primer_list)
 
     def test_validate_primer_table_wrong_extension(self):
         """
@@ -80,7 +80,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         the wrong extension.
         """
         with self.assertRaises(SystemExit):
-            self.amplification._validate_primer_table(self.input_data)
+            self.amplification.validate_primer_table(self.input_data)
 
     def test_read_primer_tables_valid(self):
         """
@@ -231,7 +231,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 {
                     "target_group": "Chondrichthyes",
                     "assay_name": "Chon01",
-                    "fw_seq": "ACACCGCCCGTCACTCTC",
+                    "fwd_seq": "ACACCGCCCGTCACTCTC",
                     "rev_seq": "CATGTTACGACTTGCCTCCTC",
                 },
             ),
@@ -240,7 +240,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 {
                     "target_group": "Vertebrate",
                     "assay_name": "12S-V5-c",
-                    "fw_seq": "AGGGATAACAGCGCAATC",
+                    "fwd_seq": "AGGGATAACAGCGCAATC",
                     "rev_seq": "TCGTTGAACAAACGAACC",
                 },
             ),
@@ -255,7 +255,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             {
                 "target_group": "Chondrichthyes",
                 "assay_name": "Chon01",
-                "fw_seq": "ACACCGCCCGTCACTCTC",
+                "fwd_seq": "ACACCGCCCGTCACTCTC",
                 "rev_seq": "CATGTTACGACTTGCCTCCTC",
             },
             self.amplification.data,
@@ -264,7 +264,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             {
                 "target_group": "Vertebrate",
                 "assay_name": "12S-V5-c",
-                "fw_seq": "AGGGATAACAGCGCAATC",
+                "fwd_seq": "AGGGATAACAGCGCAATC",
                 "rev_seq": "TCGTTGAACAAACGAACC",
             },
             self.amplification.data,
@@ -279,7 +279,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "target_group": "Chondrichthyes",
             "barcode_region": "12S",
             "assay_name": "Chon01",
-            "fw_seq": "ACACCGCCCGTCACTCTC",
+            "fwd_seq": "ACACCGCCCGTCACTCTC",
             "correct_reverse_primer": "CATGTTACGACTTGCCTCCTC",
             "adapter": "ACACCGCCCGTCACTCTC...GAGGAGGCAAGTCGTAACATG",
             "min_read_length": 60,
@@ -491,7 +491,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         self.assertIsNotNone(self.amplification.primer_table)
 
         for index, row in self.amplification.primer_table.iterrows():
-            foward_primer = row["fw_seq"]
+            foward_primer = row["fwd_seq"]
             reverse_primer = row["rev_seq"]
             correct_reverse_primer = str(Seq(reverse_primer).reverse_complement())
             forward_primer_length = len(foward_primer)
@@ -506,7 +506,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "target_group",
             "barcode_region",
             "assay_name",
-            "fw_seq",
+            "fwd_seq",
             "rev_seq",
             "min_read_length",
             "max_read_length",
@@ -531,7 +531,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "target_group",
             "barcode_region",
             "assay_name",
-            "fw_seq",
+            "fwd_seq",
             "rev_seq",
         ]
         with self.assertRaises(ValueError):

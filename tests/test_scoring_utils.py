@@ -108,11 +108,11 @@ class TestScoringUtils(unittest.TestCase):
 
         self.assertEqual(
             list(result.columns),
-            ["record", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"],
+            ["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"],
         )
 
-        self.assertEqual(result["record"].iloc[0], "> abc")
-        self.assertEqual(result["record"].iloc[1], "> def")
+        self.assertEqual(result["header"].iloc[0], "> abc")
+        self.assertEqual(result["header"].iloc[1], "> def")
         self.assertEqual(result["fwd_seq"].iloc[0], "ACGTAGCA")
         self.assertEqual(result["rev_seq"].iloc[0], "ACCATCA")
         self.assertEqual(result["fwd_seq"].iloc[1], "AGTGA")
