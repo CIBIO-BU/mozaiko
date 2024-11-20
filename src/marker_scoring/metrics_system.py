@@ -1,6 +1,8 @@
+import json
 import os
 import sys
 from collections import defaultdict
+from typing import Dict
 
 import pandas as pd
 
@@ -245,10 +247,34 @@ class Binding:
         insert_folder,
         primer_table,
         only_at_three_end: bool = False,
+        save_results: bool = False,
     ):
         """
         This method retrieves the number of mismatches between the foward and reverse primer-PBS
         sequence pair.
+
+        It first retrieves the primer and PBS table. The last by iterating over the generated files
+        in the analysis folder. It then processes both tables to retrieve the primer and primer-binding
+        site sequences. Lastly it calls the method to calculate the number of mismatches and creates
+        a dictionary with the results.
+
+        Parameters:
+        - amplicon_folder: Output folder from the in-silico amplification process. Its files should
+        contain the amplicon sequences.
+        - insert_folder: Output folder from the in-silico amplification process. Its files should
+        contain the insert sequences.
+        - primer_table: Path to the table containing the primer pair sequences and details.
+        - only_at_three_end: Bool
+            When set to True it calculates the number of mismatches only at the three end section
+            of the sequences (last five nucleotides). If set to False, it calculates the number
+            of mismatches at the overall length.
+        - save_results: bool
+            When set to True, the dictionary containing the results will be saved as a JSON file.
+
+        Output:
+        - max_mismatches_per_taxon: Dict
+            A nested dictionary containing the primer pairs as keys and a dictionary as values,
+            containing the sum of mismatches between the forward and reverse primer-PBS sequences.
         """
         self.get_primer_table(primer_table)
         matching_files = self.parse_files_with_same_extension_in_folders(
@@ -258,7 +284,7 @@ class Binding:
         if not matching_files:
             return None
 
-        results = {}
+        primer_pbs_mismatches = {}
 
         for primer_ind, primer_row in self.primer_table.iterrows():
             barcode_region = primer_row["barcode_region"]
@@ -266,12 +292,6 @@ class Binding:
             pbs_filename = barcode_region + "_" + assay_name
             primer_seq_fwd = primer_row["fwd_seq"]
             primer_seq_rev = primer_row["rev_seq"]
-
-            rev_comp_primer_seq_rev = str(Seq(primer_seq_rev).reverse_complement())
-
-            if only_at_three_end == True:
-                primer_seq_fwd = primer_seq_fwd[-5:]
-                rev_comp_primer_seq_rev = rev_comp_primer_seq_rev[-5:]
 
             primer_results = []
 
@@ -285,43 +305,167 @@ class Binding:
                         seq_header = pbs_row["header"]
                         seq_header = seq_header.replace(">", "")
                         seq_id = seq_header.split("|")[0]
+                        seq_id = seq_id.replace(" ", "")
                         taxon = seq_header.split("|")[1]
 
                         pbs_fwd_seq = pbs_row["fwd_seq"]
                         pbs_rev_seq = pbs_row["rev_seq"]
 
+                        rev_comp_pbs_rev_seq = str(
+                            Seq(pbs_rev_seq).reverse_complement()
+                        )
+
                         if only_at_three_end == True:
+                            primer_seq_fwd = primer_seq_fwd[-5:]
+                            primer_seq_rev = primer_seq_rev[-5:]
                             pbs_fwd_seq = pbs_fwd_seq[-5:]
-                            pbs_rev_seq = pbs_rev_seq[-5:]
+                            rev_comp_pbs_rev_seq = rev_comp_pbs_rev_seq[-5:]
 
                         fwd_primer_pbs_mismatches = calculate_iupac_mismatches(
                             primer_seq_fwd, pbs_fwd_seq
                         )
                         rev_primer_pbs_mismatches = calculate_iupac_mismatches(
-                            rev_comp_primer_seq_rev, pbs_rev_seq
+                            primer_seq_rev, rev_comp_pbs_rev_seq
+                        )
+
+                        mismatch_sum = (
+                            fwd_primer_pbs_mismatches + rev_primer_pbs_mismatches
                         )
 
                         seq_result = {
                             "seq_id": seq_id,
                             "taxon": taxon,
-                            "primer_pair": pbs_filename,
-                            "fwd_primer_pbs_mismatches": fwd_primer_pbs_mismatches,
-                            "rev_primer_pbs_mismatches": rev_primer_pbs_mismatches,
+                            "primer_seq_fwd": primer_seq_fwd,
+                            "primer_seq_rev": primer_seq_rev,
+                            "pbs_fwd_seq": pbs_fwd_seq,
+                            "rev_comp_pbs_rev_seq": rev_comp_pbs_rev_seq,
+                            "mismatch_sum": mismatch_sum,
                         }
                         primer_results.append(seq_result)
 
             if primer_results:
-                results[pbs_filename] = primer_results
+                primer_pbs_mismatches[pbs_filename] = primer_results
 
-        return results
+        if save_results == True:
+            with open("primer_pbs_mismatches.json", "w") as fp:
+                json.dump(primer_pbs_mismatches, fp)
 
-    def get_max_mismatches_per_taxon(self, mismatches_dictionary):
-        grouped_taxons = defaultdict(list)
+        return primer_pbs_mismatches
 
-        for key, value in sorted(mismatches_dictionary.items()):
-            grouped_taxons[value].append(key)
+    def get_max_mismatches_per_taxon(
+        self, mismatches_dictionary: dict, save_results: bool = False
+    ):
+        """
+        This method get the maximum number of mismatches per taxon for each primer pair.
 
-        return grouped_taxons
+        Parameters:
+        - mismatches_dicitonary: Dict
+            A dictionary containing the number of mismatches for every sequence for each primer pair.
+        - save_results: bool
+            When set to True, the dictionary containing the results will be saved as a JSON file.
+
+        Ouput:
+         - max_mismatches_per_taxon: Dict
+            A nested dictionary containing the primer pairs as keys and a dictionary containing the
+            max number of mismatches attained for each taxon.
+        """
+        grouped_taxons: Dict = {}
+
+        for primer_pair, entries in mismatches_dictionary.items():
+            grouped_taxons[primer_pair] = {}
+            for entry in entries:
+                taxon = entry["taxon"].strip()
+
+                if taxon not in grouped_taxons[primer_pair]:
+                    grouped_taxons[primer_pair][taxon] = []
+
+                grouped_taxons[primer_pair][taxon].append(entry["mismatch_sum"])
+
+        max_mismatches_per_taxon = {}
+
+        for primer_pair, taxon_data in grouped_taxons.items():
+            max_mismatches_per_taxon[primer_pair] = {
+                taxon: max(mismatches) for taxon, mismatches in taxon_data.items()
+            }
+
+        if save_results == True:
+            with open("max_mismatches_per_taxon.json", "w") as fp:
+                json.dump(max_mismatches_per_taxon, fp)
+
+        return max_mismatches_per_taxon
+
+    def get_max_mismatches_count_across_taxon(
+        self, max_mismatches_per_taxon_dict: dict
+    ):
+        """
+        This method retrieves the sum of the maximum mismatches across taxon.
+
+        Parameters:
+        - max_mismatches_per_taxon_dict: Dict
+            A nested dictionary containing the primer pairs as keys and a dictionary containing the
+            max number of mismatches attained for each taxon.
+
+        Output:
+        - max_mismatches_count_per_primer: Dict
+            A dictionary containing the primer pairs as keys and the total sum of the maximum number
+            of mismatches from all taxons identified by the primer.
+        """
+        max_mismatches_count_per_primer = {}
+
+        for primer_pair, max_taxon_mismatches in max_mismatches_per_taxon_dict.items():
+            max_mismatches_count_per_primer[primer_pair] = sum(
+                max_taxon_mismatches.values()
+            )
+
+        return max_mismatches_count_per_primer
+
+    def get_priming_ration(
+        self, mismatches_dictionary_all_len: dict, mismatches_dictionary_three_end: dict
+    ):
+        """
+        This method computes the priming ration between the maximum number of mismatches per taxon
+        and the maximum number of mismatches at the 3'end per taxon.
+
+        Parameters:
+        - mismatches_dictionary_all_len: Dict
+            A nested dictionary containing the primer pairs as keys and a dictionary containing the
+            max number of mismatches attained for each taxon, in across the total sequence length.
+        - mismatches_dictionary_three_end: Dict
+            A nested dictionary containing the primer pairs as keys and a dictionary containing the
+            max number of mismatches attained for each taxon, in across the 3'end length.
+
+        Output:
+        - priming_ratio_dict: Dict
+            A dictionary containing the sum of the ratios between the maximum number of mismatches
+            per taxon and the maximum number of mismatches at the 3'end per taxon.
+        """
+        priming_ratio_dict = {}
+
+        for primer_pair in mismatches_dictionary_three_end:
+            if primer_pair in mismatches_dictionary_all_len:
+                priming_ratio_dict[primer_pair] = 0
+
+                three_end_taxa = set(
+                    mismatches_dictionary_three_end[primer_pair].keys()
+                )
+                all_len_taxa = set(mismatches_dictionary_all_len[primer_pair].keys())
+                common_taxa = three_end_taxa.intersection(all_len_taxa)
+
+                for taxon in common_taxa:
+                    three_end_value = mismatches_dictionary_three_end[primer_pair][
+                        taxon
+                    ]
+                    all_len_value = mismatches_dictionary_all_len[primer_pair][taxon]
+
+                    if all_len_value != 0:
+                        ratio = three_end_value / all_len_value
+                        priming_ratio_dict[primer_pair] += ratio
+
+        for key, value in priming_ratio_dict.items():
+            rounded_value = round(value, 2)
+            priming_ratio_dict[key] = rounded_value
+
+        return priming_ratio_dict
 
 
 class MetricsSystemExecutor:
@@ -357,3 +501,15 @@ class MetricsSystemExecutor:
                 ref_bd_scores[primer_name] = bt_1, rbt
 
         return ref_bd_scores
+
+
+# if __name__ == '__main__':
+#     amp_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/amplicon/filtered"
+#     insert_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/insert/filtered"
+#     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-primers.tsv"
+
+
+#     cls_instance = Binding()
+#     mm_dict = cls_instance.get_number_of_primer_pbs_mismatches(amp_folder, insert_folder, primer_table)
+#     mm_max = cls_instance.get_max_mismatches_per_taxon(mm_dict)
+#     mm_max
