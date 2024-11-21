@@ -97,7 +97,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         )
         self.assertEqual(
             self.amplification.primer_table.loc[0]["adapter"],
-            "ACACCGCCCGTCACTCTC...GAGGAGGCAAGTCGTAACATG",
+            "ACACCGCCCGTCACTCTC;min_overlap=18...GAGGAGGCAAGTCGTAACATG;min_overlap=21",
         )
 
     def test_validate_primer_table_wrong_columns(self):
@@ -315,8 +315,6 @@ class TestInSilicoAmplification(unittest.TestCase):
             "--no-indels",
             "-e",
             "3",
-            "--overlap",
-            "20",
             "--revcomp",
             "--quiet",
             "--minimum-length",
@@ -332,7 +330,6 @@ class TestInSilicoAmplification(unittest.TestCase):
             "amplicon",
             "ADAPTER",
             self.input_data,
-            20,
             30,
             100,
             "12S",
@@ -350,7 +347,6 @@ class TestInSilicoAmplification(unittest.TestCase):
             "insert",
             "ADAPTER",
             self.input_data,
-            20,
             30,
             100,
             "12S",
@@ -368,7 +364,6 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "invalid_type",
                 "ADAPTER",
                 self.input_data,
-                20,
                 30,
                 100,
                 "12S",
@@ -383,7 +378,6 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "amplicon",
                 "ADAPTER",
                 self.input_data,
-                20,
                 30,
                 100,
                 "12S",
@@ -398,7 +392,6 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "amplicon",
                 "ADAPTER",
                 self.input_data,
-                20,
                 30,
                 100,
                 "12S",
@@ -413,7 +406,6 @@ class TestInSilicoAmplification(unittest.TestCase):
             "amplicon",
             "ADAPTER",
             self.input_data,
-            20,
             30,
             100,
             "12S",

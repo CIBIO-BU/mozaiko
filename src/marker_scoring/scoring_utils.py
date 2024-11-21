@@ -45,14 +45,7 @@ def calculate_iupac_mismatches(sequence1, sequence2):
     """
     mismatches = 0
 
-    sequence1 = sequence1.strip().upper()
-    sequence2 = sequence2.strip().upper()
-
-    min_len = min(len(sequence1), len(sequence2))
-    seq1_end = sequence1[-min_len:]
-    seq2_end = sequence2[-min_len:]
-
-    for base1, base2 in zip(seq1_end, seq2_end):
+    for base1, base2 in zip(sequence1.upper(), sequence2.upper()):
         if base1 != base2:
             # check if the bases are compatible according to IUPAC
             # by taking the union of the sets of compatible bases

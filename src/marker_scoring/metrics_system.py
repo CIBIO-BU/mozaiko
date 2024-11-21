@@ -293,6 +293,12 @@ class Binding:
             primer_seq_fwd = primer_row["fwd_seq"]
             primer_seq_rev = primer_row["rev_seq"]
 
+            rev_comp_primer_seq_rev = str(Seq(primer_seq_rev).reverse_complement())
+
+            if only_at_three_end == True:
+                primer_seq_fwd = primer_seq_fwd[-5:]
+                rev_comp_primer_seq_rev = rev_comp_primer_seq_rev[-5:]
+
             primer_results = []
 
             for amplicon_file, insert_file in matching_files:
@@ -311,21 +317,15 @@ class Binding:
                         pbs_fwd_seq = pbs_row["fwd_seq"]
                         pbs_rev_seq = pbs_row["rev_seq"]
 
-                        rev_comp_pbs_rev_seq = str(
-                            Seq(pbs_rev_seq).reverse_complement()
-                        )
-
                         if only_at_three_end == True:
-                            primer_seq_fwd = primer_seq_fwd[-5:]
-                            primer_seq_rev = primer_seq_rev[-5:]
                             pbs_fwd_seq = pbs_fwd_seq[-5:]
-                            rev_comp_pbs_rev_seq = rev_comp_pbs_rev_seq[-5:]
+                            pbs_rev_seq = pbs_rev_seq[-5:]
 
                         fwd_primer_pbs_mismatches = calculate_iupac_mismatches(
                             primer_seq_fwd, pbs_fwd_seq
                         )
                         rev_primer_pbs_mismatches = calculate_iupac_mismatches(
-                            primer_seq_rev, rev_comp_pbs_rev_seq
+                            rev_comp_primer_seq_rev, pbs_rev_seq
                         )
 
                         mismatch_sum = (
@@ -336,9 +336,9 @@ class Binding:
                             "seq_id": seq_id,
                             "taxon": taxon,
                             "primer_seq_fwd": primer_seq_fwd,
-                            "primer_seq_rev": primer_seq_rev,
+                            "rev_comp_primer_seq_rev": rev_comp_primer_seq_rev,
                             "pbs_fwd_seq": pbs_fwd_seq,
-                            "rev_comp_pbs_rev_seq": rev_comp_pbs_rev_seq,
+                            "pbs_rev_seq": pbs_rev_seq,
                             "mismatch_sum": mismatch_sum,
                         }
                         primer_results.append(seq_result)
@@ -419,7 +419,7 @@ class Binding:
 
         return max_mismatches_count_per_primer
 
-    def get_priming_ration(
+    def get_priming_ratio(
         self, mismatches_dictionary_all_len: dict, mismatches_dictionary_three_end: dict
     ):
         """
@@ -504,6 +504,7 @@ class MetricsSystemExecutor:
 
 
 # if __name__ == '__main__':
+    # Debug
 #     amp_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/amplicon/filtered"
 #     insert_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/insert/filtered"
 #     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-primers.tsv"

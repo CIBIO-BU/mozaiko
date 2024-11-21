@@ -197,8 +197,10 @@ class InSilicoAmplification:
             forward_primer_length = len(foward_primer)
             correct_reverse_primer_length = len(correct_reverse_primer)
 
-            overlap = min(forward_primer_length, correct_reverse_primer_length)
-            adapter = foward_primer + "..." + correct_reverse_primer
+            min_fwd_overlap = str(forward_primer_length)
+            min_rev_overlap = str(correct_reverse_primer_length)
+
+            adapter = foward_primer + ";" + "min_overlap=" + min_fwd_overlap + "..." + correct_reverse_primer + ";" + "min_overlap=" + min_rev_overlap
 
             if max_len_according_to_ilumina is True:
                 max_len_formula = (
@@ -215,7 +217,8 @@ class InSilicoAmplification:
                         "mozaiko ERROR: When max_len_according_to_ilumina is False, the primer table must contain 'min_read_length' and 'max_read_length' columns."
                     )
 
-            primer_table.at[index, "overlap"] = overlap
+            # primer_table.at[index, "min_fwd_overlap"] = min_fwd_overlap
+            # primer_table.at[index, "min_rev_overlap"] = min_rev_overlap
             primer_table.at[index, "adapter"] = adapter
             primer_table.at[index, "correct_reverse_primer"] = correct_reverse_primer
 
@@ -416,7 +419,8 @@ class InSilicoAmplification:
         max_length = int(row["max_read_length"])
         if "min_read_length" in row.keys():
             min_length = int(row["min_read_length"])
-        overlap = int(row["overlap"])
+        # min_fwd_overlap = int(row["min_fwd_overlap"])
+        # min_rev_overlap = int(row["min_rec_overlap"])
         forward_primer = row["fwd_seq"]
         reverse_primer = row["correct_reverse_primer"]
 
@@ -426,7 +430,6 @@ class InSilicoAmplification:
             "amplicon",
             adapter,
             input_fasta,
-            overlap,
             min_length,
             max_length,
             barcode_region,
@@ -439,7 +442,6 @@ class InSilicoAmplification:
             "insert",
             adapter,
             input_fasta,
-            overlap,
             min_length,
             max_length,
             barcode_region,
@@ -488,7 +490,6 @@ class InSilicoAmplification:
         command_type,
         adapter,
         input_file,
-        overlap,
         min_length,
         max_length,
         barcode_region,
@@ -504,6 +505,7 @@ class InSilicoAmplification:
         if self.number_of_mismatches != number_of_mismatches:
             number_of_mismatches = self.number_of_mismatches
 
+        output_dir = Path(output_dir)
         output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
 
         # debug_dir = None
@@ -521,8 +523,6 @@ class InSilicoAmplification:
             "--no-indels",
             "-e",
             str(number_of_mismatches),
-            "--overlap",
-            str(overlap),
             "--revcomp",
             "--quiet",
             "--minimum-length",
