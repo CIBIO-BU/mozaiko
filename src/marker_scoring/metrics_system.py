@@ -2,7 +2,8 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, List
+from Bio.SeqUtils import MeltingTemp
 
 import pandas as pd
 
@@ -10,15 +11,12 @@ from src.in_silico_analysis.amplification import InSilicoAmplification
 from src.marker_scoring.scoring_utils import *
 from src.reference_database.sequence_import import CustomFastaImport
 
-
-class ReferenceDatabaseQuality:
-    def __init__(self, all_inserts_file=None, otl=None):
-        self.custom_fasta_import = CustomFastaImport()
-        self.all_inserts_file = all_inserts_file
+class OtlHandler:
+    def __init__(self, otl = None, fasta = None):
         self.otl = otl
-        self.total_taxa = None
+        self.fasta = fasta
 
-    def _validate_otl(self, otl=None):
+    def validate_otl(self, otl=None):
         """
         This method validates the inputed Operational Taxonomic List (OTL).
         """
@@ -50,6 +48,130 @@ class ReferenceDatabaseQuality:
 
         self.otl = otl_table
 
+    def import_otl(self):
+        """
+        This method retrieves a set of unique taxa from an OTL.
+        """
+        if self.otl is None:
+            print(
+                "mozaiko INFO: To continue the evaluation, a Operational Taxonomic List (OTL) is \
+                    required. An OTL is a list contaning information on the taxonomic numenclature \
+                        of all identifiable taxa in routine biomonitoring initiatives."
+            )
+            self.otl = input("Please enter the path to the OTL: ")
+
+        self.validate_otl()
+
+        otl = self.otl
+        unique_taxa = set()
+
+        for entry in otl["taxa"]:
+            unique_taxa.add(entry)
+
+        total_taxa_count = len(unique_taxa)
+
+        self.total_taxa = total_taxa_count
+
+        return total_taxa_count, unique_taxa
+
+    def filter_fasta_for_species_not_in_otl(self, fasta_file, otl_taxa_set: set, overwrite: bool = True):
+        """
+        This method filter a FASTA based on the set of unique taxa retrieved from the OTL. Entries
+        whose taxon is not present in the OTL are removed.
+
+        Parameters:
+        input_file: Path to input FASTA file
+        taxa_set: set
+            Set of taxa names to keep
+        overwrite: bool, default=True
+            If True, overwrites the input file.
+            If False, creates new file with '_filtered' suffix
+
+        Returns:
+        tuple
+            (number of sequences kept, path to output file)
+        """
+        base, ext = os.path.splitext(fasta_file)
+        output_file = fasta_file if overwrite else f"{base}_filtered{ext}"
+
+        total_seq_count: int = 0
+        kept_seq_count: int = 0
+        current_header: str = ""
+        keep_sequence: bool = False
+        sequences_to_write: List[str] = []
+        current_sequence: List[str] = []
+
+        with open(fasta_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('>'):
+                    if current_header and keep_sequence:
+                        sequences_to_write.extend([current_header, ''.join(current_sequence)])
+
+                    current_header = line
+                    current_sequence = []
+                    total_seq_count += 1
+
+                    try:
+                        taxa = line.split('|')[1].strip().split()[1]
+                        keep_sequence = taxa in otl_taxa_set
+                        if keep_sequence:
+                            kept_seq_count += 1
+                    except IndexError:
+                        print(f"mozaiko WARNING: Unexpect header format - {line}")
+                        keep_sequence = False
+                elif line and keep_sequence:
+                    current_sequence.append(line)
+
+        if current_header and keep_sequence:
+            sequences_to_write.extend([current_header, ''.join(current_sequence)])
+
+        if overwrite:
+            temp_file = output_file + '.temp'
+            with open(temp_file, 'w') as f:
+                for line in sequences_to_write:
+                    f.write(f"{line}\n")
+            os.replace(temp_file, output_file)
+        else:
+            with open(output_file, 'w') as f:
+                for line in sequences_to_write:
+                    f.write(f"{line}\n")
+
+        return total_seq_count, kept_seq_count, output_file
+
+    def add_sequences_not_in_silico_amplified_but_in_otl_with_value_as_zero(self, dict, otl_taxa_set):
+        """
+        This method takes a dictionary and a set of unique taxa set to add any missing target taxon
+        with a value of zero for downstream analysis.
+        """
+
+class ReferenceDatabaseQuality:
+    def __init__(self, all_inserts_path=None, otl=None):
+        self.custom_fasta_import = CustomFastaImport()
+        self.all_inserts_path = all_inserts_path
+        self.otl = otl
+        self.otl_handler = OtlHandler(self.otl)
+        self.otl_handler.import_otl()
+        self.total_otl_taxa_count = self.otl_handler.total_taxa
+
+    def parse_fasta_files(self):
+        """
+        Parse all FASTA files in the given folder.
+        Returns a dictionary with primer pairs as keys and file paths as values.
+        """
+        if self.all_inserts_path is None:
+            print("mozaiko INFO: Please provide a folder containing FASTA files.")
+            all_inserts_path = input("Please enter the path to the folder: ")
+            self.all_inserts_path = str(all_inserts_path)
+
+        fasta_files = {}
+        for f in os.listdir(self.all_inserts_path):
+            if f.endswith(('.fasta')):
+                primer_pair = os.path.splitext(f)[0]
+                fasta_files[primer_pair] = os.path.join(self.all_inserts_path, f)
+
+        return fasta_files
+
     def calculate_number_of_barcodes_per_taxon(self):
         """
         This method calculates the total number of barcodes that exists per taxon.
@@ -62,33 +184,27 @@ class ReferenceDatabaseQuality:
         - barcodes_per_species: Dictionary containing information on how many barcodes (values)
         exists per species (keys).
         """
-
-        if self.all_inserts_file is None:
-            print(
-                "mozaiko INFO: To continue the evaluation, please provide a FASTA file containing \
-                    all insert regions present in the original database, whether successfully \
-                        amplified or not."
-            )
-            all_inserts_file = input("Please enter the path to a FASTA file: ")
-            self.all_inserts_file = str(all_inserts_file)
-
-        fasta_data = self.custom_fasta_import.read_fasta(
-            self.all_inserts_file, check_taxid=False
-        )
-
+        fasta_files = self.parse_fasta_files()
         barcodes_per_species = {}
 
-        for taxa in fasta_data["taxa_info"].unique():
-            unique_sequences = fasta_data[fasta_data["taxa_info"] == taxa][
-                "sequence"
-            ].unique()
+        for primer_pair, file_path in fasta_files.items():
+            fasta_data = self.custom_fasta_import.read_fasta(
+                file_path, check_taxid=False
+            )
 
-            barcodes_per_species[taxa] = len(unique_sequences)
+            barcodes_per_species[primer_pair] = {}
+
+            for taxa in fasta_data["taxa_info"].unique():
+                unique_sequences = fasta_data[fasta_data["taxa_info"] == taxa][
+                    "sequence"
+                ].unique()
+
+                barcodes_per_species[primer_pair][taxa.strip()] = len(unique_sequences)
 
         return barcodes_per_species
 
     def calculate_percentage_of_taxa_w_x_barcodes(
-        self, barcode_threshold=1, total_taxa=None
+        self, barcode_threshold=1
     ):
         """
         This method calculates the percentage of taxa with more than X barcodes.
@@ -103,76 +219,54 @@ class ReferenceDatabaseQuality:
         - percentage_of_taxa: float
             Decimal percentage of taxa with more than X barcodes
         """
-
         barcodes_per_species = self.calculate_number_of_barcodes_per_taxon()
+        results = {}
 
-        threshold_valid_taxa = 0
+        for primer_pair, taxa_data in barcodes_per_species.items():
+            taxa_meeting_threshold = sum(1 for count in taxa_data.values()
+                                      if count > barcode_threshold)
 
-        for key, value in barcodes_per_species.items():
-            if value > barcode_threshold:
-                threshold_valid_taxa += 1
+            percentage = (taxa_meeting_threshold * 100) / self.total_otl_taxa_count
+            results[primer_pair] = round(percentage, 2)
 
-        if total_taxa is not None:
-            percentage_of_taxa_w_x_barcodes = (threshold_valid_taxa * 100) / total_taxa
-        else:
-            percentage_of_taxa_w_x_barcodes = (
-                threshold_valid_taxa * 100
-            ) / self.total_taxa
-        percentage_of_taxa_w_x_barcodes = round(percentage_of_taxa_w_x_barcodes, 2)
+        return results
 
-        return percentage_of_taxa_w_x_barcodes
-
-    def import_otl(self):
-        """ """
-        if self.otl is None:
-            print(
-                "mozaiko INFO: To continue the evaluation, a Operational Taxonomic List (OTL) is \
-                    required. An OTL is a list contaning information on the taxonomic numenclature \
-                        of all identifiable taxa in routine biomonitoring initiatives."
-            )
-            self.otl = input("Please enter the path to the OTL: ")
-
-        self._validate_otl()
-
-        otl = self.otl
-        unique_taxa = set()
-
-        for entry in otl["taxa"]:
-            unique_taxa.add(entry)
-
-        total_taxa = len(unique_taxa)
-
-        self.total_taxa = total_taxa
-
-    def ratio_barcoded_taxa(self):
+    def barcoded_taxa_ratio(self):
         """
         This method calculates the Ratio of Barcoded Taxa (RBT).
 
         Parameters:
-        - barcoded_taxa_one: float
+        - barcoded_taxa_five_plus: float
             Percentage of taxa with more than five barcodes.
-        - barcoded_taxa_two: float
+        - barcoded_taxa_one_plus: float
             Percentage of taxa with more than one barcode.
 
         Output:
         - rbt: float
             Barcode Coverage Score
         """
-        self.import_otl()
 
-        barcoded_taxa_one = self.calculate_percentage_of_taxa_w_x_barcodes(
+        barcoded_taxa_five_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
             barcode_threshold=5
         )
-        barcoded_taxa_two = self.calculate_percentage_of_taxa_w_x_barcodes(
+        barcoded_taxa_one_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
             barcode_threshold=1
         )
 
-        rbt = barcoded_taxa_two / barcoded_taxa_one
+        results = {}
 
-        rbt_rounded = round(rbt, 2)
+        for primer_pair in barcoded_taxa_five_plus.keys():
+            percent_5plus = barcoded_taxa_five_plus[primer_pair]
+            percent_1plus = barcoded_taxa_one_plus[primer_pair]
 
-        return barcoded_taxa_one, rbt_rounded
+            ratio_barcoded_taxa = percent_5plus / percent_1plus if percent_5plus > 0 else 0
 
+            results[primer_pair] = {
+                'barcoded_taxa_five_plus': percent_5plus,
+                'ratio_barcoded_taxa': round(ratio_barcoded_taxa, 2)
+            }
+
+        return results
 
 class Binding:
     def __init__(self, number_of_mismatches=None):
@@ -335,10 +429,6 @@ class Binding:
                         seq_result = {
                             "seq_id": seq_id,
                             "taxon": taxon,
-                            "primer_seq_fwd": primer_seq_fwd,
-                            "rev_comp_primer_seq_rev": rev_comp_primer_seq_rev,
-                            "pbs_fwd_seq": pbs_fwd_seq,
-                            "pbs_rev_seq": pbs_rev_seq,
                             "mismatch_sum": mismatch_sum,
                         }
                         primer_results.append(seq_result)
@@ -467,6 +557,31 @@ class Binding:
 
         return priming_ratio_dict
 
+    def primer_gc_content(self, primer_table, amplicon_folder, insert_folder, save_results):
+        """
+        This method calculates the percentage of GC content over the primer set lenght.
+        """
+        self.get_primer_table(primer_table)
+        matching_files = self.parse_files_with_same_extension_in_folders(
+            amplicon_folder, insert_folder
+        )
+
+        if not matching_files:
+            return None
+
+        primer_gc_content = {}
+
+        for primer_ind, primer_row in self.primer_table.iterrows():
+            primer_seq_fwd = primer_row["fwd_seq"][-5:]
+            primer_seq_rev = primer_row["rev_seq"][-5:]
+
+            fwd_primer_gc = primer_seq_fwd.apply(MeltingTemp.Tm_GC, strict=False)
+
+            if save_results == True:
+                with open("primer_pbs_mismatches.json", "w") as fp:
+                    json.dump(primer_gc_content, fp)
+
+            return primer_gc_content
 
 class MetricsSystemExecutor:
     """
@@ -501,7 +616,6 @@ class MetricsSystemExecutor:
                 ref_bd_scores[primer_name] = bt_1, rbt
 
         return ref_bd_scores
-
 
 # if __name__ == '__main__':
     # Debug
