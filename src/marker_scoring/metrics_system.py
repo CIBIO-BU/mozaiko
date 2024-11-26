@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from Bio.Seq import Seq
@@ -417,9 +417,8 @@ class Binding:
         amplicon_folder,
         insert_folder,
         primer_table,
-        gc_clamp_three_end: bool = True,
         save_results: bool = False,
-    ):
+    ) -> Optional[Dict[str, Dict[str, Any]]]:
         """
         This method retrieves the number of mismatches between the foward and reverse primer-PBS
         sequence pair.
@@ -435,9 +434,6 @@ class Binding:
         - insert_folder: Output folder from the in-silico amplification process. Its files should
         contain the insert sequences.
         - primer_table: Path to the table containing the primer pair sequences and details.
-        - gc_clamp_three_end: bool
-            When set to True, the method also searches for matching G/C bases between the primer
-            and template at the 3'end section.
         - save_results: bool
             When set to True, the dictionary containing the results will be saved as a JSON file.
 
@@ -451,10 +447,11 @@ class Binding:
             amplicon_folder, insert_folder
         )
 
-        if not matching_files:
-            return None
+        analysis_results: Dict[str, Any] = {}
 
-        analysis_results = {}
+        if not matching_files:
+            print("mozaiko ERROR: No matching files found in the provided folders.")
+            return None
 
         for primer_ind, primer_row in self.primer_table.iterrows():
             barcode_region = primer_row["barcode_region"]
@@ -480,18 +477,22 @@ class Binding:
                 },
             }
 
-            primer_analysis: Dict[str, Any] = {
-                "primer_properties": primer_properties,
-                "full_mismatches": [],
-                "three_end_mismatches": [],
-                "three_end_gc_matches": [],
-            }
+            if pbs_filename not in analysis_results:
+                analysis_results[pbs_filename] = {}
+
+            primer_properties_dict = {"primer_properties": primer_properties}
+            full_mismatches_dict: Dict[str, Any] = {"full_mismatches": []}
+            three_end_mismatches_dict: Dict[str, Any] = {"three_end_mismatches": []}
+            three_end_gc_matches_dict: Dict[str, Any] = {"three_end_gc_matches": []}
 
             # Process matching files (same primer name)
+            matching_files_found = False
+
             for amplicon_file, insert_file in matching_files:
                 amplicon_filename = os.path.splitext(os.path.basename(amplicon_file))[0]
 
                 if pbs_filename == amplicon_filename:
+                    matching_files_found = True
                     pbs_table = self.get_pbs_table(amplicon_file, insert_file)
 
                     for _, pbs_row in pbs_table.iterrows():
@@ -509,7 +510,7 @@ class Binding:
                             rev_comp_primer_seq_rev, pbs_rev_seq
                         )
 
-                        primer_analysis["full_mismatches"].append(
+                        full_mismatches_dict["full_mismatches"].append(
                             {
                                 "seq_id": seq_id,
                                 "taxon": taxon,
@@ -531,7 +532,7 @@ class Binding:
                             three_end_rev_primers, three_end_rev_seq
                         )
 
-                        primer_analysis["three_end_mismatches"].append(
+                        three_end_mismatches_dict["three_end_mismatches"].append(
                             {
                                 "seq_id": seq_id,
                                 "taxon": taxon,
@@ -540,33 +541,35 @@ class Binding:
                             }
                         )
 
-                        # GC matches at three-end (if flag is True)
-                        if gc_clamp_three_end:
-                            three_end_fwd_gc_matches = calculate_iupac_mismatches(
-                                three_end_fwd_primers,
-                                three_end_fwd_seq,
-                                search_gc_clamp=True,
-                            )[1]
-                            three_end_rev_gc_matches = calculate_iupac_mismatches(
-                                three_end_rev_primers,
-                                three_end_rev_seq,
-                                search_gc_clamp=True,
-                            )[1]
+                        # GC matches at three-end
+                        three_end_fwd_gc_matches = calculate_iupac_mismatches(
+                            three_end_fwd_primers,
+                            three_end_fwd_seq,
+                            search_gc_clamp=True,
+                        )[1]
+                        three_end_rev_gc_matches = calculate_iupac_mismatches(
+                            three_end_rev_primers,
+                            three_end_rev_seq,
+                            search_gc_clamp=True,
+                        )[1]
 
-                            primer_analysis["three_end_gc_matches"].append(
-                                {
-                                    "seq_id": seq_id,
-                                    "taxon": taxon,
-                                    "gc_matches_sum": three_end_fwd_gc_matches
-                                    + three_end_rev_gc_matches,
-                                }
-                            )
+                        three_end_gc_matches_dict["three_end_gc_matches"].append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "gc_matches_sum": three_end_fwd_gc_matches
+                                + three_end_rev_gc_matches,
+                            }
+                        )
+            if matching_files_found:
+                analysis_results[pbs_filename] = primer_properties_dict
+                analysis_results[pbs_filename][f"full_mismatches"] = full_mismatches_dict["full_mismatches"]
+                analysis_results[pbs_filename][f"three_end_mismatches"] = three_end_mismatches_dict["three_end_mismatches"]
+                analysis_results[pbs_filename][f"three_end_gc_matches"] = three_end_gc_matches_dict["three_end_gc_matches"]
 
-            analysis_results[pbs_filename] = primer_analysis
-
-            if save_results:
-                with open(f"{pbs_filename}_analysis.json", "w") as fp:
-                    json.dump(analysis_results[pbs_filename], fp)
+                if save_results:
+                    with open(f"{pbs_filename}_analysis.json", "w") as file:
+                        json.dump(analysis_results[pbs_filename], file)
 
         return analysis_results
 
