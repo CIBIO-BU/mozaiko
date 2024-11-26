@@ -138,7 +138,7 @@ class InSilicoAmplification:
             print("mozaiko INFO: The primer table must be a TSV file. Exiting...")
             sys.exit(1)
 
-        primer_table = pd.read_csv(primer_table, sep="\t", header=0)
+        primer_table = pd.read_csv(primer_table, sep="\t", header=0, dtype=str)
 
         primer_table_fields = primer_table.columns.tolist()
 

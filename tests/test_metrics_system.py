@@ -6,7 +6,7 @@ import sys
 import unittest
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call, mock_open, patch
 
 from pandas._testing import assert_frame_equal
 
@@ -81,7 +81,9 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         self.inserts_file = str(self.test_directory / "test-folder-metrics")
         self.otl = str(self.test_directory / "test_otl.tsv")
         self.ref_bd_cls = ReferenceDatabaseQuality(self.inserts_file, self.otl)
-        self.handler = OtlHandler()
+        self.handler = OtlHandler(self.otl)
+        self.handler.import_otl()
+        self.total_otl_taxa_count = self.handler.total_taxa
 
     @patch("builtins.input", return_value="data/test_data/test-folder-metrics")
     @patch("sys.stdout", new_callable=StringIO)
@@ -124,7 +126,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
     def test_calculate_percentage_of_taxa_w_1_barcode(self):
         percentage = self.ref_bd_cls.calculate_percentage_of_taxa_w_x_barcodes(
-            barcode_threshold=1
+            self.total_otl_taxa_count, barcode_threshold=1
         )
 
         expected_percentage = {"test_amplicon_reffb": 50.0}
@@ -133,7 +135,8 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
     def test_calculate_percentage_of_taxa_w_2_barcode(self):
         percentage2 = self.ref_bd_cls.calculate_percentage_of_taxa_w_x_barcodes(
-            barcode_threshold=2
+            self.total_otl_taxa_count,
+            barcode_threshold=2,
         )
 
         expected_percentage2 = {"test_amplicon_reffb": 16.67}
@@ -141,7 +144,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         self.assertEqual(percentage2, expected_percentage2)
 
     def test_ratio_barcoded_taxa(self):
-        rbt_rounded = self.ref_bd_cls.barcoded_taxa_ratio()
+        rbt_rounded = self.ref_bd_cls.barcoded_taxa_ratio(self.total_otl_taxa_count)
         print(rbt_rounded)
 
         expected_output = {
@@ -234,38 +237,134 @@ class TestBinding(unittest.TestCase):
 
             self.assertTrue("primer_name" in result.columns)
 
-    def test_get_number_of_primer_pbs_mismatches(self):
-        with patch.object(self.binding, "get_primer_table"), patch.object(
+    @patch("src.marker_scoring.metrics_system.gc_fraction")
+    @patch("src.marker_scoring.metrics_system.MeltingTemp.Tm_GC")
+    @patch("src.marker_scoring.metrics_system.calculate_iupac_mismatches")
+    @patch("src.marker_scoring.metrics_system.os.path.splitext")
+    @patch("src.marker_scoring.metrics_system.os.path.basename")
+    def test_primer_pbs_analysis(
+        self,
+        mock_basename,
+        mock_splitext,
+        mock_calculate_mismatches,
+        mock_melting_temp,
+        mock_gc_fraction,
+    ):
+        mock_basename.return_value = "rbcL_assay1"
+        mock_splitext.return_value = ("rbcL_assay1", ".fasta")
+        mock_melting_temp.return_value = 60.0
+        mock_gc_fraction.return_value = 0.5
+
+        def mock_calculate_mismatches_side_effect(*args, **kwargs):
+            if kwargs.get("search_gc_clamp", False):
+                return (1, 1)  # Return a tuple when search_gc_clamp is True
+            return 1  # Return an integer otherwise
+
+        mock_calculate_mismatches.side_effect = mock_calculate_mismatches_side_effect
+
+        primer_table = pd.DataFrame(
+            {
+                "barcode_region": ["rbcL"],
+                "assay_name": ["assay1"],
+                "fwd_seq": ["ACGTACGT"],
+                "rev_seq": ["TGCATGCA"],
+            }
+        )
+
+        pbs_table = pd.DataFrame(
+            {
+                "header": [">seq1|Taxon1"],
+                "fwd_seq": ["ACGTACGT"],
+                "rev_seq": ["TGCATGCA"],
+            }
+        )
+
+        with patch.object(
+            self.binding, "get_primer_table"
+        ) as mock_get_primer_table, patch.object(
             self.binding,
             "parse_files_with_same_extension_in_folders",
-            return_value=[("amplicon.fasta", "insert.fasta")],
-        ), patch.object(
+            return_value=[("rbcL_assay1.fasta", "insert_rbcL_assay1.fasta")],
+        ) as mock_parse_files, patch.object(
+            self.binding, "get_pbs_table", return_value=pbs_table
+        ) as mock_get_pbs_table, patch(
+            "builtins.open", mock_open()
+        ) as mock_file:
+
+            self.binding.primer_table = primer_table
+
+            result = self.binding.primer_pbs_analysis(
+                "amplicon_folder",
+                "insert_folder",
+                "primer_table.tsv",
+                gc_clamp_three_end=True,
+                save_results=True,
+            )
+        self.assertIsNotNone(result)
+        self.assertIn("rbcL_assay1", result)
+
+        primer_props = result["rbcL_assay1"]["primer_properties"]
+        self.assertEqual(primer_props["forward_primer"]["gc_fraction"], 0.5)
+        self.assertEqual(primer_props["forward_primer"]["melting_temp"], 60.0)
+
+        self.assertTrue("full_mismatches" in result["rbcL_assay1"])
+        self.assertTrue("three_end_mismatches" in result["rbcL_assay1"])
+        self.assertTrue("three_end_gc_matches" in result["rbcL_assay1"])
+
+    def test_primer_pbs_analysis_no_matching_files(self):
+        # Patch to return no matching files between folders
+        with patch.object(
+            self.binding, "parse_files_with_same_extension_in_folders", return_value=[]
+        ) as mock_parse_files:
+
+            result = self.binding.primer_pbs_analysis(
+                "amplicon_folder",
+                "insert_folder",
+                "data/test_data/test_primer_table.tsv",
+            )
+            self.assertIsNone(result)
+
+    @patch("json.dump")
+    def test_primer_pbs_analysis_save_results(self, mock_json_dump):
+        primer_table = pd.DataFrame(
+            {
+                "barcode_region": ["rbcL"],
+                "assay_name": ["assay1"],
+                "fwd_seq": ["ACGTACGT"],
+                "rev_seq": ["TGCATGCA"],
+            }
+        )
+
+        pbs_table = pd.DataFrame(
+            {
+                "header": [">seq1|Taxon1"],
+                "fwd_seq": ["ACGTACGT"],
+                "rev_seq": ["TGCATGCA"],
+            }
+        )
+
+        with patch.object(
+            self.binding, "get_primer_table"
+        ) as mock_get_primer_table, patch.object(
             self.binding,
-            "get_pbs_table",
-            return_value=pd.DataFrame(
-                {"header": [">seq1|taxon1"], "fwd_seq": ["ACGT"], "rev_seq": ["GCTA"]}
-            ),
-        ), patch(
-            "src.marker_scoring.scoring_utils.calculate_iupac_mismatches",
-            return_value=1,
-        ):
+            "parse_files_with_same_extension_in_folders",
+            return_value=[("rbcL_assay1.fasta", "insert_rbcL_assay1.fasta")],
+        ) as mock_parse_files, patch.object(
+            self.binding, "get_pbs_table", return_value=pbs_table
+        ) as mock_get_pbs_table, patch(
+            "builtins.open", mock_open()
+        ) as mock_file:
 
-            self.binding.primer_table = pd.DataFrame(
-                {
-                    "barcode_region": ["region1"],
-                    "assay_name": ["assay1"],
-                    "fwd_seq": ["ACGT"],
-                    "rev_seq": ["GCTA"],
-                }
+            self.binding.primer_table = primer_table
+
+            result = self.binding.primer_pbs_analysis(
+                "amplicon_folder",
+                "insert_folder",
+                "data/test_data/test_primer_table.tsv",
+                save_results=True,
             )
 
-            calculate_ambiguous_percentage.return_value = 1
-
-            result = self.binding.get_number_of_primer_pbs_mismatches(
-                "amplicon_folder", "insert_folder", "primer_table.tsv"
-            )
-
-            self.assertIsNotNone(result)
+            mock_json_dump.assert_called_once()
 
     def test_get_max_mismatches_per_taxon(self):
         mock_mismatches = {
@@ -304,42 +403,17 @@ class TestBinding(unittest.TestCase):
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
-        self.all_inserts_folder = "data/test_data"
+        self.all_inserts_folder = "data/test_data/test-folder-metrics"
         self.otl = "data/test_data/test_otl.tsv"
-
-    @patch("builtins.input", return_value="data/test_data/test_otl.tsv")
-    @patch("os.listdir")
-    @patch("os.path.join")
-    @patch("os.path.exists")
-    @patch("src.marker_scoring.metrics_system.ReferenceDatabaseQuality")
-    def test_calculate_reference_database_quality(
-        self,
-        mock_ref_db_class,
-        mock_path_exists,
-        mock_path_join,
-        mock_os_listdir,
-        _mock_input,
-    ):
-        mock_path_join.side_effect = lambda *args: "/".join(args)
-
         self.metric_sys_ex = MetricsSystemExecutor(self.all_inserts_folder, self.otl)
 
-        mock_os_listdir.return_value = ["primer1.fasta", "primer2.fasta"]
-        mock_ref_db_object = mock_ref_db_class.return_value
-        mock_ref_db_object.ratio_barcoded_taxa.side_effect = [(12, 0.5), (14, 0.8)]
-        mock_path_exists.return_value = True
-
+    def test_calculate_reference_database_quality(self):
         ref_bd_scores = self.metric_sys_ex.calculate_reference_database_quality()
 
-        mock_os_listdir.assert_called_once_with(self.all_inserts_folder)
-
-        expected_calls = [
-            call(),
-            call(f"{self.all_inserts_folder}/primer1.fasta", self.otl),
-            call(f"{self.all_inserts_folder}/primer2.fasta", self.otl),
-        ]
-        mock_ref_db_class.assert_has_calls(expected_calls, any_order=True)
-
-        mock_ref_db_object.ratio_barcoded_taxa.assert_has_calls([call()] * 2)
-
-        self.assertEqual(ref_bd_scores, {"primer1": (12, 0.5), "primer2": (14, 0.8)})
+        expected_scores = {
+            "test_amplicon_reffb": {
+                "barcoded_taxa_five_plus": 16.67,
+                "ratio_barcoded_taxa": 0.33,
+            }
+        }
+        self.assertEqual(ref_bd_scores, expected_scores)

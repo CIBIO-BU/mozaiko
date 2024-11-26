@@ -1,0 +1,26 @@
+>ABC.1 | speciesA
+CGTAGCATCAGCTAGCAT
+>ABC.2 | speciesA
+GTGCTAGC
+>ABC.3 | speciesB
+GTGGGGGACGT
+>DEF.3 | speciesC
+GACGGCCGC
+>ZYX.1 | speciesD
+GGGTAGA
+>GHI.1 | speciesA
+GATGCA
+>ABC.7 | speciesD
+GTCAGCAT
+>ABC.4 | speciesA
+GTGCTAGT
+>ABC.5 | speciesA
+GTGCTAGG
+>ABC.6 | speciesA
+GTGCTAGA
+>ABC.7 | speciesA
+GTGCTAGCC
+>ABC.8 | speciesA
+GTGCTAGCCACGT
+>DEF.6 | speciesB
+GTGGGGGACGTACG

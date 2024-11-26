@@ -2,17 +2,19 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, List
-from Bio.SeqUtils import MeltingTemp
+from typing import Any, Dict, List
 
 import pandas as pd
+from Bio.Seq import Seq
+from Bio.SeqUtils import MeltingTemp, gc_fraction
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 from src.marker_scoring.scoring_utils import *
 from src.reference_database.sequence_import import CustomFastaImport
 
+
 class OtlHandler:
-    def __init__(self, otl = None, fasta = None):
+    def __init__(self, otl=None, fasta=None):
         self.otl = otl
         self.fasta = fasta
 
@@ -63,18 +65,21 @@ class OtlHandler:
         self.validate_otl()
 
         otl = self.otl
-        unique_taxa = set()
+        unique_otl_taxa = set()
 
         for entry in otl["taxa"]:
-            unique_taxa.add(entry)
+            unique_otl_taxa.add(entry)
 
-        total_taxa_count = len(unique_taxa)
+        total_taxa_count = len(unique_otl_taxa)
 
         self.total_taxa = total_taxa_count
+        self.otl_taxa_set = unique_otl_taxa
 
-        return total_taxa_count, unique_taxa
+        return total_taxa_count, unique_otl_taxa
 
-    def filter_fasta_for_species_not_in_otl(self, fasta_file, otl_taxa_set: set, overwrite: bool = True):
+    def filter_fasta_for_species_not_in_otl(
+        self, fasta_file, otl_taxa_set: set, overwrite: bool = True
+    ):
         """
         This method filter a FASTA based on the set of unique taxa retrieved from the OTL. Entries
         whose taxon is not present in the OTL are removed.
@@ -92,7 +97,17 @@ class OtlHandler:
             (number of sequences kept, path to output file)
         """
         base, ext = os.path.splitext(fasta_file)
-        output_file = fasta_file if overwrite else f"{base}_filtered{ext}"
+        input_folder = os.path.dirname(fasta_file)
+        file_name = os.path.basename(fasta_file)
+
+        if overwrite:
+            output_file = fasta_file
+        else:
+            filtered_folder = os.path.join(
+                input_folder, f"{os.path.basename(input_folder)}_otl_filtered"
+            )
+            os.makedirs(filtered_folder, exist_ok=True)
+            output_file = os.path.join(filtered_folder, file_name)
 
         total_seq_count: int = 0
         kept_seq_count: int = 0
@@ -101,58 +116,114 @@ class OtlHandler:
         sequences_to_write: List[str] = []
         current_sequence: List[str] = []
 
-        with open(fasta_file, 'r') as f:
+        with open(fasta_file, "r") as f:
             for line in f:
                 line = line.strip()
-                if line.startswith('>'):
+                if line.startswith(">"):
                     if current_header and keep_sequence:
-                        sequences_to_write.extend([current_header, ''.join(current_sequence)])
+                        sequences_to_write.extend(
+                            [current_header, "".join(current_sequence)]
+                        )
 
                     current_header = line
                     current_sequence = []
                     total_seq_count += 1
 
                     try:
-                        taxa = line.split('|')[1].strip().split()[1]
-                        keep_sequence = taxa in otl_taxa_set
-                        if keep_sequence:
-                            kept_seq_count += 1
-                    except IndexError:
-                        print(f"mozaiko WARNING: Unexpect header format - {line}")
+                        header_parts = line.split("|")
+                        if len(header_parts) > 1:
+                            taxa = line.split("|")[1].strip()
+                            keep_sequence = taxa in otl_taxa_set
+                            if keep_sequence:
+                                kept_seq_count += 1
+                        else:
+                            print(f"WARNING: No '|' found in header - {line}")
+                            keep_sequence = False
+                    except IndexError as e:
+                        print(f"WARNING: Header parsing error - {line}")
+                        print(f"Error details: {str(e)}")
                         keep_sequence = False
                 elif line and keep_sequence:
                     current_sequence.append(line)
 
         if current_header and keep_sequence:
-            sequences_to_write.extend([current_header, ''.join(current_sequence)])
+            sequences_to_write.extend([current_header, "".join(current_sequence)])
 
         if overwrite:
-            temp_file = output_file + '.temp'
-            with open(temp_file, 'w') as f:
+            temp_file = output_file + ".temp"
+            with open(temp_file, "w") as f:
                 for line in sequences_to_write:
                     f.write(f"{line}\n")
             os.replace(temp_file, output_file)
         else:
-            with open(output_file, 'w') as f:
+            with open(output_file, "w") as f:
                 for line in sequences_to_write:
                     f.write(f"{line}\n")
 
         return total_seq_count, kept_seq_count, output_file
 
-    def add_sequences_not_in_silico_amplified_but_in_otl_with_value_as_zero(self, dict, otl_taxa_set):
+    def apply_fasta_filtering_for_all_fasta_files_in_folder(
+        self, fasta_folder, otl_taxa_set, overwrite: bool = False
+    ):
+        """
+        Applies the "filter_fasta_for_species_not_in_otl" method to all FASTA files in a folder.
+
+        Parameters:
+        fasta_folder: str
+            Path to the folder containing FASTA files.
+        otl_taxa_set: set
+            Set of taxa names to keep.
+        overwrite: bool, default=True
+            If True, overwrites the input files.
+            If False, creates new files with '_filtered' suffix.
+
+        Returns:
+        List[Tuple[str, int, int]]
+            A list of tuples containing the file name, number of sequences processed, and number of sequences kept.
+        """
+        results = []
+
+        for file_name in os.listdir(fasta_folder):
+            file_path = os.path.join(fasta_folder, file_name)
+
+            if file_name.endswith((".fasta")):
+                print(f"Processing file: {file_name}")
+                try:
+                    total_seq_count, kept_seq_count, output_file = (
+                        self.filter_fasta_for_species_not_in_otl(
+                            fasta_file=file_path,
+                            otl_taxa_set=otl_taxa_set,
+                            overwrite=overwrite,
+                        )
+                    )
+                    results.append((output_file, total_seq_count, kept_seq_count))
+                except Exception as e:
+                    print(f"ERROR: Failed to process {file_name} due to {str(e)}")
+
+        return results
+
+    def add_sequences_not_in_silico_amplified_but_in_otl_with_value_as_zero(
+        self, result_dict, otl_taxa_set
+    ):
         """
         This method takes a dictionary and a set of unique taxa set to add any missing target taxon
         with a value of zero for downstream analysis.
         """
+        updated_dict = result_dict.copy()
+
+        for primer_pair, taxa_counts in updated_dict.items():
+            missing_taxa = otl_taxa_set - set(taxa_counts.keys())
+
+            for taxon in missing_taxa:
+                taxa_counts[taxon] = 0
+
+        return updated_dict
+
 
 class ReferenceDatabaseQuality:
     def __init__(self, all_inserts_path=None, otl=None):
         self.custom_fasta_import = CustomFastaImport()
         self.all_inserts_path = all_inserts_path
-        self.otl = otl
-        self.otl_handler = OtlHandler(self.otl)
-        self.otl_handler.import_otl()
-        self.total_otl_taxa_count = self.otl_handler.total_taxa
 
     def parse_fasta_files(self):
         """
@@ -166,7 +237,7 @@ class ReferenceDatabaseQuality:
 
         fasta_files = {}
         for f in os.listdir(self.all_inserts_path):
-            if f.endswith(('.fasta')):
+            if f.endswith((".fasta")):
                 primer_pair = os.path.splitext(f)[0]
                 fasta_files[primer_pair] = os.path.join(self.all_inserts_path, f)
 
@@ -204,7 +275,9 @@ class ReferenceDatabaseQuality:
         return barcodes_per_species
 
     def calculate_percentage_of_taxa_w_x_barcodes(
-        self, barcode_threshold=1
+        self,
+        total_taxa_count: int,
+        barcode_threshold=1,
     ):
         """
         This method calculates the percentage of taxa with more than X barcodes.
@@ -223,15 +296,16 @@ class ReferenceDatabaseQuality:
         results = {}
 
         for primer_pair, taxa_data in barcodes_per_species.items():
-            taxa_meeting_threshold = sum(1 for count in taxa_data.values()
-                                      if count > barcode_threshold)
+            taxa_meeting_threshold = sum(
+                1 for count in taxa_data.values() if count > barcode_threshold
+            )
 
-            percentage = (taxa_meeting_threshold * 100) / self.total_otl_taxa_count
+            percentage = (taxa_meeting_threshold * 100) / total_taxa_count
             results[primer_pair] = round(percentage, 2)
 
         return results
 
-    def barcoded_taxa_ratio(self):
+    def barcoded_taxa_ratio(self, total_taxa_count: int):
         """
         This method calculates the Ratio of Barcoded Taxa (RBT).
 
@@ -242,15 +316,15 @@ class ReferenceDatabaseQuality:
             Percentage of taxa with more than one barcode.
 
         Output:
-        - rbt: float
-            Barcode Coverage Score
+        - results: Dict
+            A dictionary containing the raatio of barcoded taxa and the percentage of taxa with more than five barcodes per primer pair.
         """
 
         barcoded_taxa_five_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
-            barcode_threshold=5
+            total_taxa_count, barcode_threshold=5
         )
         barcoded_taxa_one_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
-            barcode_threshold=1
+            total_taxa_count, barcode_threshold=1
         )
 
         results = {}
@@ -259,14 +333,17 @@ class ReferenceDatabaseQuality:
             percent_5plus = barcoded_taxa_five_plus[primer_pair]
             percent_1plus = barcoded_taxa_one_plus[primer_pair]
 
-            ratio_barcoded_taxa = percent_5plus / percent_1plus if percent_5plus > 0 else 0
+            ratio_barcoded_taxa = (
+                percent_5plus / percent_1plus if percent_5plus > 0 else 0
+            )
 
             results[primer_pair] = {
-                'barcoded_taxa_five_plus': percent_5plus,
-                'ratio_barcoded_taxa': round(ratio_barcoded_taxa, 2)
+                "barcoded_taxa_five_plus": percent_5plus,
+                "ratio_barcoded_taxa": round(ratio_barcoded_taxa, 2),
             }
 
         return results
+
 
 class Binding:
     def __init__(self, number_of_mismatches=None):
@@ -335,12 +412,12 @@ class Binding:
 
         return pbs_table
 
-    def get_number_of_primer_pbs_mismatches(
+    def primer_pbs_analysis(
         self,
         amplicon_folder,
         insert_folder,
         primer_table,
-        only_at_three_end: bool = False,
+        gc_clamp_three_end: bool = True,
         save_results: bool = False,
     ):
         """
@@ -358,10 +435,9 @@ class Binding:
         - insert_folder: Output folder from the in-silico amplification process. Its files should
         contain the insert sequences.
         - primer_table: Path to the table containing the primer pair sequences and details.
-        - only_at_three_end: Bool
-            When set to True it calculates the number of mismatches only at the three end section
-            of the sequences (last five nucleotides). If set to False, it calculates the number
-            of mismatches at the overall length.
+        - gc_clamp_three_end: bool
+            When set to True, the method also searches for matching G/C bases between the primer
+            and template at the 3'end section.
         - save_results: bool
             When set to True, the dictionary containing the results will be saved as a JSON file.
 
@@ -378,69 +454,121 @@ class Binding:
         if not matching_files:
             return None
 
-        primer_pbs_mismatches = {}
+        analysis_results = {}
 
         for primer_ind, primer_row in self.primer_table.iterrows():
             barcode_region = primer_row["barcode_region"]
             assay_name = primer_row["assay_name"]
-            pbs_filename = barcode_region + "_" + assay_name
+            pbs_filename = f"{barcode_region}_{assay_name}"
             primer_seq_fwd = primer_row["fwd_seq"]
             primer_seq_rev = primer_row["rev_seq"]
-
             rev_comp_primer_seq_rev = str(Seq(primer_seq_rev).reverse_complement())
 
-            if only_at_three_end == True:
-                primer_seq_fwd = primer_seq_fwd[-5:]
-                rev_comp_primer_seq_rev = rev_comp_primer_seq_rev[-5:]
+            # Compute Primer Statistics
+            primer_properties = {
+                "forward_primer": {
+                    "gc_fraction": gc_fraction(primer_seq_fwd),
+                    "melting_temp": MeltingTemp.Tm_GC(
+                        primer_seq_fwd, valueset=7, strict=False
+                    ),
+                },
+                "reverse_primer": {
+                    "gc_fraction": gc_fraction(primer_seq_rev),
+                    "melting_temp": MeltingTemp.Tm_GC(
+                        primer_seq_rev, valueset=7, strict=False
+                    ),
+                },
+            }
 
-            primer_results = []
+            primer_analysis: Dict[str, Any] = {
+                "primer_properties": primer_properties,
+                "full_mismatches": [],
+                "three_end_mismatches": [],
+                "three_end_gc_matches": [],
+            }
 
+            # Process matching files (same primer name)
             for amplicon_file, insert_file in matching_files:
                 amplicon_filename = os.path.splitext(os.path.basename(amplicon_file))[0]
 
                 if pbs_filename == amplicon_filename:
                     pbs_table = self.get_pbs_table(amplicon_file, insert_file)
 
-                    for pbs_ind, pbs_row in pbs_table.iterrows():
-                        seq_header = pbs_row["header"]
-                        seq_header = seq_header.replace(">", "")
-                        seq_id = seq_header.split("|")[0]
-                        seq_id = seq_id.replace(" ", "")
+                    for _, pbs_row in pbs_table.iterrows():
+                        seq_header = pbs_row["header"].replace(">", "")
+                        seq_id = seq_header.split("|")[0].replace(" ", "")
                         taxon = seq_header.split("|")[1]
-
                         pbs_fwd_seq = pbs_row["fwd_seq"]
                         pbs_rev_seq = pbs_row["rev_seq"]
 
-                        if only_at_three_end == True:
-                            pbs_fwd_seq = pbs_fwd_seq[-5:]
-                            pbs_rev_seq = pbs_rev_seq[-5:]
-
-                        fwd_primer_pbs_mismatches = calculate_iupac_mismatches(
+                        # Compute full Primer-Template mismatches
+                        full_fwd_mismatches = calculate_iupac_mismatches(
                             primer_seq_fwd, pbs_fwd_seq
                         )
-                        rev_primer_pbs_mismatches = calculate_iupac_mismatches(
+                        full_rev_mismatches = calculate_iupac_mismatches(
                             rev_comp_primer_seq_rev, pbs_rev_seq
                         )
 
-                        mismatch_sum = (
-                            fwd_primer_pbs_mismatches + rev_primer_pbs_mismatches
+                        primer_analysis["full_mismatches"].append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "mismatch_sum": full_fwd_mismatches
+                                + full_rev_mismatches,
+                            }
                         )
 
-                        seq_result = {
-                            "seq_id": seq_id,
-                            "taxon": taxon,
-                            "mismatch_sum": mismatch_sum,
-                        }
-                        primer_results.append(seq_result)
+                        # Compute three-end mismatches and GC clamp
+                        three_end_fwd_seq = pbs_fwd_seq[-5:]
+                        three_end_rev_seq = pbs_rev_seq[-5:]
+                        three_end_fwd_primers = primer_seq_fwd[-5:]
+                        three_end_rev_primers = rev_comp_primer_seq_rev[-5:]
 
-            if primer_results:
-                primer_pbs_mismatches[pbs_filename] = primer_results
+                        three_end_fwd_mismatches = calculate_iupac_mismatches(
+                            three_end_fwd_primers, three_end_fwd_seq
+                        )
+                        three_end_rev_mismatches = calculate_iupac_mismatches(
+                            three_end_rev_primers, three_end_rev_seq
+                        )
 
-        if save_results == True:
-            with open("primer_pbs_mismatches.json", "w") as fp:
-                json.dump(primer_pbs_mismatches, fp)
+                        primer_analysis["three_end_mismatches"].append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "mismatch_sum": three_end_fwd_mismatches
+                                + three_end_rev_mismatches,
+                            }
+                        )
 
-        return primer_pbs_mismatches
+                        # GC matches at three-end (if flag is True)
+                        if gc_clamp_three_end:
+                            three_end_fwd_gc_matches = calculate_iupac_mismatches(
+                                three_end_fwd_primers,
+                                three_end_fwd_seq,
+                                search_gc_clamp=True,
+                            )[1]
+                            three_end_rev_gc_matches = calculate_iupac_mismatches(
+                                three_end_rev_primers,
+                                three_end_rev_seq,
+                                search_gc_clamp=True,
+                            )[1]
+
+                            primer_analysis["three_end_gc_matches"].append(
+                                {
+                                    "seq_id": seq_id,
+                                    "taxon": taxon,
+                                    "gc_matches_sum": three_end_fwd_gc_matches
+                                    + three_end_rev_gc_matches,
+                                }
+                            )
+
+            analysis_results[pbs_filename] = primer_analysis
+
+            if save_results:
+                with open(f"{pbs_filename}_analysis.json", "w") as fp:
+                    json.dump(analysis_results[pbs_filename], fp)
+
+        return analysis_results
 
     def get_max_mismatches_per_taxon(
         self, mismatches_dictionary: dict, save_results: bool = False
@@ -557,7 +685,9 @@ class Binding:
 
         return priming_ratio_dict
 
-    def primer_gc_content(self, primer_table, amplicon_folder, insert_folder, save_results):
+    def primer_gc_content(
+        self, primer_table, amplicon_folder, insert_folder, save_results
+    ):
         """
         This method calculates the percentage of GC content over the primer set lenght.
         """
@@ -583,6 +713,7 @@ class Binding:
 
             return primer_gc_content
 
+
 class MetricsSystemExecutor:
     """
     This class orchestrates the entire Metrics System, coordinating the execution of all evaluation
@@ -590,9 +721,25 @@ class MetricsSystemExecutor:
     """
 
     def __init__(self, all_inserts_folder=None, otl=None):
+        # Initialize Reference Database Quality Category
         self.ref_db = ReferenceDatabaseQuality()
+        # Initialize OTL and related variables
         self.otl = otl
         self.all_inserts_folder = all_inserts_folder
+        self.otl_handler = OtlHandler(self.otl)
+        self.otl_handler.import_otl()
+        self.total_otl_taxa_count = self.otl_handler.total_taxa
+        self.otl_unique_taxa_set = self.otl_handler.otl_taxa_set
+        # Filter FASTA files per OTL species
+        self.otl_handler.apply_fasta_filtering_for_all_fasta_files_in_folder(
+            fasta_folder=self.all_inserts_folder,
+            otl_taxa_set=self.otl_unique_taxa_set,
+            overwrite=False,
+        )
+        self.filtered_inserts_folder = os.path.join(
+            self.all_inserts_folder,
+            os.path.basename(self.all_inserts_folder) + "_otl_filtered",
+        )
 
     def calculate_reference_database_quality(self):
         """
@@ -605,20 +752,19 @@ class MetricsSystemExecutor:
             the percentage of taxa with more than five barcodes and the rounded Ratio of Barcoded
             Taxa.
         """
-        ref_bd_scores = {}
 
-        for filename in os.listdir(self.all_inserts_folder):
-            if filename.endswith(".fasta"):
-                fasta_file = os.path.join(self.all_inserts_folder, filename)
-                primer_name = filename.split(".")[0]
-                cls = ReferenceDatabaseQuality(fasta_file, self.otl)
-                bt_1, rbt = cls.ratio_barcoded_taxa()
-                ref_bd_scores[primer_name] = bt_1, rbt
+        cls = ReferenceDatabaseQuality(self.filtered_inserts_folder, self.otl)
+        reference_db_quality = cls.barcoded_taxa_ratio(
+            total_taxa_count=self.total_otl_taxa_count
+        )
 
-        return ref_bd_scores
+        return reference_db_quality
+
+    # TODO: check how to best do folder and file intake, otl handling and per taxon computations
+
 
 # if __name__ == '__main__':
-    # Debug
+# Debug
 #     amp_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/amplicon/filtered"
 #     insert_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/insert/filtered"
 #     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-primers.tsv"

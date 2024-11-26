@@ -13,26 +13,8 @@ from Bio.Seq import Seq
 # Bioinformatics, 26(10), 1386-1389.
 # https://doi.org/10.1093/bioinformatics/btq098
 
-IUPAC = {
-    "A": ["A"],
-    "C": ["C"],
-    "G": ["G"],
-    "T": ["T"],
-    "R": ["A", "G"],
-    "Y": ["C", "T"],
-    "S": ["G", "C"],
-    "W": ["A", "T"],
-    "K": ["G", "T"],
-    "M": ["A", "C"],
-    "B": ["C", "G", "T"],
-    "D": ["A", "G", "T"],
-    "H": ["A", "C", "T"],
-    "V": ["A", "C", "G"],
-    "N": ["A", "C", "G", "T"],
-}
 
-
-def calculate_iupac_mismatches(sequence1, sequence2):
+def calculate_iupac_mismatches(sequence1, sequence2, search_gc_clamp: bool = False):
     """
     Calculate the number of mismatches between two sequences, according to IUPAC ambiguity codes.
 
@@ -43,19 +25,42 @@ def calculate_iupac_mismatches(sequence1, sequence2):
     Returns:
     int: Number of mismatches found between two sequences.
     """
+    IUPAC = {
+        "A": ["A"],
+        "C": ["C"],
+        "G": ["G"],
+        "T": ["T"],
+        "R": ["A", "G"],
+        "Y": ["C", "T"],
+        "S": ["G", "C"],
+        "W": ["A", "T"],
+        "K": ["G", "T"],
+        "M": ["A", "C"],
+        "B": ["C", "G", "T"],
+        "D": ["A", "G", "T"],
+        "H": ["A", "C", "T"],
+        "V": ["A", "C", "G"],
+        "N": ["A", "C", "G", "T"],
+    }
+
     mismatches = 0
+    gc_matches = 0
 
     for base1, base2 in zip(sequence1.upper(), sequence2.upper()):
-        if base1 != base2:
-            # check if the bases are compatible according to IUPAC
-            # by taking the union of the sets of compatible bases
-            # and checking if the intersection is empty
-            if not set(IUPAC.get(base1, [base1])).intersection(
-                set(IUPAC.get(base2, [base2]))
-            ):
-                mismatches += 1
+        # check if the bases are compatible according to IUPAC
+        # by taking the union of the sets of compatible bases
+        # and checking if the intersection is empty
+        if not set(IUPAC.get(base1, {base1})).intersection(
+            set(IUPAC.get(base2, {base2}))
+        ):
+            mismatches += 1
 
-    return mismatches
+        if search_gc_clamp and (
+            (base1 == "G" and base2 == "C") or (base1 == "C" and base2 == "G")
+        ):
+            gc_matches += 1
+
+    return (mismatches, gc_matches) if search_gc_clamp else mismatches
 
 
 def calculate_ambiguous_percentage(sequence):
