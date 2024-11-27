@@ -308,7 +308,7 @@ class TestBinding(unittest.TestCase):
                 'insert_folder',
                 'data/test_data/test_primer_table.tsv'
             )
-            self.assertEqual(result)
+            self.assertIsNone(result)
 
     @patch('json.dump')
     def test_primer_pbs_analysis_save_results(self, mock_json_dump):

@@ -2,7 +2,8 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
+import numpy as np
 
 import pandas as pd
 from Bio.Seq import Seq
@@ -573,6 +574,65 @@ class Binding:
 
         return analysis_results
 
+    def compute_taxon_level_stats(
+        analysis_data: Dict[str, Any],
+        analysis_name: str,
+        analysis_key: str,
+        function_keys: List[Callable] = [np.mean, np.median, np.max, np.min, np.std]
+    ) -> Dict[str, Dict[str, float]]:
+        """
+        This method computes stats at the taxon level for a given analysis.
+
+        Parameters:
+        - analysis_data: List of dictionary containing taxon-level data
+        - analysis_key: Key in the dictionary to use for statistical computation
+        - function_keys: List of numpy or custom functions to apply to the data
+
+        Returns:
+        A dictionary with taxon names as keys and computed statistics
+        """
+        function_map = {
+            'mean': np.mean,
+            'median': np.median,
+            'max': np.max,
+            'min': np.min,
+            'std': np.std
+        }
+
+        if not any(analysis_key in entry for entry in analysis_data.get(analysis_name, [])):
+            raise ValueError(f"mozaiko ERROR: Key '{analysis_key}' not found in analysis data.")
+
+        if function_keys is None:
+            function_keys = list(function_map.values())
+        elif isinstance(function_keys, str):
+            function_names = [f.strip().lower() for f in function_keys.split(',')]
+
+            invalid_function_name = [f for f in function_names if f not in function_map]
+            if invalid_function_name:
+                raise ValueError(f"mozaiko ERROR: Invalid function found ({', '.join(invalid_function_name)}). "
+                                f"Valid options are: {', '.join(function_map.keys())}")
+
+            function_keys = [function_map[f] for f in function_names]
+        elif not isinstance(function_keys, list):
+            raise ValueError("mozaiko ERROR: 'function_keys' must be None, a string, or a list of functions")
+
+        # Extract the analysis to get stats on
+        data_list = analysis_data.get(analysis_name, [])
+
+        taxon_values = defaultdict(list)
+        for entry in data_list:
+            taxon = entry['taxon'].strip()
+            taxon_values[taxon].append(entry[analysis_key])
+
+        taxon_stats = {}
+        for taxon, values in taxon_values.items():
+            taxon_stats[taxon] = {}
+            for func in function_keys:
+                func_name = func.__name__
+                taxon_stats[taxon][func_name] = func(values)
+
+        return taxon_stats
+
     def get_max_mismatches_per_taxon(
         self, mismatches_dictionary: dict, save_results: bool = False
     ):
@@ -688,33 +748,7 @@ class Binding:
 
         return priming_ratio_dict
 
-    def primer_gc_content(
-        self, primer_table, amplicon_folder, insert_folder, save_results
-    ):
-        """
-        This method calculates the percentage of GC content over the primer set lenght.
-        """
-        self.get_primer_table(primer_table)
-        matching_files = self.parse_files_with_same_extension_in_folders(
-            amplicon_folder, insert_folder
-        )
 
-        if not matching_files:
-            return None
-
-        primer_gc_content = {}
-
-        for primer_ind, primer_row in self.primer_table.iterrows():
-            primer_seq_fwd = primer_row["fwd_seq"][-5:]
-            primer_seq_rev = primer_row["rev_seq"][-5:]
-
-            fwd_primer_gc = primer_seq_fwd.apply(MeltingTemp.Tm_GC, strict=False)
-
-            if save_results == True:
-                with open("primer_pbs_mismatches.json", "w") as fp:
-                    json.dump(primer_gc_content, fp)
-
-            return primer_gc_content
 
 
 class MetricsSystemExecutor:
