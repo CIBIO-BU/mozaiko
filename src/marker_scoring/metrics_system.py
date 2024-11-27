@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional, Callable, Tuple
 import numpy as np
 
 import pandas as pd
@@ -354,6 +354,7 @@ class Binding:
                 self.amplification_instance.get_number_of_mismatches()
             )
         self.number_of_mismatches = number_of_mismatches
+        self.processed_primers = {}
 
     def parse_files_with_same_extension_in_folders(self, folder_path_A, folder_path_B):
         """
@@ -419,42 +420,61 @@ class Binding:
         insert_folder,
         primer_table,
         save_results: bool = False,
-    ) -> Optional[Dict[str, Dict[str, Any]]]:
+    ) -> Tuple[Optional[Dict[str, pd.DataFrame]], Optional[pd.DataFrame]]:
         """
-        This method retrieves the number of mismatches between the foward and reverse primer-PBS
-        sequence pair.
+        This method analyzes Primer and PBS sequences to compute mismatch metrics, melting temperatures,
+        and GC fractions for both the forward and reverse sequences.
 
-        It first retrieves the primer and PBS table. The last by iterating over the generated files
-        in the analysis folder. It then processes both tables to retrieve the primer and primer-binding
-        site sequences. Lastly it calls the method to calculate the number of mismatches and creates
-        a dictionary with the results.
+        The implementation retrieves Primer-PBS information, processes amplicon and insert data files,
+        and calculates various metrics related to primer-template binding. It generates a comprehensive
+        DataFrame for each primer pair, including full-length mismatches, three-end mismatches, GC
+        clamp matches, and melting temperature averages. It also computes GC fractions for forward and
+        reverse primers.
 
         Parameters:
-        - amplicon_folder: Output folder from the in-silico amplification process. Its files should
-        contain the amplicon sequences.
-        - insert_folder: Output folder from the in-silico amplification process. Its files should
-        contain the insert sequences.
-        - primer_table: Path to the table containing the primer pair sequences and details.
+        - amplicon_folder: str
+            Path to the folder containing amplicon sequence files from the in-silico amplification process.
+        - insert_folder: str
+             Path to the folder containing insert sequence files from the in-silico amplification process.
+        - primer_table: str
+            Path to the table containing the primer pair sequences and details.
         - save_results: bool
-            When set to True, the dictionary containing the results will be saved as a JSON file.
+            If True, saves the comprehensive DataFrame for each primer pair and the primer GC fraction
+        DataFrame as CSV files (default is False).
 
         Output:
-        - max_mismatches_per_taxon: Dict
-            A nested dictionary containing the primer pairs as keys and a dictionary as values,
-            containing the sum of mismatches between the forward and reverse primer-PBS sequences.
+        Tuple[Dict[str, pd.DataFrame], pd.DataFrame]
+        - comprehensive_primer_dfs : dict
+            A dictionary where keys are primer pair identifiers (based on barcode region and assay name),
+            and values are DataFrames containing:
+            - `seq_id`: Sequence identifier.
+            - `taxon`: Taxonomic information.
+            - `full_len_mismatch_sum`: Sum of mismatches for the forward and reverse primers across the
+              entire primer-binding site.
+            - `three_end_mismatch_sum`: Sum of mismatches for the last 5 bases of the primer-binding site
+              (three-end region).
+            - `tm_average`: Average melting temperature of the forward and reverse primer-binding sites.
+            - `gc_matches_sum`: Total GC matches in the three-end region for the forward and reverse primers.
+        - primer_gc_df : pd.DataFrame
+            A DataFrame summarizing GC fractions for each primer, with columns:
+            - `barcode_region`: Barcode region of the primer.
+            - `assay_name`: Assay name for the primer.
+            - `forward_primer_gc_fraction`: GC fraction of the forward primer.
+            - `reverse_primer_gc_fraction`: GC fraction of the reverse primer.
         """
         self.get_primer_table(primer_table)
         matching_files = self.parse_files_with_same_extension_in_folders(
             amplicon_folder, insert_folder
         )
 
-        analysis_results: Dict[str, Any] = {}
-
         if not matching_files:
             print("mozaiko ERROR: No matching files found in the provided folders.")
-            return None
+            return None, None
 
-        for primer_ind, primer_row in self.primer_table.iterrows():
+        comprehensive_primer_dfs = {}
+        primer_gc_fractions = []
+
+        for _primer_ind, primer_row in self.primer_table.iterrows():
             barcode_region = primer_row["barcode_region"]
             assay_name = primer_row["assay_name"]
             pbs_filename = f"{barcode_region}_{assay_name}"
@@ -462,29 +482,18 @@ class Binding:
             primer_seq_rev = primer_row["rev_seq"]
             rev_comp_primer_seq_rev = str(Seq(primer_seq_rev).reverse_complement())
 
-            # Compute Primer Statistics
-            primer_properties = {
-                "forward_primer": {
-                    "gc_fraction": gc_fraction(primer_seq_fwd),
-                    "melting_temp": MeltingTemp.Tm_GC(
-                        primer_seq_fwd, valueset=7, strict=False
-                    ),
-                },
-                "reverse_primer": {
-                    "gc_fraction": gc_fraction(primer_seq_rev),
-                    "melting_temp": MeltingTemp.Tm_GC(
-                        primer_seq_rev, valueset=7, strict=False
-                    ),
-                },
-            }
+            # Compute GC fraction for Primer
+            primer_gc_fractions.append({
+            "barcode_region": barcode_region,
+            "assay_name": assay_name,
+            "forward_primer_gc_fraction": gc_fraction(primer_seq_fwd),
+            "reverse_primer_gc_fraction": gc_fraction(primer_seq_rev)
+            })
 
-            if pbs_filename not in analysis_results:
-                analysis_results[pbs_filename] = {}
-
-            primer_properties_dict = {"primer_properties": primer_properties}
-            full_mismatches_dict: Dict[str, Any] = {"full_mismatches": []}
-            three_end_mismatches_dict: Dict[str, Any] = {"three_end_mismatches": []}
-            three_end_gc_matches_dict: Dict[str, Any] = {"three_end_gc_matches": []}
+            full_mismatches_data = []
+            three_end_mismatches_data = []
+            pbs_melting_temperature_data = []
+            three_end_gc_matches_data = []
 
             # Process matching files (same primer name)
             matching_files_found = False
@@ -503,6 +512,17 @@ class Binding:
                         pbs_fwd_seq = pbs_row["fwd_seq"]
                         pbs_rev_seq = pbs_row["rev_seq"]
 
+                        # Melting Temperature
+                        pbs_fwd_tm = MeltingTemp.Tm_GC(pbs_fwd_seq, valueset=7, strict=False)
+                        pbs_rev_tm = MeltingTemp.Tm_GC(pbs_rev_seq, valueset=7, strict=False)
+
+                        pbs_melting_temperature_data.append({
+                            "seq_id": seq_id,
+                            "taxon": taxon,
+                            "tm_average": (pbs_fwd_tm + pbs_rev_tm) // 2,
+                        })
+
+
                         # Compute full Primer-Template mismatches
                         full_fwd_mismatches = calculate_iupac_mismatches(
                             primer_seq_fwd, pbs_fwd_seq
@@ -511,14 +531,11 @@ class Binding:
                             rev_comp_primer_seq_rev, pbs_rev_seq
                         )
 
-                        full_mismatches_dict["full_mismatches"].append(
-                            {
-                                "seq_id": seq_id,
-                                "taxon": taxon,
-                                "mismatch_sum": full_fwd_mismatches
-                                + full_rev_mismatches,
-                            }
-                        )
+                        full_mismatches_data.append({
+                            "seq_id": seq_id,
+                            "taxon": taxon,
+                            "full_len_mismatch_sum": full_fwd_mismatches + full_rev_mismatches,
+                        })
 
                         # Compute three-end mismatches and GC clamp
                         three_end_fwd_seq = pbs_fwd_seq[-5:]
@@ -533,14 +550,12 @@ class Binding:
                             three_end_rev_primers, three_end_rev_seq
                         )
 
-                        three_end_mismatches_dict["three_end_mismatches"].append(
-                            {
-                                "seq_id": seq_id,
-                                "taxon": taxon,
-                                "mismatch_sum": three_end_fwd_mismatches
-                                + three_end_rev_mismatches,
-                            }
-                        )
+                        three_end_mismatches_data.append({
+                            "seq_id": seq_id,
+                            "taxon": taxon,
+                            "three_end_mismatch_sum": three_end_fwd_mismatches + three_end_rev_mismatches,
+                        })
+
 
                         # GC matches at three-end
                         three_end_fwd_gc_matches = calculate_iupac_mismatches(
@@ -554,84 +569,146 @@ class Binding:
                             search_gc_clamp=True,
                         )[1]
 
-                        three_end_gc_matches_dict["three_end_gc_matches"].append(
-                            {
-                                "seq_id": seq_id,
-                                "taxon": taxon,
-                                "gc_matches_sum": three_end_fwd_gc_matches
-                                + three_end_rev_gc_matches,
-                            }
-                        )
+                        three_end_gc_matches_data.append({
+                            "seq_id": seq_id,
+                            "taxon": taxon,
+                            "gc_matches_sum": three_end_fwd_gc_matches + three_end_rev_gc_matches,
+                        })
+
             if matching_files_found:
-                analysis_results[pbs_filename] = primer_properties_dict
-                analysis_results[pbs_filename][f"full_mismatches"] = full_mismatches_dict["full_mismatches"]
-                analysis_results[pbs_filename][f"three_end_mismatches"] = three_end_mismatches_dict["three_end_mismatches"]
-                analysis_results[pbs_filename][f"three_end_gc_matches"] = three_end_gc_matches_dict["three_end_gc_matches"]
+                # Start by adding one df
+                comprehensive_df = pd.DataFrame(full_mismatches_data)
+                # Merge all other df's by seq_id & taxon
+                comprehensive_df = comprehensive_df.merge(
+                    pd.DataFrame(three_end_mismatches_data)[['seq_id', 'taxon', 'three_end_mismatch_sum']],
+                    on=['seq_id', 'taxon']
+                )
+
+                comprehensive_df = comprehensive_df.merge(
+                    pd.DataFrame(pbs_melting_temperature_data)[['seq_id', 'taxon', 'tm_average']],
+                    on=['seq_id', 'taxon']
+                )
+
+                comprehensive_df = comprehensive_df.merge(
+                    pd.DataFrame(three_end_gc_matches_data)[['seq_id', 'taxon', 'gc_matches_sum']],
+                    on=['seq_id', 'taxon']
+                )
+
+                column_order = [
+                'seq_id',
+                'taxon',
+                'full_len_mismatch_sum',
+                'three_end_mismatch_sum',
+                'tm_average',
+                'gc_matches_sum'
+                ]
+
+                comprehensive_df = comprehensive_df[column_order]
+
+                comprehensive_primer_dfs[pbs_filename] = comprehensive_df
 
                 if save_results:
-                    with open(f"{pbs_filename}_analysis.json", "w") as file:
-                        json.dump(analysis_results[pbs_filename], file)
+                    comprehensive_df.to_csv(f"{pbs_filename}_comprehensive.csv", index=False)
 
-        return analysis_results
 
-    def compute_taxon_level_stats(
-        analysis_data: Dict[str, Any],
-        analysis_name: str,
-        analysis_key: str,
-        function_keys: List[Callable] = [np.mean, np.median, np.max, np.min, np.std]
-    ) -> Dict[str, Dict[str, float]]:
+        primer_gc_df = pd.DataFrame(primer_gc_fractions)
+
+        if save_results:
+                primer_gc_df.to_csv("primer_gc_fractions.csv", index=False)
+
+        return comprehensive_primer_dfs, primer_gc_df
+
+    def iterate_over_comprehensive_primer_dfs(self, comprehensive_primer_dfs):
         """
-        This method computes stats at the taxon level for a given analysis.
+        Method to iterate over the comprehensive primer Dataframe to extract a Dataframe for each
+        primer and attribute it to a variable.
 
-        Parameters:
-        - analysis_data: List of dictionary containing taxon-level data
-        - analysis_key: Key in the dictionary to use for statistical computation
-        - function_keys: List of numpy or custom functions to apply to the data
+        Parameter:
+        - comprehensive_primer_dfs: Dict
+            A dictionary containing the primers as keys and Dataframes as values.
+
+        Return:
+
+        """
+        processed_primers = []
+
+        for key, dataframe in comprehensive_primer_dfs.items():
+            variable_name = key.replace("-", "_").replace(" ", "_")
+            self.processed_primer[variable_name] = dataframe
+            processed_primers.append(variable_name)
+
+        return processed_primers
+
+    def get_primer_df(self, primer_name):
+        """
+        This method retrieves a DataFrame by its processed primer name.
+
+        Parameter:
+        - primer_name: str
+            The name of the primer to retrieve.
 
         Returns:
-        A dictionary with taxon names as keys and computed statistics
+        - DataFrame corresponding to the primer.
         """
-        function_map = {
-            'mean': np.mean,
-            'median': np.median,
-            'max': np.max,
-            'min': np.min,
-            'std': np.std
-        }
+        return self.processed_primers.get(primer_name, None)
 
-        if not any(analysis_key in entry for entry in analysis_data.get(analysis_name, [])):
-            raise ValueError(f"mozaiko ERROR: Key '{analysis_key}' not found in analysis data.")
+    # def compute_taxon_level_stats(self,
+    #     analysis_data: Dict[str, Any],
+    #     analysis_name: str,
+    #     analysis_key: str,
+    #     function_keys: List[Callable] = [np.mean, np.median, np.max, np.min, np.std]
+    # ) -> Dict[str, Dict[str, float]]:
+    #     """
+    #     This method computes stats at the taxon level for a given analysis.
 
-        if function_keys is None:
-            function_keys = list(function_map.values())
-        elif isinstance(function_keys, str):
-            function_names = [f.strip().lower() for f in function_keys.split(',')]
+    #     Parameters:
+    #     - analysis_data: List of dictionary containing taxon-level data
+    #     - analysis_key: Key in the dictionary to use for statistical computation
+    #     - function_keys: List of numpy or custom functions to apply to the data
 
-            invalid_function_name = [f for f in function_names if f not in function_map]
-            if invalid_function_name:
-                raise ValueError(f"mozaiko ERROR: Invalid function found ({', '.join(invalid_function_name)}). "
-                                f"Valid options are: {', '.join(function_map.keys())}")
+    #     Returns:
+    #     A dictionary with taxon names as keys and computed statistics
+    #     """
+    #     function_map = {
+    #         'mean': np.mean,
+    #         'median': np.median,
+    #         'max': np.max,
+    #         'min': np.min,
+    #         'std': np.std
+    #     }
 
-            function_keys = [function_map[f] for f in function_names]
-        elif not isinstance(function_keys, list):
-            raise ValueError("mozaiko ERROR: 'function_keys' must be None, a string, or a list of functions")
+    #     if not any(analysis_key in entry for entry in analysis_data.get(analysis_name, [])):
+    #         raise ValueError(f"mozaiko ERROR: Key '{analysis_key}' not found in analysis data.")
 
-        # Extract the analysis to get stats on
-        data_list = analysis_data.get(analysis_name, [])
+    #     if function_keys is None:
+    #         function_keys = list(function_map.values())
+    #     elif isinstance(function_keys, str):
+    #         function_names = [f.strip().lower() for f in function_keys.split(',')]
 
-        taxon_values = defaultdict(list)
-        for entry in data_list:
-            taxon = entry['taxon'].strip()
-            taxon_values[taxon].append(entry[analysis_key])
+    #         invalid_function_name = [f for f in function_names if f not in function_map]
+    #         if invalid_function_name:
+    #             raise ValueError(f"mozaiko ERROR: Invalid function found ({', '.join(invalid_function_name)}). "
+    #                             f"Valid options are: {', '.join(function_map.keys())}")
 
-        taxon_stats = {}
-        for taxon, values in taxon_values.items():
-            taxon_stats[taxon] = {}
-            for func in function_keys:
-                func_name = func.__name__
-                taxon_stats[taxon][func_name] = func(values)
+    #         function_keys = [function_map[f] for f in function_names]
+    #     elif not isinstance(function_keys, list):
+    #         raise ValueError("mozaiko ERROR: 'function_keys' must be None, a string, or a list of functions")
 
-        return taxon_stats
+    #     data_list = analysis_data.get(analysis_name, [])
+
+    #     taxon_values = defaultdict(list)
+    #     for entry in data_list:
+    #         taxon = entry['taxon'].strip()
+    #         taxon_values[taxon].append(entry[analysis_key])
+
+    #     taxon_stats = {}
+    #     for taxon, values in taxon_values.items():
+    #         taxon_stats[taxon] = {}
+    #         for func in function_keys:
+    #             func_name = func.__name__
+    #             taxon_stats[taxon][func_name] = func(values)
+
+    #     return taxon_stats
 
     def get_max_mismatches_per_taxon(
         self, mismatches_dictionary: dict, save_results: bool = False
