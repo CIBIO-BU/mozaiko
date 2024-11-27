@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Callable, Tuple
+from typing import Any, Dict, List, Optional, Callable, Tuple, Union, Literal
 import numpy as np
 
 import pandas as pd
@@ -618,7 +618,43 @@ class Binding:
 
         return comprehensive_primer_dfs, primer_gc_df
 
-    def iterate_over_comprehensive_primer_dfs(self, comprehensive_primer_dfs):
+    def add_missing_otl_taxa_to_df_with_values_of_zero(self, primer_df, otl_taxa_set):
+        """
+        This methid adds entries for taxons that are not present in the in-silico analysis
+        but need to be present for downstream analysis regarding the OTL.
+
+        Parameters:
+        - dataframe: Dataframe
+            A dataframe containing the primer-PBS analysis.
+        - otl_taxa_set: set
+            A set containing all unique values of taxa present in the OTL.
+
+        Returns:
+        - otl_populated_df: Dataframe
+            A dataframe equal to input but with additional entries of taxa that was in the OTL but
+            not on the in-silico files. These entries will have 'otl-import' for 'seq_id' and
+            a value of zero for all other analysis.
+        """
+        taxon_on_df = set(primer_df["taxon"].unique())
+        missing_taxon = otl_taxa_set - taxon_on_df
+        intersection = taxon_on_df & missing_taxon
+        len_intersection = len(intersection)
+
+        if missing_taxon:
+            new_entries = pd.DataFrame(
+                {
+                    "taxon": list(missing_taxon),
+                    "seq_id": ["otl-import"] * len(missing_taxon),
+                    **{col: 0 for col in primer_df.columns if col not in ["taxon", "seq_id"]}
+                }
+            )
+
+        otl_populated_df = pd.concat([primer_df, new_entries], ignore_index=True)
+
+        print(otl_taxa_set)
+        return otl_populated_df
+
+    def iterate_over_comprehensive_primer_dfs(self, comprehensive_primer_dfs, add_otl_taxa: bool = True, otl_taxa_set: set = None):
         """
         Method to iterate over the comprehensive primer Dataframe to extract a Dataframe for each
         primer and attribute it to a variable.
@@ -628,16 +664,29 @@ class Binding:
             A dictionary containing the primers as keys and Dataframes as values.
 
         Return:
-
+        - processed_primers: List
+            A list containing the primer's dataframes.
         """
         processed_primers = []
 
         for key, dataframe in comprehensive_primer_dfs.items():
             variable_name = key.replace("-", "_").replace(" ", "_")
-            self.processed_primer[variable_name] = dataframe
+            self.processed_primers[variable_name] = dataframe
             processed_primers.append(variable_name)
 
-        return processed_primers
+        if add_otl_taxa == True:
+            otl_populated_dfs = [
+                self.add_missing_otl_taxa_to_df_with_values_of_zero(
+                    self.processed_primers[primer_df],
+                    otl_taxa_set
+                )
+                for primer_df in processed_primers
+            ]
+            self.processed_primers = {
+            key: df for key, df in zip(processed_primers, otl_populated_dfs)
+        }
+
+        return self.processed_primers
 
     def get_primer_df(self, primer_name):
         """
@@ -652,130 +701,48 @@ class Binding:
         """
         return self.processed_primers.get(primer_name, None)
 
-    # def compute_taxon_level_stats(self,
-    #     analysis_data: Dict[str, Any],
-    #     analysis_name: str,
-    #     analysis_key: str,
-    #     function_keys: List[Callable] = [np.mean, np.median, np.max, np.min, np.std]
-    # ) -> Dict[str, Dict[str, float]]:
-    #     """
-    #     This method computes stats at the taxon level for a given analysis.
+    def process_analysis_per_taxon(
+            self,
+            primer_df: pd.DataFrame,
+            operation: Literal["min", "max", "sum", "mean"],
+            analysis_name: str,
+        ) -> Union[pd.DataFrame, pd.Series]:
+            """
+            This method performs user-inputed operations on a groupby of 'taxon'.
 
-    #     Parameters:
-    #     - analysis_data: List of dictionary containing taxon-level data
-    #     - analysis_key: Key in the dictionary to use for statistical computation
-    #     - function_keys: List of numpy or custom functions to apply to the data
+            Parameters:
+            - operation: str
+                The operation to perform. Options are 'min', 'max', 'sum' and 'mean'.
+            - column: str
+                The column on which to perform the operation.
 
-    #     Returns:
-    #     A dictionary with taxon names as keys and computed statistics
-    #     """
-    #     function_map = {
-    #         'mean': np.mean,
-    #         'median': np.median,
-    #         'max': np.max,
-    #         'min': np.min,
-    #         'std': np.std
-    #     }
+            Returns:
+            - pd.DataFrame or pd.Series
+                The grouped and processed DataFrame or Series.
+            """
+            if "taxon" not in primer_df.columns:
+                raise ValueError("mozaiko ERROR: The input DataFrame must contain a 'taxon' column.")
 
-    #     if not any(analysis_key in entry for entry in analysis_data.get(analysis_name, [])):
-    #         raise ValueError(f"mozaiko ERROR: Key '{analysis_key}' not found in analysis data.")
+            if analysis_name not in primer_df.columns:
+                raise ValueError(f"mozaiko ERROR: The specified analysis '{analysis_name}' does not exist in the DataFrame.")
 
-    #     if function_keys is None:
-    #         function_keys = list(function_map.values())
-    #     elif isinstance(function_keys, str):
-    #         function_names = [f.strip().lower() for f in function_keys.split(',')]
+            grouped_taxa = primer_df.groupby("taxon")
 
-    #         invalid_function_name = [f for f in function_names if f not in function_map]
-    #         if invalid_function_name:
-    #             raise ValueError(f"mozaiko ERROR: Invalid function found ({', '.join(invalid_function_name)}). "
-    #                             f"Valid options are: {', '.join(function_map.keys())}")
+            if operation == "min":
+                result = grouped_taxa[analysis_name].min()
+            elif operation == "max":
+                result = grouped_taxa[analysis_name].max()
+            elif operation == "sum":
+                result = grouped_taxa[analysis_name].sum()
+            elif operation == "mean":
+                result = grouped_taxa[analysis_name].mean()
+            else:
+                raise ValueError(f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean'.")
 
-    #         function_keys = [function_map[f] for f in function_names]
-    #     elif not isinstance(function_keys, list):
-    #         raise ValueError("mozaiko ERROR: 'function_keys' must be None, a string, or a list of functions")
+            return result
 
-    #     data_list = analysis_data.get(analysis_name, [])
-
-    #     taxon_values = defaultdict(list)
-    #     for entry in data_list:
-    #         taxon = entry['taxon'].strip()
-    #         taxon_values[taxon].append(entry[analysis_key])
-
-    #     taxon_stats = {}
-    #     for taxon, values in taxon_values.items():
-    #         taxon_stats[taxon] = {}
-    #         for func in function_keys:
-    #             func_name = func.__name__
-    #             taxon_stats[taxon][func_name] = func(values)
-
-    #     return taxon_stats
-
-    def get_max_mismatches_per_taxon(
-        self, mismatches_dictionary: dict, save_results: bool = False
-    ):
-        """
-        This method get the maximum number of mismatches per taxon for each primer pair.
-
-        Parameters:
-        - mismatches_dicitonary: Dict
-            A dictionary containing the number of mismatches for every sequence for each primer pair.
-        - save_results: bool
-            When set to True, the dictionary containing the results will be saved as a JSON file.
-
-        Ouput:
-         - max_mismatches_per_taxon: Dict
-            A nested dictionary containing the primer pairs as keys and a dictionary containing the
-            max number of mismatches attained for each taxon.
-        """
-        grouped_taxons: Dict = {}
-
-        for primer_pair, entries in mismatches_dictionary.items():
-            grouped_taxons[primer_pair] = {}
-            for entry in entries:
-                taxon = entry["taxon"].strip()
-
-                if taxon not in grouped_taxons[primer_pair]:
-                    grouped_taxons[primer_pair][taxon] = []
-
-                grouped_taxons[primer_pair][taxon].append(entry["mismatch_sum"])
-
-        max_mismatches_per_taxon = {}
-
-        for primer_pair, taxon_data in grouped_taxons.items():
-            max_mismatches_per_taxon[primer_pair] = {
-                taxon: max(mismatches) for taxon, mismatches in taxon_data.items()
-            }
-
-        if save_results == True:
-            with open("max_mismatches_per_taxon.json", "w") as fp:
-                json.dump(max_mismatches_per_taxon, fp)
-
-        return max_mismatches_per_taxon
-
-    def get_max_mismatches_count_across_taxon(
-        self, max_mismatches_per_taxon_dict: dict
-    ):
-        """
-        This method retrieves the sum of the maximum mismatches across taxon.
-
-        Parameters:
-        - max_mismatches_per_taxon_dict: Dict
-            A nested dictionary containing the primer pairs as keys and a dictionary containing the
-            max number of mismatches attained for each taxon.
-
-        Output:
-        - max_mismatches_count_per_primer: Dict
-            A dictionary containing the primer pairs as keys and the total sum of the maximum number
-            of mismatches from all taxons identified by the primer.
-        """
-        max_mismatches_count_per_primer = {}
-
-        for primer_pair, max_taxon_mismatches in max_mismatches_per_taxon_dict.items():
-            max_mismatches_count_per_primer[primer_pair] = sum(
-                max_taxon_mismatches.values()
-            )
-
-        return max_mismatches_count_per_primer
+    def process_analysis_across_taxon():
+        pass
 
     def get_priming_ratio(
         self, mismatches_dictionary_all_len: dict, mismatches_dictionary_three_end: dict
@@ -825,9 +792,6 @@ class Binding:
 
         return priming_ratio_dict
 
-
-
-
 class MetricsSystemExecutor:
     """
     This class orchestrates the entire Metrics System, coordinating the execution of all evaluation
@@ -874,17 +838,4 @@ class MetricsSystemExecutor:
 
         return reference_db_quality
 
-    # TODO: check how to best do folder and file intake, otl handling and per taxon computations
-
-
-# if __name__ == '__main__':
-# Debug
-#     amp_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/amplicon/filtered"
-#     insert_folder = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test-amplicon/insert/filtered"
-#     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-primers.tsv"
-
-
-#     cls_instance = Binding()
-#     mm_dict = cls_instance.get_number_of_primer_pbs_mismatches(amp_folder, insert_folder, primer_table)
-#     mm_max = cls_instance.get_max_mismatches_per_taxon(mm_dict)
-#     mm_max
+    # TODO: check how to best do folder and file intake, otl handling
