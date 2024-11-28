@@ -453,7 +453,7 @@ class Binding:
               entire primer-binding site.
             - `three_end_mismatch_sum`: Sum of mismatches for the last 5 bases of the primer-binding site
               (three-end region).
-            - `tm_average`: Average melting temperature of the forward and reverse primer-binding sites.
+            - `min_tm`: Min. melting temperature between the forward and reverse primer-binding sites.
             - `gc_matches_sum`: Total GC matches in the three-end region for the forward and reverse primers.
         - primer_gc_df : pd.DataFrame
             A DataFrame summarizing GC fractions for each primer, with columns:
@@ -516,10 +516,17 @@ class Binding:
                         pbs_fwd_tm = MeltingTemp.Tm_GC(pbs_fwd_seq, valueset=7, strict=False)
                         pbs_rev_tm = MeltingTemp.Tm_GC(pbs_rev_seq, valueset=7, strict=False)
 
+                        min_tm = min(pbs_fwd_tm, pbs_rev_tm)
+                        min_tm = float(round(min_tm, 2))
+                        substraction = pbs_fwd_tm - pbs_rev_tm
+                        delta_tm = abs(substraction)
+                        delta_tm = round(delta_tm, 2)
+
                         pbs_melting_temperature_data.append({
                             "seq_id": seq_id,
                             "taxon": taxon,
-                            "tm_average": (pbs_fwd_tm + pbs_rev_tm) // 2,
+                            "min_tm": min_tm,
+                            "delta_tm": delta_tm
                         })
 
 
@@ -585,7 +592,7 @@ class Binding:
                 )
 
                 comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(pbs_melting_temperature_data)[['seq_id', 'taxon', 'tm_average']],
+                    pd.DataFrame(pbs_melting_temperature_data)[['seq_id', 'taxon', 'min_tm', 'delta_tm']],
                     on=['seq_id', 'taxon']
                 )
 
@@ -599,8 +606,9 @@ class Binding:
                 'taxon',
                 'full_len_mismatch_sum',
                 'three_end_mismatch_sum',
-                'tm_average',
-                'gc_matches_sum'
+                'gc_matches_sum',
+                'min_tm',
+                'delta_tm'
                 ]
 
                 comprehensive_df = comprehensive_df[column_order]
@@ -651,7 +659,6 @@ class Binding:
 
         otl_populated_df = pd.concat([primer_df, new_entries], ignore_index=True)
 
-        print(otl_taxa_set)
         return otl_populated_df
 
     def iterate_over_comprehensive_primer_dfs(self, comprehensive_primer_dfs, add_otl_taxa: bool = True, otl_taxa_set: set = None):
@@ -704,7 +711,7 @@ class Binding:
     def process_analysis_per_taxon(
             self,
             primer_df: pd.DataFrame,
-            operation: Literal["min", "max", "sum", "mean"],
+            operation: Literal["min", "max", "sum", "mean", "coef_var"],
             analysis_name: str,
         ) -> Union[pd.DataFrame, pd.Series]:
             """
@@ -712,7 +719,7 @@ class Binding:
 
             Parameters:
             - operation: str
-                The operation to perform. Options are 'min', 'max', 'sum' and 'mean'.
+                The operation to perform. Options are 'min', 'max', 'sum', 'mean', and 'coef_var'.
             - column: str
                 The column on which to perform the operation.
 
@@ -736,61 +743,111 @@ class Binding:
                 result = grouped_taxa[analysis_name].sum()
             elif operation == "mean":
                 result = grouped_taxa[analysis_name].mean()
+            elif operation == "coef_var":
+                mean = grouped_taxa[analysis_name].mean()
+                std = grouped_taxa[analysis_name].std()
+                result = (std / mean * 100).rename("coef_var")
             else:
-                raise ValueError(f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean'.")
+                raise ValueError(f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'.")
+
+            result = pd.DataFrame(result)
 
             return result
 
-    def process_analysis_across_taxon():
-        pass
-
-    def get_priming_ratio(
-        self, mismatches_dictionary_all_len: dict, mismatches_dictionary_three_end: dict
-    ):
+    def process_analysis_across_taxon(self,
+            tax_grouped_df: pd.DataFrame,
+            operation: Literal["min", "max", "sum", "mean", "coef_var"]):
         """
-        This method computes the priming ration between the maximum number of mismatches per taxon
-        and the maximum number of mismatches at the 3'end per taxon.
+        This method will perform operation across the taxon to determine a value for a primer pair.
 
         Parameters:
-        - mismatches_dictionary_all_len: Dict
-            A nested dictionary containing the primer pairs as keys and a dictionary containing the
-            max number of mismatches attained for each taxon, in across the total sequence length.
-        - mismatches_dictionary_three_end: Dict
-            A nested dictionary containing the primer pairs as keys and a dictionary containing the
-            max number of mismatches attained for each taxon, in across the 3'end length.
+        - tax_grouped_df: pd.Dataframe
+            Dataframe containing grouped taxa data.
+        - operation: str
+            An operation to apply to the dataframe.
+
+        Returns:
+        - value: int
+            A value that reflects a characterstic of the primer-set.
+        """
+
+        if operation == "min":
+            result = tax_grouped_df.min()
+        elif operation == "max":
+            result = tax_grouped_df.max()
+        elif operation == "sum":
+            result = tax_grouped_df.sum()
+        elif operation == "mean":
+            result = tax_grouped_df.mean()
+        elif operation == "coef_var":
+            mean = tax_grouped_df.mean()
+            std = tax_grouped_df.std()
+            result = (std / mean * 100)
+        else:
+            raise ValueError(f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'.")
+
+        value = int(result.iloc[0])
+
+        return value
+
+    def get_priming_ratio(
+        self, max_mismatch_full_len: pd.DataFrame, max_mismatch_three_end: pd.DataFrame
+    ):
+        """
+        This method computes the priming ratio between the maximum number of mismatches per taxon
+        and the maximum number of mismatches at the 3'end per taxon. This metric is performed at the
+        primer-level, thefore, all of the ratio are then summed.
+
+        Parameters:
+        - max_mismatch_full_len: DataFrame
+            A DataFrame containing the max number of mismatches attained for each taxon,
+            across the total sequence length.
+        - max_mismatch_three_end: DataFrame
+            A DataFrame containing the max number of mismatches attained for each taxon,
+            across the 3'end length.
 
         Output:
-        - priming_ratio_dict: Dict
-            A dictionary containing the sum of the ratios between the maximum number of mismatches
-            per taxon and the maximum number of mismatches at the 3'end per taxon.
+        - priming_ratio: float
+            The value for the priming ratio.
         """
-        priming_ratio_dict = {}
+        merged_df = max_mismatch_three_end.join(max_mismatch_full_len, how='inner')
+        merged_df['priming_ratio'] = merged_df['three_end_mismatch_sum'] / merged_df['full_len_mismatch_sum']
 
-        for primer_pair in mismatches_dictionary_three_end:
-            if primer_pair in mismatches_dictionary_all_len:
-                priming_ratio_dict[primer_pair] = 0
+        ratio_col = merged_df['priming_ratio']
+        ratio_df = pd.DataFrame(ratio_col)
+        priming_ratio = self.process_analysis_across_taxon(ratio_df, operation='sum')
 
-                three_end_taxa = set(
-                    mismatches_dictionary_three_end[primer_pair].keys()
-                )
-                all_len_taxa = set(mismatches_dictionary_all_len[primer_pair].keys())
-                common_taxa = three_end_taxa.intersection(all_len_taxa)
+        priming_ratio = float(round(priming_ratio, 2))
 
-                for taxon in common_taxa:
-                    three_end_value = mismatches_dictionary_three_end[primer_pair][
-                        taxon
-                    ]
-                    all_len_value = mismatches_dictionary_all_len[primer_pair][taxon]
+        return priming_ratio
 
-                    if all_len_value != 0:
-                        ratio = three_end_value / all_len_value
-                        priming_ratio_dict[primer_pair] += ratio
+    def get_total_gc_matches(self):
+        pass
 
-        for key, value in priming_ratio_dict.items():
-            rounded_value = round(value, 2)
-            priming_ratio_dict[key] = rounded_value
+    def tm_score(self, comprehensive_primer_dfs: pd.DataFrame, temp_threshold: float = 2.0):
+        """
+        This method retrieves the percentage of entries whose variation of temperature between
+        the forward and reverse PBS sequence is lower than the temp_threshold.
 
-        return priming_ratio_dict
+        Parameters:
+        - comprehensive_primer_dfs: Dataframe
+            A dataframe containing the results from the comprehensive Primer-PBS analysis.
+        - temp_theresold: float
+            The temperature threshold to look for.
+
+        Return:
+        - tm_score: int
+
+        """
+        delta_col = comprehensive_primer_dfs['delta_tm']
+        number_of_entries_passing_threshold = (delta_col < temp_threshold).sum()
+        total_count = delta_col.count()
+
+        tm_score = (number_of_entries_passing_threshold / total_count) * 100
+
+        tm_score = float(round(tm_score, 2))
+
+        return tm_score
 
 class MetricsSystemExecutor:
     """
