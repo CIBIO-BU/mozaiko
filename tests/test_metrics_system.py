@@ -4,6 +4,8 @@ Unit tests for metrics_system.py
 
 import sys
 import unittest
+import tempfile
+import shutil
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, call, mock_open, patch
@@ -74,6 +76,113 @@ class TestOtlHandler(unittest.TestCase):
         self.assertEqual(total_taxa_count, len(expected_unique_taxa))
         self.assertEqual(unique_taxa, expected_unique_taxa)
 
+    @patch("builtins.print")
+    @patch("os.replace")
+    def test_filter_fasta_no_pipe_header(self, mock_replace, mock_print):
+        """
+        Method to test handling of a header without a pipe character.
+        """
+        test_fasta_content = """>no_pipe_header
+                                ATGCATGCATGC"""
+
+        otl_taxa_ex = set()
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as temp_file:
+            temp_file.write(test_fasta_content)
+            temp_file_path = temp_file.name
+
+        try:
+            self.handler.filter_fasta_for_species_not_in_otl(temp_file_path, otl_taxa_ex)
+            mock_print.assert_any_call("mozaico WARNING: No '|' found in header - >no_pipe_header")
+        finally:
+            os.unlink(temp_file_path)
+
+    @patch("builtins.print")
+    @patch("os.replace")
+    def test_filter_fasta_no_taxa(self, mock_replace, mock_print):
+        """
+        Method to test handling of a header without a pipe character.
+        """
+        test_fasta_content = """>notax | \nATGCATGCATGC"""
+
+        otl_taxa_ex = set()
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as temp_file:
+            temp_file.write(test_fasta_content)
+            temp_file_path = temp_file.name
+
+        try:
+            self.handler.filter_fasta_for_species_not_in_otl(temp_file_path, otl_taxa_ex)
+            mock_print.assert_any_call("mozaico WARNING: Taxonomy seems to not be present for - >notax |")
+        finally:
+            os.unlink(temp_file_path)
+
+    @patch("os.replace")
+    def test_filter_fasta_overwrite_mode(self, mock_replace):
+        """
+        Method to test the overwrite functionality.
+        """
+        test_fasta_content = """>valid_header | taxa1\nATGCATGCATGC"""
+
+        otl_taxa_ex = {'taxa1'}
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as temp_file:
+            temp_file.write(test_fasta_content)
+            temp_file_path = temp_file.name
+
+        try:
+            total_count, kept_count, output_file = self.handler.filter_fasta_for_species_not_in_otl(
+                temp_file_path, otl_taxa_ex, overwrite=True
+            )
+
+            mock_replace.assert_called_once_with(
+                temp_file_path + ".temp",
+                temp_file_path
+            )
+
+            self.assertEqual(total_count, 1)
+            self.assertEqual(kept_count, 1)
+            self.assertEqual(output_file, temp_file_path)
+        finally:
+            os.unlink(temp_file_path)
+
+    def test_filter_fasta_non_overwrite_mode(self):
+        """
+        Test function when overwrite is set to False.
+        """
+        test_fasta_content = """>valid_header | taxa1\nATGCATGCATGC"""
+        otl_taxa_ex = {'taxa1'}
+
+        test_dir = os.path.join(os.path.dirname(__file__), 'test_data')
+        os.makedirs(test_dir, exist_ok=True)
+
+        input_file_path = os.path.join(test_dir, "test_input.fasta")
+        with open(input_file_path, 'w') as f:
+            f.write(test_fasta_content)
+
+        try:
+            total_count, kept_count, output_file = self.handler.filter_fasta_for_species_not_in_otl(
+                input_file_path, otl_taxa_ex, overwrite=False
+            )
+            self.assertEqual(total_count, 1)
+            self.assertEqual(kept_count, 1)
+
+            assert os.path.exists(output_file)
+            assert output_file.endswith("test_input.fasta")
+            assert "_otl_filtered" in output_file
+
+            with open(output_file, 'r') as f:
+                content = f.read().strip()
+            assert content == test_fasta_content
+            assert os.path.dirname(output_file) != os.path.dirname(input_file_path), "Output file should be in a different directory"
+
+        finally:
+            if os.path.exists(input_file_path):
+                os.remove(input_file_path)
+            if 'output_file' in locals() and os.path.exists(output_file):
+                os.remove(output_file)
+            if os.path.exists(test_dir) and not os.listdir(test_dir):
+                os.rmdir(test_dir)
 
 class TestReferenceDatabaseQuality(unittest.TestCase):
     def setUp(self):

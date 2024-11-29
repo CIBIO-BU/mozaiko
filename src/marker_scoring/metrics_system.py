@@ -97,7 +97,6 @@ class OtlHandler:
         tuple
             (number of sequences kept, path to output file)
         """
-        base, ext = os.path.splitext(fasta_file)
         input_folder = os.path.dirname(fasta_file)
         file_name = os.path.basename(fasta_file)
 
@@ -105,7 +104,8 @@ class OtlHandler:
             output_file = fasta_file
         else:
             filtered_folder = os.path.join(
-                input_folder, f"{os.path.basename(input_folder)}_otl_filtered"
+                input_folder,
+                f"{os.path.basename(input_folder)}_otl_filtered"
             )
             os.makedirs(filtered_folder, exist_ok=True)
             output_file = os.path.join(filtered_folder, file_name)
@@ -131,17 +131,31 @@ class OtlHandler:
                     total_seq_count += 1
 
                     try:
-                        header_parts = line.split("|")
+                        if '|' not in line:
+                            print(f"mozaico WARNING: No '|' found in header - {line}")
+                            keep_sequence = False
+                            continue
+
+                        header_parts = line.split(" | ")
+                        print(header_parts)
+                        if len(header_parts) < 2 or not header_parts[1].strip():
+                            print(f"mozaico WARNING: Taxonomy seems to not be present for - {line}")
+
+                        taxa = header_parts[1].strip()
+                        print(taxa)
+                        print(otl_taxa_set)
+
                         if len(header_parts) > 1:
-                            taxa = line.split("|")[1].strip()
+                            taxa = header_parts[1].strip()
                             keep_sequence = taxa in otl_taxa_set
+                            print(keep_sequence)
                             if keep_sequence:
                                 kept_seq_count += 1
                         else:
-                            print(f"WARNING: No '|' found in header - {line}")
+                            print(f"mozaico WARNING: Header parsing error - {line}")
                             keep_sequence = False
-                    except IndexError as e:
-                        print(f"WARNING: Header parsing error - {line}")
+                    except Exception as e:
+                        print(f"mozaico WARNING: Header parsing error - {line}")
                         print(f"Error details: {str(e)}")
                         keep_sequence = False
                 elif line and keep_sequence:
@@ -149,6 +163,8 @@ class OtlHandler:
 
         if current_header and keep_sequence:
             sequences_to_write.extend([current_header, "".join(current_sequence)])
+
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
         if overwrite:
             temp_file = output_file + ".temp"
