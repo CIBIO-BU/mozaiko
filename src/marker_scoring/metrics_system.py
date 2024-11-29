@@ -2,9 +2,9 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Callable, Tuple, Union, Literal
-import numpy as np
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
@@ -483,12 +483,14 @@ class Binding:
             rev_comp_primer_seq_rev = str(Seq(primer_seq_rev).reverse_complement())
 
             # Compute GC fraction for Primer
-            primer_gc_fractions.append({
-            "barcode_region": barcode_region,
-            "assay_name": assay_name,
-            "forward_primer_gc_fraction": gc_fraction(primer_seq_fwd),
-            "reverse_primer_gc_fraction": gc_fraction(primer_seq_rev)
-            })
+            primer_gc_fractions.append(
+                {
+                    "barcode_region": barcode_region,
+                    "assay_name": assay_name,
+                    "forward_primer_gc_fraction": gc_fraction(primer_seq_fwd),
+                    "reverse_primer_gc_fraction": gc_fraction(primer_seq_rev),
+                }
+            )
 
             full_mismatches_data = []
             three_end_mismatches_data = []
@@ -513,8 +515,12 @@ class Binding:
                         pbs_rev_seq = pbs_row["rev_seq"]
 
                         # Melting Temperature
-                        pbs_fwd_tm = MeltingTemp.Tm_GC(pbs_fwd_seq, valueset=7, strict=False)
-                        pbs_rev_tm = MeltingTemp.Tm_GC(pbs_rev_seq, valueset=7, strict=False)
+                        pbs_fwd_tm = MeltingTemp.Tm_GC(
+                            pbs_fwd_seq, valueset=7, strict=False
+                        )
+                        pbs_rev_tm = MeltingTemp.Tm_GC(
+                            pbs_rev_seq, valueset=7, strict=False
+                        )
 
                         min_tm = min(pbs_fwd_tm, pbs_rev_tm)
                         min_tm = float(round(min_tm, 2))
@@ -522,13 +528,14 @@ class Binding:
                         delta_tm = abs(substraction)
                         delta_tm = round(delta_tm, 2)
 
-                        pbs_melting_temperature_data.append({
-                            "seq_id": seq_id,
-                            "taxon": taxon,
-                            "min_tm": min_tm,
-                            "delta_tm": delta_tm
-                        })
-
+                        pbs_melting_temperature_data.append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "min_tm": min_tm,
+                                "delta_tm": delta_tm,
+                            }
+                        )
 
                         # Compute full Primer-Template mismatches
                         full_fwd_mismatches = calculate_iupac_mismatches(
@@ -538,11 +545,14 @@ class Binding:
                             rev_comp_primer_seq_rev, pbs_rev_seq
                         )
 
-                        full_mismatches_data.append({
-                            "seq_id": seq_id,
-                            "taxon": taxon,
-                            "full_len_mismatch_sum": full_fwd_mismatches + full_rev_mismatches,
-                        })
+                        full_mismatches_data.append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "full_len_mismatch_sum": full_fwd_mismatches
+                                + full_rev_mismatches,
+                            }
+                        )
 
                         # Compute three-end mismatches and GC clamp
                         three_end_fwd_seq = pbs_fwd_seq[-5:]
@@ -557,12 +567,14 @@ class Binding:
                             three_end_rev_primers, three_end_rev_seq
                         )
 
-                        three_end_mismatches_data.append({
-                            "seq_id": seq_id,
-                            "taxon": taxon,
-                            "three_end_mismatch_sum": three_end_fwd_mismatches + three_end_rev_mismatches,
-                        })
-
+                        three_end_mismatches_data.append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "three_end_mismatch_sum": three_end_fwd_mismatches
+                                + three_end_rev_mismatches,
+                            }
+                        )
 
                         # GC matches at three-end
                         three_end_fwd_gc_matches = calculate_iupac_mismatches(
@@ -576,39 +588,49 @@ class Binding:
                             search_gc_clamp=True,
                         )[1]
 
-                        three_end_gc_matches_data.append({
-                            "seq_id": seq_id,
-                            "taxon": taxon,
-                            "gc_matches_sum": three_end_fwd_gc_matches + three_end_rev_gc_matches,
-                        })
+                        three_end_gc_matches_data.append(
+                            {
+                                "seq_id": seq_id,
+                                "taxon": taxon,
+                                "gc_matches_fwd": three_end_fwd_gc_matches,
+                                "gc_matches_rev": three_end_rev_gc_matches,
+                            }
+                        )
 
             if matching_files_found:
                 # Start by adding one df
                 comprehensive_df = pd.DataFrame(full_mismatches_data)
                 # Merge all other df's by seq_id & taxon
                 comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(three_end_mismatches_data)[['seq_id', 'taxon', 'three_end_mismatch_sum']],
-                    on=['seq_id', 'taxon']
+                    pd.DataFrame(three_end_mismatches_data)[
+                        ["seq_id", "taxon", "three_end_mismatch_sum"]
+                    ],
+                    on=["seq_id", "taxon"],
                 )
 
                 comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(pbs_melting_temperature_data)[['seq_id', 'taxon', 'min_tm', 'delta_tm']],
-                    on=['seq_id', 'taxon']
+                    pd.DataFrame(pbs_melting_temperature_data)[
+                        ["seq_id", "taxon", "min_tm", "delta_tm"]
+                    ],
+                    on=["seq_id", "taxon"],
                 )
 
                 comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(three_end_gc_matches_data)[['seq_id', 'taxon', 'gc_matches_sum']],
-                    on=['seq_id', 'taxon']
+                    pd.DataFrame(three_end_gc_matches_data)[
+                        ["seq_id", "taxon", "gc_matches_fwd", "gc_matches_rev"]
+                    ],
+                    on=["seq_id", "taxon"],
                 )
 
                 column_order = [
-                'seq_id',
-                'taxon',
-                'full_len_mismatch_sum',
-                'three_end_mismatch_sum',
-                'gc_matches_sum',
-                'min_tm',
-                'delta_tm'
+                    "seq_id",
+                    "taxon",
+                    "full_len_mismatch_sum",
+                    "three_end_mismatch_sum",
+                    "gc_matches_fwd",
+                    "gc_matches_rev",
+                    "min_tm",
+                    "delta_tm",
                 ]
 
                 comprehensive_df = comprehensive_df[column_order]
@@ -616,13 +638,14 @@ class Binding:
                 comprehensive_primer_dfs[pbs_filename] = comprehensive_df
 
                 if save_results:
-                    comprehensive_df.to_csv(f"{pbs_filename}_comprehensive.csv", index=False)
-
+                    comprehensive_df.to_csv(
+                        f"{pbs_filename}_comprehensive.csv", index=False
+                    )
 
         primer_gc_df = pd.DataFrame(primer_gc_fractions)
 
         if save_results:
-                primer_gc_df.to_csv("primer_gc_fractions.csv", index=False)
+            primer_gc_df.to_csv("primer_gc_fractions.csv", index=False)
 
         return comprehensive_primer_dfs, primer_gc_df
 
@@ -653,7 +676,11 @@ class Binding:
                 {
                     "taxon": list(missing_taxon),
                     "seq_id": ["otl-import"] * len(missing_taxon),
-                    **{col: 0 for col in primer_df.columns if col not in ["taxon", "seq_id"]}
+                    **{
+                        col: 0
+                        for col in primer_df.columns
+                        if col not in ["taxon", "seq_id"]
+                    },
                 }
             )
 
@@ -661,7 +688,12 @@ class Binding:
 
         return otl_populated_df
 
-    def iterate_over_comprehensive_primer_dfs(self, comprehensive_primer_dfs, add_otl_taxa: bool = True, otl_taxa_set: set = None):
+    def iterate_over_comprehensive_primer_dfs(
+        self,
+        comprehensive_primer_dfs,
+        add_otl_taxa: bool = True,
+        otl_taxa_set: Optional[set] = None,
+    ):
         """
         Method to iterate over the comprehensive primer Dataframe to extract a Dataframe for each
         primer and attribute it to a variable.
@@ -684,14 +716,13 @@ class Binding:
         if add_otl_taxa == True:
             otl_populated_dfs = [
                 self.add_missing_otl_taxa_to_df_with_values_of_zero(
-                    self.processed_primers[primer_df],
-                    otl_taxa_set
+                    self.processed_primers[primer_df], otl_taxa_set
                 )
                 for primer_df in processed_primers
             ]
             self.processed_primers = {
-            key: df for key, df in zip(processed_primers, otl_populated_dfs)
-        }
+                key: df for key, df in zip(processed_primers, otl_populated_dfs)
+            }
 
         return self.processed_primers
 
@@ -709,54 +740,62 @@ class Binding:
         return self.processed_primers.get(primer_name, None)
 
     def process_analysis_per_taxon(
-            self,
-            primer_df: pd.DataFrame,
-            operation: Literal["min", "max", "sum", "mean", "coef_var"],
-            analysis_name: str,
-        ) -> Union[pd.DataFrame, pd.Series]:
-            """
-            This method performs user-inputed operations on a groupby of 'taxon'.
+        self,
+        primer_df: pd.DataFrame,
+        operation: Literal["min", "max", "sum", "mean", "coef_var"],
+        analysis_name: str,
+    ) -> Union[pd.DataFrame, pd.Series]:
+        """
+        This method performs user-inputed operations on a groupby of 'taxon'.
 
-            Parameters:
-            - operation: str
-                The operation to perform. Options are 'min', 'max', 'sum', 'mean', and 'coef_var'.
-            - column: str
-                The column on which to perform the operation.
+        Parameters:
+        - operation: str
+            The operation to perform. Options are 'min', 'max', 'sum', 'mean', and 'coef_var'.
+        - column: str
+            The column on which to perform the operation.
 
-            Returns:
-            - pd.DataFrame or pd.Series
-                The grouped and processed DataFrame or Series.
-            """
-            if "taxon" not in primer_df.columns:
-                raise ValueError("mozaiko ERROR: The input DataFrame must contain a 'taxon' column.")
+        Returns:
+        - pd.DataFrame or pd.Series
+            The grouped and processed DataFrame or Series.
+        """
+        if "taxon" not in primer_df.columns:
+            raise ValueError(
+                "mozaiko ERROR: The input DataFrame must contain a 'taxon' column."
+            )
 
-            if analysis_name not in primer_df.columns:
-                raise ValueError(f"mozaiko ERROR: The specified analysis '{analysis_name}' does not exist in the DataFrame.")
+        if analysis_name not in primer_df.columns:
+            raise ValueError(
+                f"mozaiko ERROR: The specified analysis '{analysis_name}' does not exist in the DataFrame."
+            )
 
-            grouped_taxa = primer_df.groupby("taxon")
+        grouped_taxa = primer_df.groupby("taxon")
 
-            if operation == "min":
-                result = grouped_taxa[analysis_name].min()
-            elif operation == "max":
-                result = grouped_taxa[analysis_name].max()
-            elif operation == "sum":
-                result = grouped_taxa[analysis_name].sum()
-            elif operation == "mean":
-                result = grouped_taxa[analysis_name].mean()
-            elif operation == "coef_var":
-                mean = grouped_taxa[analysis_name].mean()
-                std = grouped_taxa[analysis_name].std()
-                result = (std / mean * 100).rename("coef_var")
-            else:
-                raise ValueError(f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'.")
+        if operation == "min":
+            result = grouped_taxa[analysis_name].min()
+        elif operation == "max":
+            result = grouped_taxa[analysis_name].max()
+        elif operation == "sum":
+            result = grouped_taxa[analysis_name].sum()
+        elif operation == "mean":
+            result = grouped_taxa[analysis_name].mean()
+        elif operation == "coef_var":
+            mean = grouped_taxa[analysis_name].mean()
+            std = grouped_taxa[analysis_name].std()
+            result = (std / mean * 100).rename("coef_var")
+        else:
+            raise ValueError(
+                f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'."
+            )
 
-            result = pd.DataFrame(result)
+        result = pd.DataFrame(result)
 
-            return result
+        return result
 
-    def process_analysis_across_taxon(self,
-            tax_grouped_df: pd.DataFrame,
-            operation: Literal["min", "max", "sum", "mean", "coef_var"]):
+    def process_analysis_across_taxon(
+        self,
+        tax_grouped_df: pd.DataFrame,
+        operation: Literal["min", "max", "sum", "mean", "coef_var"],
+    ):
         """
         This method will perform operation across the taxon to determine a value for a primer pair.
 
@@ -782,9 +821,11 @@ class Binding:
         elif operation == "coef_var":
             mean = tax_grouped_df.mean()
             std = tax_grouped_df.std()
-            result = (std / mean * 100)
+            result = std / mean * 100
         else:
-            raise ValueError(f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'.")
+            raise ValueError(
+                f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'."
+            )
 
         value = int(result.iloc[0])
 
@@ -810,21 +851,67 @@ class Binding:
         - priming_ratio: float
             The value for the priming ratio.
         """
-        merged_df = max_mismatch_three_end.join(max_mismatch_full_len, how='inner')
-        merged_df['priming_ratio'] = merged_df['three_end_mismatch_sum'] / merged_df['full_len_mismatch_sum']
+        merged_df = max_mismatch_three_end.join(max_mismatch_full_len, how="inner")
+        merged_df["priming_ratio"] = (
+            merged_df["three_end_mismatch_sum"] / merged_df["full_len_mismatch_sum"]
+        )
 
-        ratio_col = merged_df['priming_ratio']
+        ratio_col = merged_df["priming_ratio"]
         ratio_df = pd.DataFrame(ratio_col)
-        priming_ratio = self.process_analysis_across_taxon(ratio_df, operation='sum')
+        priming_ratio = self.process_analysis_across_taxon(ratio_df, operation="sum")
 
         priming_ratio = float(round(priming_ratio, 2))
 
         return priming_ratio
 
-    def get_total_gc_matches(self):
-        pass
+    def get_total_gc_matches(self, comprehensive_primer_dfs: pd.DataFrame):
+        """
+        This method retrived a score for the number of GCC matches between the PBS-Primer. The
+        presence of G and C bases at the 3' end of both forward and reverse primers (GC clamp)
+        is an indicator of higher binding stability. However, more than 3 G's or C's should be
+        avoided in the last 5 bases at the 3' end of the primer. Given this, a score system is
+        applied to the number of GC matches between the Primer-PBS:
+        - 1-3 matches -> 1 point
+        - 0 matches -> 0 points
+        - >3 matches -> 0 points
 
-    def tm_score(self, comprehensive_primer_dfs: pd.DataFrame, temp_threshold: float = 2.0):
+        The method translates the GC matches to points for both the forward and reverse sequences
+        and sums the result for each Seq Id.
+
+        Parameters:
+        - comprehensive_primer_dfs: DataFrame
+            A dictionary containing the primers as keys and Dataframes as values.
+
+        Return:
+        -
+        """
+
+        def gc_scoring(value):
+            if value == 0:
+                value = 0
+            elif value > 3:
+                value == 0
+            elif value > 0 and value < 3:
+                value == 1
+            return value
+
+        comprehensive_primer_dfs["gc_matches_fwd"] = comprehensive_primer_dfs[
+            "gc_matches_fwd"
+        ].apply(gc_scoring)
+        comprehensive_primer_dfs["gc_matches_rev"] = comprehensive_primer_dfs[
+            "gc_matches_rev"
+        ].apply(gc_scoring)
+
+        comprehensive_primer_dfs["gc_matches_score"] = (
+            comprehensive_primer_dfs["gc_matches_fwd"]
+            + comprehensive_primer_dfs["gc_matches_rev"]
+        )
+
+        return comprehensive_primer_dfs
+
+    def tm_score(
+        self, comprehensive_primer_dfs: pd.DataFrame, temp_threshold: float = 2.0
+    ):
         """
         This method retrieves the percentage of entries whose variation of temperature between
         the forward and reverse PBS sequence is lower than the temp_threshold.
@@ -837,9 +924,8 @@ class Binding:
 
         Return:
         - tm_score: int
-
         """
-        delta_col = comprehensive_primer_dfs['delta_tm']
+        delta_col = comprehensive_primer_dfs["delta_tm"]
         number_of_entries_passing_threshold = (delta_col < temp_threshold).sum()
         total_count = delta_col.count()
 
@@ -848,6 +934,7 @@ class Binding:
         tm_score = float(round(tm_score, 2))
 
         return tm_score
+
 
 class MetricsSystemExecutor:
     """

@@ -200,7 +200,17 @@ class InSilicoAmplification:
             min_fwd_overlap = str(forward_primer_length)
             min_rev_overlap = str(correct_reverse_primer_length)
 
-            adapter = foward_primer + ";" + "min_overlap=" + min_fwd_overlap + "..." + correct_reverse_primer + ";" + "min_overlap=" + min_rev_overlap
+            adapter = (
+                foward_primer
+                + ";"
+                + "min_overlap="
+                + min_fwd_overlap
+                + "..."
+                + correct_reverse_primer
+                + ";"
+                + "min_overlap="
+                + min_rev_overlap
+            )
 
             if max_len_according_to_ilumina is True:
                 max_len_formula = (
@@ -364,7 +374,7 @@ class InSilicoAmplification:
             if self.data:
                 self.process_commands(row, self.data)
             else:
-                raise ValueError('mozaiko ERROR: No input data was found.')
+                raise ValueError("mozaiko ERROR: No input data was found.")
             print(
                 f"   --------   {index + 1}/{len(self.primer_table)} processed   --------   "
             )
