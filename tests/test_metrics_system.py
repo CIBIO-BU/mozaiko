@@ -269,6 +269,10 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 class TestBinding(unittest.TestCase):
     def setUp(self):
         self.binding = Binding()
+        self.binding.processed_primers = {
+            "primer_1": pd.DataFrame({"taxon": ["A", "B"], "value": [1, 2]}),
+            "primer_2": pd.DataFrame({"taxon": ["C", "D"], "value": [3, 4]}),
+        }
 
     def test_init_with_default_mismatches(self):
         """
@@ -491,6 +495,65 @@ class TestBinding(unittest.TestCase):
             comprehensive_primer_dfs["primer_2"].sort_values(by="taxon").reset_index(drop=True),
         )
 
+    def test_get_primer_df_exists(self):
+        result = self.binding.get_primer_df("primer_1")
+        expected = pd.DataFrame({"taxon": ["A", "B"], "value": [1, 2]})
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_get_primer_df_not_exists(self):
+        result = self.binding.get_primer_df("primer_3")
+        self.assertIsNone(result)
+
+    def test_process_analysis_per_taxon(self):
+        primer_df = pd.DataFrame({"seq-id": ["abc", "def", "gh"], "taxon": ["A", "A", "B"], "value": [5, 10, 20]})
+        result = self.binding.process_analysis_per_taxon(
+            primer_df, operation="mean", analysis_name="value"
+        )
+        expected = pd.DataFrame({'value': {'A': 7.5, 'B': 20.0}})
+        expected.index.name = "taxon"
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_process_analysis_per_taxon_invalid_taxon(self):
+        primer_df = pd.DataFrame({"value": [10, 20]})
+        with self.assertRaises(ValueError):
+            self.binding.process_analysis_per_taxon(
+                primer_df, operation="mean", analysis_name="value"
+            )
+
+    def test_process_analysis_per_taxon_invalid_analysis_name(self):
+        primer_df = pd.DataFrame({"seq-id": ["abc", "def"], "taxon": ["A", "B"], "value": [10, 20]})
+        with self.assertRaises(ValueError):
+            self.binding.process_analysis_per_taxon(
+                primer_df, operation="mean", analysis_name="missing_column"
+            )
+
+    def test_process_analysis_across_taxon(self):
+        tax_grouped_df = pd.DataFrame({"value": [10, 20]})
+        result = self.binding.process_analysis_across_taxon(
+            tax_grouped_df, operation="sum"
+        )
+        self.assertEqual(result, 30)
+
+    # def test_get_priming_ratio(self):
+    #     max_mismatch_full_len = pd.DataFrame({"full_len_mismatch_sum": [10, 20]}, index=["A", "B"])
+    #     max_mismatch_three_end = pd.DataFrame({"three_end_mismatch_sum": [5, 15]}, index=["A", "B"])
+    #     result = self.binding.get_priming_ratio(
+    #         max_mismatch_full_len, max_mismatch_three_end
+    #     )
+    #     self.assertEqual(result, 1.25)
+
+    # def test_get_total_gc_matches(self):
+    #     primer_pbs_df = pd.DataFrame({
+    #         "gc_matches_fwd": [1, 3, 4],
+    #         "gc_matches_rev": [0, 3, 2],
+    #     })
+    #     result = self.binding.get_total_gc_matches(primer_pbs_df)
+    #     expected = pd.DataFrame({
+    #         "gc_matches_fwd": [1, 1, 0],
+    #         "gc_matches_rev": [0, 1, 1],
+    #         "gc_matches_score": [1, 2, 1],
+    #     })
+    #     pd.testing.assert_frame_equal(result, expected)
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
