@@ -311,6 +311,23 @@ class TestBinding(unittest.TestCase):
             self.assertEqual(len(result), 2)
             self.assertEqual(result[0], ("/path/A/file1.fasta", "/path/B/file1.txt"))
 
+    def test_parse_files_with_no_matching_base_names(self):
+        with patch("os.listdir") as mock_listdir, patch("builtins.print") as mock_print:
+            mock_listdir.side_effect = [
+                ["file1.fasta", "file2.txt"],
+                ["file3.fasta", "file4.txt"],
+            ]
+
+            result = self.binding.parse_files_with_same_extension_in_folders(
+                "/path/A", "/path/B"
+            )
+
+            self.assertIsNone(result)
+
+            mock_print.assert_called_once_with(
+                "mozaiko ERROR: No matching files found between the two folders. Check folder directory and content before re-running."
+            )
+
     def test_get_primer_table(self):
         with patch("pandas.read_csv") as mock_read_csv, patch.object(
             self.binding.amplification_instance, "validate_primer_table"
@@ -347,7 +364,6 @@ class TestBinding(unittest.TestCase):
             self.assertTrue("primer_name" in result.columns)
 
     def test_primer_pbs_analysis_no_matching_files(self):
-        # Patch to return no matching files between folders
         with patch.object(
             self.binding, "parse_files_with_same_extension_in_folders", return_value=[]
         ) as mock_parse_files:
@@ -358,6 +374,122 @@ class TestBinding(unittest.TestCase):
                 "data/test_data/test_primer_table.tsv",
             )
             self.assertEqual(result, (None, None))
+
+    def test_add_missing_otl_taxa_to_df_with_values_of_zero(self):
+        input_df = pd.DataFrame({
+            "taxon": ["taxon1", "taxon2"],
+            "seq_id": ["seq1", "seq2"],
+            "analysis1": [10, 20],
+            "analysis2": [5, 15]
+        })
+
+        otl_taxa_set = {"taxon1", "taxon2", "taxon3", "taxon4"}
+
+        expected_df = pd.DataFrame({
+            "taxon": ["taxon1", "taxon2", "taxon3", "taxon4"],
+            "seq_id": ["seq1", "seq2", "otl-import", "otl-import"],
+            "analysis1": [10, 20, 0, 0],
+            "analysis2": [5, 15, 0, 0]
+        })
+
+        otl_populated_df = self.binding.add_missing_otl_taxa_to_df_with_values_of_zero(input_df, otl_taxa_set)
+
+        pd.testing.assert_frame_equal(otl_populated_df.sort_values(by="taxon").reset_index(drop=True),
+                                       expected_df.sort_values(by="taxon").reset_index(drop=True))
+
+    def test_iterate_over_primer_pbs_df_with_otl_taxa(self):
+        comprehensive_primer_dfs = {
+            "primer_1": pd.DataFrame({
+                "taxon": ["taxon1", "taxon2"],
+                "seq_id": ["seq1", "seq2"],
+                "analysis1": [10, 20],
+                "analysis2": [5, 15],
+            }),
+            "primer_2": pd.DataFrame({
+                "taxon": ["taxon3", "taxon4"],
+                "seq_id": ["seq3", "seq4"],
+                "analysis1": [30, 40],
+                "analysis2": [25, 35],
+            }),
+        }
+
+        otl_taxa_set = {"taxon1", "taxon2", "taxon3", "taxon4", "taxon5"}
+
+        expected_primer_1_df = pd.DataFrame({
+            "taxon": ["taxon1", "taxon2", "taxon5"],
+            "seq_id": ["seq1", "seq2", "otl-import"],
+            "analysis1": [10, 20, 0],
+            "analysis2": [5, 15, 0],
+        })
+        expected_primer_2_df = pd.DataFrame({
+            "taxon": ["taxon3", "taxon4", "taxon5"],
+            "seq_id": ["seq3", "seq4", "otl-import"],
+            "analysis1": [30, 40, 0],
+            "analysis2": [25, 35, 0],
+        })
+
+        def side_effect_check(df, otl_taxa):
+            if df.equals(comprehensive_primer_dfs["primer_1"]) and otl_taxa == otl_taxa_set:
+                return expected_primer_1_df
+            elif df.equals(comprehensive_primer_dfs["primer_2"]) and otl_taxa == otl_taxa_set:
+                return expected_primer_2_df
+            raise ValueError("Unexpected call to mocked method.")
+
+        with patch.object(
+            self.binding,
+            "add_missing_otl_taxa_to_df_with_values_of_zero",
+            side_effect=side_effect_check
+        ) as mock_add_otl_taxa:
+            processed_primers = self.binding.iterate_over_primer_pbs_df(
+                comprehensive_primer_dfs,
+                add_otl_taxa=True,
+                otl_taxa_set=otl_taxa_set
+            )
+
+            self.assertIn("primer_1", processed_primers.keys())
+            self.assertIn("primer_2", processed_primers.keys())
+
+            pd.testing.assert_frame_equal(
+                processed_primers["primer_1"].sort_values(by="taxon").reset_index(drop=True),
+                expected_primer_1_df.sort_values(by="taxon").reset_index(drop=True),
+            )
+            pd.testing.assert_frame_equal(
+                processed_primers["primer_2"].sort_values(by="taxon").reset_index(drop=True),
+                expected_primer_2_df.sort_values(by="taxon").reset_index(drop=True),
+            )
+
+    def test_iterate_over_primer_pbs_df_without_otl_taxa(self):
+        comprehensive_primer_dfs = {
+            "primer_1": pd.DataFrame({
+                "taxon": ["taxon1", "taxon2"],
+                "seq_id": ["seq1", "seq2"],
+                "analysis1": [10, 20],
+                "analysis2": [5, 15],
+            }),
+            "primer_2": pd.DataFrame({
+                "taxon": ["taxon3", "taxon4"],
+                "seq_id": ["seq3", "seq4"],
+                "analysis1": [30, 40],
+                "analysis2": [25, 35],
+            }),
+        }
+
+        processed_primers = self.binding.iterate_over_primer_pbs_df(
+            comprehensive_primer_dfs,
+            add_otl_taxa=False,
+        )
+
+        self.assertIn("primer_1", processed_primers)
+        self.assertIn("primer_2", processed_primers)
+
+        pd.testing.assert_frame_equal(
+            processed_primers["primer_1"].sort_values(by="taxon").reset_index(drop=True),
+            comprehensive_primer_dfs["primer_1"].sort_values(by="taxon").reset_index(drop=True),
+        )
+        pd.testing.assert_frame_equal(
+            processed_primers["primer_2"].sort_values(by="taxon").reset_index(drop=True),
+            comprehensive_primer_dfs["primer_2"].sort_values(by="taxon").reset_index(drop=True),
+        )
 
 
 class TestMetricsSystemExecutor(unittest.TestCase):

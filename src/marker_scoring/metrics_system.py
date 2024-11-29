@@ -215,26 +215,9 @@ class OtlHandler:
                     )
                     results.append((output_file, total_seq_count, kept_seq_count))
                 except Exception as e:
-                    print(f"ERROR: Failed to process {file_name} due to {str(e)}")
+                    print(f"mozaico ERROR: Failed to process {file_name} due to {str(e)}")
 
         return results
-
-    def add_sequences_not_in_silico_amplified_but_in_otl_with_value_as_zero(
-        self, result_dict, otl_taxa_set
-    ):
-        """
-        This method takes a dictionary and a set of unique taxa set to add any missing target taxon
-        with a value of zero for downstream analysis.
-        """
-        updated_dict = result_dict.copy()
-
-        for primer_pair, taxa_counts in updated_dict.items():
-            missing_taxa = otl_taxa_set - set(taxa_counts.keys())
-
-            for taxon in missing_taxa:
-                taxa_counts[taxon] = 0
-
-        return updated_dict
 
 
 class ReferenceDatabaseQuality:
@@ -460,7 +443,7 @@ class Binding:
 
         Output:
         Tuple[Dict[str, pd.DataFrame], pd.DataFrame]
-        - comprehensive_primer_dfs : dict
+        - primer_pbs_df : dict
             A dictionary where keys are primer pair identifiers (based on barcode region and assay name),
             and values are DataFrames containing:
             - `seq_id`: Sequence identifier.
@@ -487,7 +470,7 @@ class Binding:
             print("mozaiko ERROR: No matching files found in the provided folders.")
             return None, None
 
-        comprehensive_primer_dfs = {}
+        primer_pbs_df = {}
         primer_gc_fractions = []
 
         for _primer_ind, primer_row in self.primer_table.iterrows():
@@ -651,7 +634,7 @@ class Binding:
 
                 comprehensive_df = comprehensive_df[column_order]
 
-                comprehensive_primer_dfs[pbs_filename] = comprehensive_df
+                primer_pbs_df[pbs_filename] = comprehensive_df
 
                 if save_results:
                     comprehensive_df.to_csv(
@@ -663,7 +646,7 @@ class Binding:
         if save_results:
             primer_gc_df.to_csv("primer_gc_fractions.csv", index=False)
 
-        return comprehensive_primer_dfs, primer_gc_df
+        return primer_pbs_df, primer_gc_df
 
     def add_missing_otl_taxa_to_df_with_values_of_zero(self, primer_df, otl_taxa_set):
         """
@@ -704,9 +687,9 @@ class Binding:
 
         return otl_populated_df
 
-    def iterate_over_comprehensive_primer_dfs(
+    def iterate_over_primer_pbs_df(
         self,
-        comprehensive_primer_dfs,
+        primer_pbs_df,
         add_otl_taxa: bool = True,
         otl_taxa_set: Optional[set] = None,
     ):
@@ -715,7 +698,7 @@ class Binding:
         primer and attribute it to a variable.
 
         Parameter:
-        - comprehensive_primer_dfs: Dict
+        - primer_pbs_df: Dict
             A dictionary containing the primers as keys and Dataframes as values.
 
         Return:
@@ -724,7 +707,7 @@ class Binding:
         """
         processed_primers = []
 
-        for key, dataframe in comprehensive_primer_dfs.items():
+        for key, dataframe in primer_pbs_df.items():
             variable_name = key.replace("-", "_").replace(" ", "_")
             self.processed_primers[variable_name] = dataframe
             processed_primers.append(variable_name)
@@ -880,7 +863,7 @@ class Binding:
 
         return priming_ratio
 
-    def get_total_gc_matches(self, comprehensive_primer_dfs: pd.DataFrame):
+    def get_total_gc_matches(self, primer_pbs_df: pd.DataFrame):
         """
         This method retrived a score for the number of GCC matches between the PBS-Primer. The
         presence of G and C bases at the 3' end of both forward and reverse primers (GC clamp)
@@ -895,7 +878,7 @@ class Binding:
         and sums the result for each Seq Id.
 
         Parameters:
-        - comprehensive_primer_dfs: DataFrame
+        - primer_pbs_df: DataFrame
             A dictionary containing the primers as keys and Dataframes as values.
 
         Return:
@@ -911,29 +894,29 @@ class Binding:
                 value == 1
             return value
 
-        comprehensive_primer_dfs["gc_matches_fwd"] = comprehensive_primer_dfs[
+        primer_pbs_df["gc_matches_fwd"] = primer_pbs_df[
             "gc_matches_fwd"
         ].apply(gc_scoring)
-        comprehensive_primer_dfs["gc_matches_rev"] = comprehensive_primer_dfs[
+        primer_pbs_df["gc_matches_rev"] = primer_pbs_df[
             "gc_matches_rev"
         ].apply(gc_scoring)
 
-        comprehensive_primer_dfs["gc_matches_score"] = (
-            comprehensive_primer_dfs["gc_matches_fwd"]
-            + comprehensive_primer_dfs["gc_matches_rev"]
+        primer_pbs_df["gc_matches_score"] = (
+            primer_pbs_df["gc_matches_fwd"]
+            + primer_pbs_df["gc_matches_rev"]
         )
 
-        return comprehensive_primer_dfs
+        return primer_pbs_df
 
     def tm_score(
-        self, comprehensive_primer_dfs: pd.DataFrame, temp_threshold: float = 2.0
+        self, primer_pbs_df: pd.DataFrame, temp_threshold: float = 2.0
     ):
         """
         This method retrieves the percentage of entries whose variation of temperature between
         the forward and reverse PBS sequence is lower than the temp_threshold.
 
         Parameters:
-        - comprehensive_primer_dfs: Dataframe
+        - primer_pbs_df: Dataframe
             A dataframe containing the results from the comprehensive Primer-PBS analysis.
         - temp_theresold: float
             The temperature threshold to look for.
@@ -941,7 +924,7 @@ class Binding:
         Return:
         - tm_score: int
         """
-        delta_col = comprehensive_primer_dfs["delta_tm"]
+        delta_col = primer_pbs_df["delta_tm"]
         number_of_entries_passing_threshold = (delta_col < temp_threshold).sum()
         total_count = delta_col.count()
 
