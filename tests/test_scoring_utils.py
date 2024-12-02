@@ -25,9 +25,22 @@ class TestScoringUtils(unittest.TestCase):
 
         with open(mismatches_cases, "r") as file:
             for line in file:
-                seq1, seq2, expected_mismatches = line.strip().split(" ")
+                seq1, seq2, expected_mismatches, gc_matches = line.strip().split(" ")
                 mismatches = calculate_iupac_mismatches(seq1, seq2)
                 self.assertEqual(mismatches, int(expected_mismatches))
+
+    def test_calculate_gc_matches(self):
+        """
+        Function to test the search_gc_clamp functonality, within the calculate_iupac_mismatches function.
+        """
+        mismatches_cases = self.test_directory / "iupac_mismatches_cases.txt"
+
+        with open(mismatches_cases, "r") as file:
+            for line in file:
+                print(line)
+                seq1, seq2, expected_mismatches, expected_gc_matches = line.strip().split(" ")
+                mismatches, real_gc_matches = calculate_iupac_mismatches(seq1, seq2, search_gc_clamp=True)
+                self.assertEqual(real_gc_matches, int(expected_gc_matches))
 
     def test_calculate_ambiguous_percentage(self):
         """

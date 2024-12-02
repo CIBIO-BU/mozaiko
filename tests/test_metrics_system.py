@@ -638,12 +638,19 @@ class TestBinding(unittest.TestCase):
                 primer_df, operation="mean", analysis_name="missing_column"
             )
 
-    def test_process_analysis_across_taxon(self):
+    def test_process_analysis_across_taxon_sum(self):
         tax_grouped_df = pd.DataFrame({"value": [10, 20]})
         result = self.binding.process_analysis_across_taxon(
             tax_grouped_df, operation="sum"
         )
         self.assertEqual(result, 30)
+
+    def test_process_analysis_across_taxon_coef_var(self):
+        tax_grouped_df = pd.DataFrame({"value": [30, 6]})
+        result = self.binding.process_analysis_across_taxon(
+            tax_grouped_df, operation="coef_var"
+        )
+        self.assertEqual(result, 94.28)
 
     def test_process_analysis_across_taxon_empty_df(self):
         tax_grouped_df = pd.DataFrame(columns=["value"])
