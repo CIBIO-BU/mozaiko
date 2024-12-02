@@ -568,10 +568,57 @@ class TestBinding(unittest.TestCase):
                 "value": [5, 10, 20],
             }
         )
+        # Test mean operation
         result = self.binding.process_analysis_per_taxon(
             primer_df, operation="mean", analysis_name="value"
         )
         expected = pd.DataFrame({"value": {"A": 7.5, "B": 20.0}})
+        expected.index.name = "taxon"
+        pd.testing.assert_frame_equal(result, expected)
+
+        # Test min operation
+        result_min = self.binding.process_analysis_per_taxon(primer_df, operation="min", analysis_name="value")
+        expected_min = pd.DataFrame({"value": {"A": 5.0, "B": 20.0}})
+        expected_min.index.name = "taxon"
+        pd.testing.assert_frame_equal(result_min, expected_min)
+
+        # Test max operation
+        result_max = self.binding.process_analysis_per_taxon(primer_df, operation="max", analysis_name="value")
+        expected_max = pd.DataFrame({"value": {"A": 10.0, "B": 20.0}})
+        expected_max.index.name = "taxon"
+        pd.testing.assert_frame_equal(result_max, expected_max)
+
+        # Test sum operation
+        result_sum = self.binding.process_analysis_per_taxon(primer_df, operation="sum", analysis_name="value")
+        expected_sum = pd.DataFrame({"value": {"A": 15.0, "B": 20.0}})
+        expected_sum.index.name = "taxon"
+        pd.testing.assert_frame_equal(result_sum, expected_sum)
+
+        # Test coef_var operation
+        result_coef_var = self.binding.process_analysis_per_taxon(primer_df, operation="coef_var", analysis_name="value")
+        expected_coef_var = pd.DataFrame({"value": {"A": 47.14, "B": np.nan}})
+        expected_coef_var.index.name = "taxon"
+        pd.testing.assert_frame_equal(result_coef_var, expected_coef_var)
+
+    def test_process_analysis_per_taxon_single_row(self):
+        primer_df = pd.DataFrame({
+            "seq-id": ["abc"],
+            "taxon": ["A"],
+            "value": [5]
+        })
+        result = self.binding.process_analysis_per_taxon(primer_df, operation="mean", analysis_name="value")
+        expected = pd.DataFrame({"value": {"A": 5.0}})
+        expected.index.name = "taxon"
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_process_analysis_per_taxon_missing_values(self):
+        primer_df = pd.DataFrame({
+            "seq-id": ["abc", "def", "gh"],
+            "taxon": ["A", "A", "B"],
+            "value": [5, None, 20]
+        })
+        result = self.binding.process_analysis_per_taxon(primer_df, operation="coef_var", analysis_name="value")
+        expected = pd.DataFrame({"value": {"A": np.nan, "B": np.nan}})
         expected.index.name = "taxon"
         pd.testing.assert_frame_equal(result, expected)
 
@@ -597,6 +644,16 @@ class TestBinding(unittest.TestCase):
             tax_grouped_df, operation="sum"
         )
         self.assertEqual(result, 30)
+
+    def test_process_analysis_across_taxon_empty_df(self):
+        tax_grouped_df = pd.DataFrame(columns=["value"])
+        with self.assertRaises(ValueError):
+            self.binding.process_analysis_across_taxon(tax_grouped_df, operation="sum")
+
+    def test_process_analysis_across_taxon_invalid_operation(self):
+        tax_grouped_df = pd.DataFrame({"value": [10, 20]})
+        with self.assertRaises(ValueError):
+            self.binding.process_analysis_across_taxon(tax_grouped_df, operation="invalid_op")
 
     @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
     @patch("Bio.SeqUtils.MeltingTemp.Tm_GC", return_value=60.0)

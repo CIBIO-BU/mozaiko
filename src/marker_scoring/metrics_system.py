@@ -773,11 +773,14 @@ class Binding:
         grouped_taxa = primer_df.groupby("taxon")
 
         if operation in {"min", "max", "sum", "mean"}:
-            result = getattr(grouped_taxa[analysis_name], operation)()
+            result = getattr(grouped_taxa[analysis_name], operation)().astype(float)
         elif operation == "coef_var":
             mean = grouped_taxa[analysis_name].mean()
+            print(mean)
             std = grouped_taxa[analysis_name].std()
+            print(std)
             result = (std / mean.replace(0, pd.NA)) * 100
+
         else:
             raise ValueError(
                 f"mozaiko ERROR: Unrecognized operation: '{operation}'. "
@@ -810,7 +813,7 @@ class Binding:
             raise ValueError("mozaiko ERROR: Input DataFrame is empty.")
 
         if operation in {"min", "max", "sum", "mean"}:
-            result = getattr(tax_grouped_df, operation)()
+            result = getattr(tax_grouped_df, operation)().astype(float)
         elif operation == "coef_var":
             mean = tax_grouped_df.mean()
             std = tax_grouped_df.std()
