@@ -534,6 +534,51 @@ class TestBinding(unittest.TestCase):
         )
         self.assertEqual(result, 30)
 
+    @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
+    @patch("Bio.SeqUtils.MeltingTemp.Tm_GC", return_value=60.0)
+    @patch("Bio.SeqUtils.gc_fraction", return_value=0.5)
+    @patch("src.marker_scoring.metrics_system.Binding.get_primer_table", return_value=pd.DataFrame([...]))
+    @patch("src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders", return_value=[...])
+    @patch("src.marker_scoring.metrics_system.Binding.get_pbs_table", return_value=pd.DataFrame([...]))
+    def test_primer_pbs_analysis(
+        self,
+        mock_get_pbs_table,
+        mock_parse_files,
+        mock_get_primer_table,
+        mock_gc_fraction,
+        mock_tm_gc,
+        mock_calculate_mismatches,
+    ):
+        mock_primer_table = pd.DataFrame([
+            {"barcode_region": "COI", "assay_name": "TestAssay",
+             "fwd_seq": "AGCTTAGCTA", "rev_seq": "TCGATCGATC"}
+        ])
+        mock_get_primer_table.return_value = mock_primer_table
+
+        mock_parse_files.return_value = [("amplicon_file.fasta", "insert_file.fasta")]
+
+        mock_pbs_table = pd.DataFrame([
+            {"header": ">seq1|taxon1", "fwd_seq": "AGCTT", "rev_seq": "TCGAT"}
+        ])
+        mock_get_pbs_table.return_value = mock_pbs_table
+
+        mock_gc_fraction.side_effect = lambda seq: len([c for c in seq if c in "GC"]) / len(seq)
+        mock_tm_gc.side_effect = lambda seq, valueset, strict: 60.0
+        mock_calculate_mismatches.side_effect = lambda seq1, seq2, search_gc_clamp=False: (1 if seq1 != seq2 else 0, 2 if search_gc_clamp else 0)
+
+        primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
+            "mock_amplicon_folder",
+            "mock_insert_folder",
+            "mock_primer_table",
+            save_results=False
+        )
+
+        self.assertIsInstance(primer_pbs_df, dict)
+        self.assertIsInstance(primer_gc_df, pd.DataFrame)
+
+        self.assertEqual(primer_gc_df.iloc[0]["barcode_region"], "COI")
+        self.assertEqual(primer_gc_df.iloc[0]["assay_name"], "TestAssay")
+
     # def test_get_priming_ratio(self):
     #     max_mismatch_full_len = pd.DataFrame({"full_len_mismatch_sum": [10, 20]}, index=["A", "B"])
     #     max_mismatch_three_end = pd.DataFrame({"three_end_mismatch_sum": [5, 15]}, index=["A", "B"])

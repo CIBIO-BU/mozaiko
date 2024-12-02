@@ -127,16 +127,14 @@ class InSilicoAmplification:
         """
 
         if not os.path.exists(primer_table):
-            print("mozaiko INFO: The primer table does not exist. Exiting...")
-            sys.exit(1)
+            raise ValueError("mozaiko INFO: The primer table does not exist. Exiting...")
 
         _, file_extension = os.path.splitext(primer_table)
 
         file_extension = file_extension.lstrip(".")
 
         if file_extension.lower() != "tsv":
-            print("mozaiko INFO: The primer table must be a TSV file. Exiting...")
-            sys.exit(1)
+            raise ValueError("mozaiko INFO: The primer table must be a TSV file. Exiting...")
 
         primer_table = pd.read_csv(primer_table, sep="\t", header=0, dtype=str)
 

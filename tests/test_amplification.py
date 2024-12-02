@@ -65,7 +65,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         Test that the _validate_primer_table method raises a SystemExit when the primer table does
         not exist.
         """
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ValueError):
             self.amplification.validate_primer_table("nonexistent_file.tsv")
 
     def test_validate_primer_table_valid(self):
@@ -79,7 +79,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         Test that the _validate_primer_table method raises a SystemExit when the primer table has
         the wrong extension.
         """
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ValueError):
             self.amplification.validate_primer_table(self.input_data)
 
     def test_read_primer_tables_valid(self):

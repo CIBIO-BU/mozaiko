@@ -99,8 +99,8 @@ class TestScoringUtils(unittest.TestCase):
             )
 
     def test_extract_primer_binding_sites(self):
-        amplicon_file = self.test_directory / "amplicon_test.fasta"
-        insert_file = self.test_directory / "insert_test.fasta"
+        amplicon_file = self.test_directory / "amplicon-test/amplicon_test.fasta"
+        insert_file = self.test_directory / "insert-test/insert_test.fasta"
 
         result = extract_primer_binding_sites(amplicon_file, insert_file)
 

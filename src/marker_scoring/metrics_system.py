@@ -461,7 +461,7 @@ class Binding:
             - `forward_primer_gc_fraction`: GC fraction of the forward primer.
             - `reverse_primer_gc_fraction`: GC fraction of the reverse primer.
         """
-        self.get_primer_table(primer_table)
+        self.primer_table = self.get_primer_table(primer_table)
         matching_files = self.parse_files_with_same_extension_in_folders(
             amplicon_folder, insert_folder
         )
