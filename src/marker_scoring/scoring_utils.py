@@ -418,6 +418,6 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
                 f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
             )
         else:
-            print(f"Warning: Incorrect header format: {header}")
+            print(f"mozaico WARNING: Incorrect header format: {header}")
     else:
-        print(f"Warning: Unexpected header format: {header}")
+        print(f"mozaico WARNING: Unexpected header format: {header}")
