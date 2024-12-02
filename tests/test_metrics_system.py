@@ -2,10 +2,10 @@
 Unit tests for metrics_system.py
 """
 
-import sys
-import unittest
-import tempfile
 import shutil
+import sys
+import tempfile
+import unittest
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, call, mock_open, patch
@@ -87,13 +87,19 @@ class TestOtlHandler(unittest.TestCase):
 
         otl_taxa_ex = set()
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".fasta"
+        ) as temp_file:
             temp_file.write(test_fasta_content)
             temp_file_path = temp_file.name
 
         try:
-            self.handler.filter_fasta_for_species_not_in_otl(temp_file_path, otl_taxa_ex)
-            mock_print.assert_any_call("mozaico WARNING: No '|' found in header - >no_pipe_header")
+            self.handler.filter_fasta_for_species_not_in_otl(
+                temp_file_path, otl_taxa_ex
+            )
+            mock_print.assert_any_call(
+                "mozaico WARNING: No '|' found in header - >no_pipe_header"
+            )
         finally:
             os.unlink(temp_file_path)
 
@@ -107,13 +113,19 @@ class TestOtlHandler(unittest.TestCase):
 
         otl_taxa_ex = set()
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".fasta"
+        ) as temp_file:
             temp_file.write(test_fasta_content)
             temp_file_path = temp_file.name
 
         try:
-            self.handler.filter_fasta_for_species_not_in_otl(temp_file_path, otl_taxa_ex)
-            mock_print.assert_any_call("mozaico WARNING: Taxonomy seems to not be present for - >notax |")
+            self.handler.filter_fasta_for_species_not_in_otl(
+                temp_file_path, otl_taxa_ex
+            )
+            mock_print.assert_any_call(
+                "mozaico WARNING: Taxonomy seems to not be present for - >notax |"
+            )
         finally:
             os.unlink(temp_file_path)
 
@@ -124,20 +136,23 @@ class TestOtlHandler(unittest.TestCase):
         """
         test_fasta_content = """>valid_header | taxa1\nATGCATGCATGC"""
 
-        otl_taxa_ex = {'taxa1'}
+        otl_taxa_ex = {"taxa1"}
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.fasta') as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".fasta"
+        ) as temp_file:
             temp_file.write(test_fasta_content)
             temp_file_path = temp_file.name
 
         try:
-            total_count, kept_count, output_file = self.handler.filter_fasta_for_species_not_in_otl(
-                temp_file_path, otl_taxa_ex, overwrite=True
+            total_count, kept_count, output_file = (
+                self.handler.filter_fasta_for_species_not_in_otl(
+                    temp_file_path, otl_taxa_ex, overwrite=True
+                )
             )
 
             mock_replace.assert_called_once_with(
-                temp_file_path + ".temp",
-                temp_file_path
+                temp_file_path + ".temp", temp_file_path
             )
 
             self.assertEqual(total_count, 1)
@@ -151,18 +166,20 @@ class TestOtlHandler(unittest.TestCase):
         Test function when overwrite is set to False.
         """
         test_fasta_content = """>valid_header | taxa1\nATGCATGCATGC"""
-        otl_taxa_ex = {'taxa1'}
+        otl_taxa_ex = {"taxa1"}
 
-        test_dir = os.path.join(os.path.dirname(__file__), 'test_data')
+        test_dir = os.path.join(os.path.dirname(__file__), "test_data")
         os.makedirs(test_dir, exist_ok=True)
 
         input_file_path = os.path.join(test_dir, "test_input.fasta")
-        with open(input_file_path, 'w') as f:
+        with open(input_file_path, "w") as f:
             f.write(test_fasta_content)
 
         try:
-            total_count, kept_count, output_file = self.handler.filter_fasta_for_species_not_in_otl(
-                input_file_path, otl_taxa_ex, overwrite=False
+            total_count, kept_count, output_file = (
+                self.handler.filter_fasta_for_species_not_in_otl(
+                    input_file_path, otl_taxa_ex, overwrite=False
+                )
             )
             self.assertEqual(total_count, 1)
             self.assertEqual(kept_count, 1)
@@ -171,18 +188,21 @@ class TestOtlHandler(unittest.TestCase):
             assert output_file.endswith("test_input.fasta")
             assert "_otl_filtered" in output_file
 
-            with open(output_file, 'r') as f:
+            with open(output_file, "r") as f:
                 content = f.read().strip()
             assert content == test_fasta_content
-            assert os.path.dirname(output_file) != os.path.dirname(input_file_path), "Output file should be in a different directory"
+            assert os.path.dirname(output_file) != os.path.dirname(
+                input_file_path
+            ), "Output file should be in a different directory"
 
         finally:
             if os.path.exists(input_file_path):
                 os.remove(input_file_path)
-            if 'output_file' in locals() and os.path.exists(output_file):
+            if "output_file" in locals() and os.path.exists(output_file):
                 os.remove(output_file)
             if os.path.exists(test_dir) and not os.listdir(test_dir):
                 os.rmdir(test_dir)
+
 
 class TestReferenceDatabaseQuality(unittest.TestCase):
     def setUp(self):
@@ -380,102 +400,130 @@ class TestBinding(unittest.TestCase):
             self.assertEqual(result, (None, None))
 
     def test_add_missing_otl_taxa_to_df_with_values_of_zero(self):
-        input_df = pd.DataFrame({
-            "taxon": ["taxon1", "taxon2"],
-            "seq_id": ["seq1", "seq2"],
-            "analysis1": [10, 20],
-            "analysis2": [5, 15]
-        })
-
-        otl_taxa_set = {"taxon1", "taxon2", "taxon3", "taxon4"}
-
-        expected_df = pd.DataFrame({
-            "taxon": ["taxon1", "taxon2", "taxon3", "taxon4"],
-            "seq_id": ["seq1", "seq2", "otl-import", "otl-import"],
-            "analysis1": [10, 20, 0, 0],
-            "analysis2": [5, 15, 0, 0]
-        })
-
-        otl_populated_df = self.binding.add_missing_otl_taxa_to_df_with_values_of_zero(input_df, otl_taxa_set)
-
-        pd.testing.assert_frame_equal(otl_populated_df.sort_values(by="taxon").reset_index(drop=True),
-                                       expected_df.sort_values(by="taxon").reset_index(drop=True))
-
-    def test_iterate_over_primer_pbs_df_with_otl_taxa(self):
-        comprehensive_primer_dfs = {
-            "primer_1": pd.DataFrame({
+        input_df = pd.DataFrame(
+            {
                 "taxon": ["taxon1", "taxon2"],
                 "seq_id": ["seq1", "seq2"],
                 "analysis1": [10, 20],
                 "analysis2": [5, 15],
-            }),
-            "primer_2": pd.DataFrame({
-                "taxon": ["taxon3", "taxon4"],
-                "seq_id": ["seq3", "seq4"],
-                "analysis1": [30, 40],
-                "analysis2": [25, 35],
-            }),
+            }
+        )
+
+        otl_taxa_set = {"taxon1", "taxon2", "taxon3", "taxon4"}
+
+        expected_df = pd.DataFrame(
+            {
+                "taxon": ["taxon1", "taxon2", "taxon3", "taxon4"],
+                "seq_id": ["seq1", "seq2", "otl-import", "otl-import"],
+                "analysis1": [10, 20, 0, 0],
+                "analysis2": [5, 15, 0, 0],
+            }
+        )
+
+        otl_populated_df = self.binding.add_missing_otl_taxa_to_df_with_values_of_zero(
+            input_df, otl_taxa_set
+        )
+
+        pd.testing.assert_frame_equal(
+            otl_populated_df.sort_values(by="taxon").reset_index(drop=True),
+            expected_df.sort_values(by="taxon").reset_index(drop=True),
+        )
+
+    def test_iterate_over_primer_pbs_df_with_otl_taxa(self):
+        comprehensive_primer_dfs = {
+            "primer_1": pd.DataFrame(
+                {
+                    "taxon": ["taxon1", "taxon2"],
+                    "seq_id": ["seq1", "seq2"],
+                    "analysis1": [10, 20],
+                    "analysis2": [5, 15],
+                }
+            ),
+            "primer_2": pd.DataFrame(
+                {
+                    "taxon": ["taxon3", "taxon4"],
+                    "seq_id": ["seq3", "seq4"],
+                    "analysis1": [30, 40],
+                    "analysis2": [25, 35],
+                }
+            ),
         }
 
         otl_taxa_set = {"taxon1", "taxon2", "taxon3", "taxon4", "taxon5"}
 
-        expected_primer_1_df = pd.DataFrame({
-            "taxon": ["taxon1", "taxon2", "taxon5"],
-            "seq_id": ["seq1", "seq2", "otl-import"],
-            "analysis1": [10, 20, 0],
-            "analysis2": [5, 15, 0],
-        })
-        expected_primer_2_df = pd.DataFrame({
-            "taxon": ["taxon3", "taxon4", "taxon5"],
-            "seq_id": ["seq3", "seq4", "otl-import"],
-            "analysis1": [30, 40, 0],
-            "analysis2": [25, 35, 0],
-        })
+        expected_primer_1_df = pd.DataFrame(
+            {
+                "taxon": ["taxon1", "taxon2", "taxon5"],
+                "seq_id": ["seq1", "seq2", "otl-import"],
+                "analysis1": [10, 20, 0],
+                "analysis2": [5, 15, 0],
+            }
+        )
+        expected_primer_2_df = pd.DataFrame(
+            {
+                "taxon": ["taxon3", "taxon4", "taxon5"],
+                "seq_id": ["seq3", "seq4", "otl-import"],
+                "analysis1": [30, 40, 0],
+                "analysis2": [25, 35, 0],
+            }
+        )
 
         def side_effect_check(df, otl_taxa):
-            if df.equals(comprehensive_primer_dfs["primer_1"]) and otl_taxa == otl_taxa_set:
+            if (
+                df.equals(comprehensive_primer_dfs["primer_1"])
+                and otl_taxa == otl_taxa_set
+            ):
                 return expected_primer_1_df
-            elif df.equals(comprehensive_primer_dfs["primer_2"]) and otl_taxa == otl_taxa_set:
+            elif (
+                df.equals(comprehensive_primer_dfs["primer_2"])
+                and otl_taxa == otl_taxa_set
+            ):
                 return expected_primer_2_df
             raise ValueError("Unexpected call to mocked method.")
 
         with patch.object(
             self.binding,
             "add_missing_otl_taxa_to_df_with_values_of_zero",
-            side_effect=side_effect_check
+            side_effect=side_effect_check,
         ) as mock_add_otl_taxa:
             processed_primers = self.binding.iterate_over_primer_pbs_df(
-                comprehensive_primer_dfs,
-                add_otl_taxa=True,
-                otl_taxa_set=otl_taxa_set
+                comprehensive_primer_dfs, add_otl_taxa=True, otl_taxa_set=otl_taxa_set
             )
 
             self.assertIn("primer_1", processed_primers.keys())
             self.assertIn("primer_2", processed_primers.keys())
 
             pd.testing.assert_frame_equal(
-                processed_primers["primer_1"].sort_values(by="taxon").reset_index(drop=True),
+                processed_primers["primer_1"]
+                .sort_values(by="taxon")
+                .reset_index(drop=True),
                 expected_primer_1_df.sort_values(by="taxon").reset_index(drop=True),
             )
             pd.testing.assert_frame_equal(
-                processed_primers["primer_2"].sort_values(by="taxon").reset_index(drop=True),
+                processed_primers["primer_2"]
+                .sort_values(by="taxon")
+                .reset_index(drop=True),
                 expected_primer_2_df.sort_values(by="taxon").reset_index(drop=True),
             )
 
     def test_iterate_over_primer_pbs_df_without_otl_taxa(self):
         comprehensive_primer_dfs = {
-            "primer_1": pd.DataFrame({
-                "taxon": ["taxon1", "taxon2"],
-                "seq_id": ["seq1", "seq2"],
-                "analysis1": [10, 20],
-                "analysis2": [5, 15],
-            }),
-            "primer_2": pd.DataFrame({
-                "taxon": ["taxon3", "taxon4"],
-                "seq_id": ["seq3", "seq4"],
-                "analysis1": [30, 40],
-                "analysis2": [25, 35],
-            }),
+            "primer_1": pd.DataFrame(
+                {
+                    "taxon": ["taxon1", "taxon2"],
+                    "seq_id": ["seq1", "seq2"],
+                    "analysis1": [10, 20],
+                    "analysis2": [5, 15],
+                }
+            ),
+            "primer_2": pd.DataFrame(
+                {
+                    "taxon": ["taxon3", "taxon4"],
+                    "seq_id": ["seq3", "seq4"],
+                    "analysis1": [30, 40],
+                    "analysis2": [25, 35],
+                }
+            ),
         }
 
         processed_primers = self.binding.iterate_over_primer_pbs_df(
@@ -487,12 +535,20 @@ class TestBinding(unittest.TestCase):
         self.assertIn("primer_2", processed_primers)
 
         pd.testing.assert_frame_equal(
-            processed_primers["primer_1"].sort_values(by="taxon").reset_index(drop=True),
-            comprehensive_primer_dfs["primer_1"].sort_values(by="taxon").reset_index(drop=True),
+            processed_primers["primer_1"]
+            .sort_values(by="taxon")
+            .reset_index(drop=True),
+            comprehensive_primer_dfs["primer_1"]
+            .sort_values(by="taxon")
+            .reset_index(drop=True),
         )
         pd.testing.assert_frame_equal(
-            processed_primers["primer_2"].sort_values(by="taxon").reset_index(drop=True),
-            comprehensive_primer_dfs["primer_2"].sort_values(by="taxon").reset_index(drop=True),
+            processed_primers["primer_2"]
+            .sort_values(by="taxon")
+            .reset_index(drop=True),
+            comprehensive_primer_dfs["primer_2"]
+            .sort_values(by="taxon")
+            .reset_index(drop=True),
         )
 
     def test_get_primer_df_exists(self):
@@ -505,11 +561,17 @@ class TestBinding(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_process_analysis_per_taxon(self):
-        primer_df = pd.DataFrame({"seq-id": ["abc", "def", "gh"], "taxon": ["A", "A", "B"], "value": [5, 10, 20]})
+        primer_df = pd.DataFrame(
+            {
+                "seq-id": ["abc", "def", "gh"],
+                "taxon": ["A", "A", "B"],
+                "value": [5, 10, 20],
+            }
+        )
         result = self.binding.process_analysis_per_taxon(
             primer_df, operation="mean", analysis_name="value"
         )
-        expected = pd.DataFrame({'value': {'A': 7.5, 'B': 20.0}})
+        expected = pd.DataFrame({"value": {"A": 7.5, "B": 20.0}})
         expected.index.name = "taxon"
         pd.testing.assert_frame_equal(result, expected)
 
@@ -521,7 +583,9 @@ class TestBinding(unittest.TestCase):
             )
 
     def test_process_analysis_per_taxon_invalid_analysis_name(self):
-        primer_df = pd.DataFrame({"seq-id": ["abc", "def"], "taxon": ["A", "B"], "value": [10, 20]})
+        primer_df = pd.DataFrame(
+            {"seq-id": ["abc", "def"], "taxon": ["A", "B"], "value": [10, 20]}
+        )
         with self.assertRaises(ValueError):
             self.binding.process_analysis_per_taxon(
                 primer_df, operation="mean", analysis_name="missing_column"
@@ -537,9 +601,18 @@ class TestBinding(unittest.TestCase):
     @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
     @patch("Bio.SeqUtils.MeltingTemp.Tm_GC", return_value=60.0)
     @patch("Bio.SeqUtils.gc_fraction", return_value=0.5)
-    @patch("src.marker_scoring.metrics_system.Binding.get_primer_table", return_value=pd.DataFrame([...]))
-    @patch("src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders", return_value=[...])
-    @patch("src.marker_scoring.metrics_system.Binding.get_pbs_table", return_value=pd.DataFrame([...]))
+    @patch(
+        "src.marker_scoring.metrics_system.Binding.get_primer_table",
+        return_value=pd.DataFrame([...]),
+    )
+    @patch(
+        "src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders",
+        return_value=[...],
+    )
+    @patch(
+        "src.marker_scoring.metrics_system.Binding.get_pbs_table",
+        return_value=pd.DataFrame([...]),
+    )
     def test_primer_pbs_analysis(
         self,
         mock_get_pbs_table,
@@ -549,28 +622,41 @@ class TestBinding(unittest.TestCase):
         mock_tm_gc,
         mock_calculate_mismatches,
     ):
-        mock_primer_table = pd.DataFrame([
-            {"barcode_region": "COI", "assay_name": "TestAssay",
-             "fwd_seq": "AGCTTAGCTA", "rev_seq": "TCGATCGATC"}
-        ])
+        mock_primer_table = pd.DataFrame(
+            [
+                {
+                    "barcode_region": "COI",
+                    "assay_name": "TestAssay",
+                    "fwd_seq": "AGCTTAGCTA",
+                    "rev_seq": "TCGATCGATC",
+                }
+            ]
+        )
         mock_get_primer_table.return_value = mock_primer_table
 
         mock_parse_files.return_value = [("amplicon_file.fasta", "insert_file.fasta")]
 
-        mock_pbs_table = pd.DataFrame([
-            {"header": ">seq1|taxon1", "fwd_seq": "AGCTT", "rev_seq": "TCGAT"}
-        ])
+        mock_pbs_table = pd.DataFrame(
+            [{"header": ">seq1|taxon1", "fwd_seq": "AGCTT", "rev_seq": "TCGAT"}]
+        )
         mock_get_pbs_table.return_value = mock_pbs_table
 
-        mock_gc_fraction.side_effect = lambda seq: len([c for c in seq if c in "GC"]) / len(seq)
+        mock_gc_fraction.side_effect = lambda seq: len(
+            [c for c in seq if c in "GC"]
+        ) / len(seq)
         mock_tm_gc.side_effect = lambda seq, valueset, strict: 60.0
-        mock_calculate_mismatches.side_effect = lambda seq1, seq2, search_gc_clamp=False: (1 if seq1 != seq2 else 0, 2 if search_gc_clamp else 0)
+        mock_calculate_mismatches.side_effect = (
+            lambda seq1, seq2, search_gc_clamp=False: (
+                1 if seq1 != seq2 else 0,
+                2 if search_gc_clamp else 0,
+            )
+        )
 
         primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
             "mock_amplicon_folder",
             "mock_insert_folder",
             "mock_primer_table",
-            save_results=False
+            save_results=False,
         )
 
         self.assertIsInstance(primer_pbs_df, dict)
@@ -579,26 +665,46 @@ class TestBinding(unittest.TestCase):
         self.assertEqual(primer_gc_df.iloc[0]["barcode_region"], "COI")
         self.assertEqual(primer_gc_df.iloc[0]["assay_name"], "TestAssay")
 
-    # def test_get_priming_ratio(self):
-    #     max_mismatch_full_len = pd.DataFrame({"full_len_mismatch_sum": [10, 20]}, index=["A", "B"])
-    #     max_mismatch_three_end = pd.DataFrame({"three_end_mismatch_sum": [5, 15]}, index=["A", "B"])
-    #     result = self.binding.get_priming_ratio(
-    #         max_mismatch_full_len, max_mismatch_three_end
-    #     )
-    #     self.assertEqual(result, 1.25)
+    def test_get_priming_ratio(self):
+        max_mismatch_full_len = pd.DataFrame(
+            {"full_len_mismatch_sum": [10, 20]}, index=["A", "B"]
+        )
+        max_mismatch_three_end = pd.DataFrame(
+            {"three_end_mismatch_sum": [5, 15]}, index=["A", "B"]
+        )
+        result = self.binding.get_priming_ratio(
+            max_mismatch_full_len, max_mismatch_three_end
+        )
+        self.assertEqual(result, 1.25)
 
-    # def test_get_total_gc_matches(self):
-    #     primer_pbs_df = pd.DataFrame({
-    #         "gc_matches_fwd": [1, 3, 4],
-    #         "gc_matches_rev": [0, 3, 2],
-    #     })
-    #     result = self.binding.get_total_gc_matches(primer_pbs_df)
-    #     expected = pd.DataFrame({
-    #         "gc_matches_fwd": [1, 1, 0],
-    #         "gc_matches_rev": [0, 1, 1],
-    #         "gc_matches_score": [1, 2, 1],
-    #     })
-    #     pd.testing.assert_frame_equal(result, expected)
+    def test_get_total_gc_matches(self):
+        primer_pbs_df = pd.DataFrame(
+            {
+                "gc_matches_fwd": [1, 3, 4],
+                "gc_matches_rev": [0, 3, 2],
+            }
+        )
+        result = self.binding.get_total_gc_matches(primer_pbs_df)
+        expected = pd.DataFrame(
+            {
+                "gc_matches_fwd": [1, 1, 0],
+                "gc_matches_rev": [0, 1, 1],
+                "gc_matches_score": [1, 2, 1],
+            }
+        )
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_tm_score(self):
+        test_data = {"delta_tm": [1.5, 2.0, 1.8, 3.0, 1.2, 0.5]}
+        primer_pbs_df = pd.DataFrame(test_data)
+
+        temp_threshold = 2.0
+        result = self.binding.tm_score(primer_pbs_df, temp_threshold=temp_threshold)
+
+        expected = 66.67  # 4 out of 6 entries
+
+        self.assertEqual(result, expected)
+
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):

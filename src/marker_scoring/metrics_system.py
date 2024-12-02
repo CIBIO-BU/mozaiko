@@ -104,8 +104,7 @@ class OtlHandler:
             output_file = fasta_file
         else:
             filtered_folder = os.path.join(
-                input_folder,
-                f"{os.path.basename(input_folder)}_otl_filtered"
+                input_folder, f"{os.path.basename(input_folder)}_otl_filtered"
             )
             os.makedirs(filtered_folder, exist_ok=True)
             output_file = os.path.join(filtered_folder, file_name)
@@ -131,7 +130,7 @@ class OtlHandler:
                     total_seq_count += 1
 
                     try:
-                        if '|' not in line:
+                        if "|" not in line:
                             print(f"mozaico WARNING: No '|' found in header - {line}")
                             keep_sequence = False
                             continue
@@ -139,7 +138,9 @@ class OtlHandler:
                         header_parts = line.split(" | ")
                         print(header_parts)
                         if len(header_parts) < 2 or not header_parts[1].strip():
-                            print(f"mozaico WARNING: Taxonomy seems to not be present for - {line}")
+                            print(
+                                f"mozaico WARNING: Taxonomy seems to not be present for - {line}"
+                            )
 
                         taxa = header_parts[1].strip()
                         print(taxa)
@@ -215,7 +216,9 @@ class OtlHandler:
                     )
                     results.append((output_file, total_seq_count, kept_seq_count))
                 except Exception as e:
-                    print(f"mozaico ERROR: Failed to process {file_name} due to {str(e)}")
+                    print(
+                        f"mozaico ERROR: Failed to process {file_name} due to {str(e)}"
+                    )
 
         return results
 
@@ -748,14 +751,14 @@ class Binding:
         This method performs user-inputed operations on a groupby of 'taxon'.
 
         Parameters:
-        - operation: str
-            The operation to perform. Options are 'min', 'max', 'sum', 'mean', and 'coef_var'.
-        - column: str
+        - operation: Literal["min", "max", "sum", "mean", "coef_var"]
+            The operation to perform.
+        - analysis_name: str
             The column on which to perform the operation.
 
         Returns:
-        - pd.DataFrame or pd.Series
-            The grouped and processed DataFrame or Series.
+        - pd.DataFrame
+            The grouped and processed DataFrame.
         """
         if "taxon" not in primer_df.columns:
             raise ValueError(
@@ -769,21 +772,16 @@ class Binding:
 
         grouped_taxa = primer_df.groupby("taxon")
 
-        if operation == "min":
-            result = grouped_taxa[analysis_name].min()
-        elif operation == "max":
-            result = grouped_taxa[analysis_name].max()
-        elif operation == "sum":
-            result = grouped_taxa[analysis_name].sum()
-        elif operation == "mean":
-            result = grouped_taxa[analysis_name].mean()
+        if operation in {"min", "max", "sum", "mean"}:
+            result = getattr(grouped_taxa[analysis_name], operation)()
         elif operation == "coef_var":
             mean = grouped_taxa[analysis_name].mean()
             std = grouped_taxa[analysis_name].std()
-            result = (std / mean * 100).rename("coef_var")
+            result = (std / mean.replace(0, pd.NA)) * 100
         else:
             raise ValueError(
-                f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'."
+                f"mozaiko ERROR: Unrecognized operation: '{operation}'. "
+                "Please choose from 'min', 'max', 'sum', 'mean', or 'coef_var'."
             )
 
         result = pd.DataFrame(result)
@@ -799,36 +797,31 @@ class Binding:
         This method will perform operation across the taxon to determine a value for a primer pair.
 
         Parameters:
-        - tax_grouped_df: pd.Dataframe
-            Dataframe containing grouped taxa data.
-        - operation: str
-            An operation to apply to the dataframe.
+        - tax_grouped_df: pd.DataFrame
+            DataFrame containing grouped taxa data.
+        - operation: Literal["min", "max", "sum", "mean", "coef_var"]
+            The operation to apply.
 
         Returns:
-        - value: int
-            A value that reflects a characterstic of the primer-set.
+        - value: float
+            A value that reflects a characteristic of the primer set.
         """
+        if tax_grouped_df.empty:
+            raise ValueError("mozaiko ERROR: Input DataFrame is empty.")
 
-        if operation == "min":
-            result = tax_grouped_df.min()
-        elif operation == "max":
-            result = tax_grouped_df.max()
-        elif operation == "sum":
-            result = tax_grouped_df.sum()
-        elif operation == "mean":
-            result = tax_grouped_df.mean()
+        if operation in {"min", "max", "sum", "mean"}:
+            result = getattr(tax_grouped_df, operation)()
         elif operation == "coef_var":
             mean = tax_grouped_df.mean()
             std = tax_grouped_df.std()
-            result = std / mean * 100
+            result = (std / mean.replace(0, pd.NA)) * 100
         else:
             raise ValueError(
-                f"mozaiko ERROR: Unrecognized operation: '{operation}'. Please choose from 'min', 'max', 'sum', 'mean' and 'coef_var'."
+                f"mozaiko ERROR: Unrecognized operation: '{operation}'. "
+                "Please choose from 'min', 'max', 'sum', 'mean', or 'coef_var'."
             )
 
-        value = int(result.iloc[0])
-
-        return value
+        return round(float(result.iloc[0]), 2)
 
     def get_priming_ratio(
         self, max_mismatch_full_len: pd.DataFrame, max_mismatch_three_end: pd.DataFrame
@@ -889,28 +882,25 @@ class Binding:
             if value == 0:
                 value = 0
             elif value > 3:
-                value == 0
-            elif value > 0 and value < 3:
-                value == 1
+                value = 0
+            elif 1 <= value <= 3:
+                value = 1
             return value
 
-        primer_pbs_df["gc_matches_fwd"] = primer_pbs_df[
-            "gc_matches_fwd"
-        ].apply(gc_scoring)
-        primer_pbs_df["gc_matches_rev"] = primer_pbs_df[
-            "gc_matches_rev"
-        ].apply(gc_scoring)
+        primer_pbs_df["gc_matches_fwd"] = primer_pbs_df["gc_matches_fwd"].apply(
+            gc_scoring
+        )
+        primer_pbs_df["gc_matches_rev"] = primer_pbs_df["gc_matches_rev"].apply(
+            gc_scoring
+        )
 
         primer_pbs_df["gc_matches_score"] = (
-            primer_pbs_df["gc_matches_fwd"]
-            + primer_pbs_df["gc_matches_rev"]
+            primer_pbs_df["gc_matches_fwd"] + primer_pbs_df["gc_matches_rev"]
         )
 
         return primer_pbs_df
 
-    def tm_score(
-        self, primer_pbs_df: pd.DataFrame, temp_threshold: float = 2.0
-    ):
+    def tm_score(self, primer_pbs_df: pd.DataFrame, temp_threshold: float = 2.0):
         """
         This method retrieves the percentage of entries whose variation of temperature between
         the forward and reverse PBS sequence is lower than the temp_threshold.

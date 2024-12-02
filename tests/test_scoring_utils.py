@@ -179,6 +179,7 @@ class TestSequenceCountTracking(unittest.TestCase):
         self.assertEqual(df_pivoted.loc["original_database", "original_database"], 3)
         self.assertEqual(df_pivoted.iloc[0, 1], 2)
 
+
 class TestMultiBarcodeToolsInput(unittest.TestCase):
     def setUp(self):
         """
@@ -198,21 +199,21 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         Method to create sample FASTA files for testing different scenarios.
         """
         # FASTA with standard header
-        with open(os.path.join(self.test_dir, 'primer1.fasta'), 'w') as f:
+        with open(os.path.join(self.test_dir, "primer1.fasta"), "w") as f:
             f.write(">seq1|Species Name 1\n")
             f.write("ATCGATCGATCG\n")
             f.write(">seq2|Species Name 2\n")
             f.write("GCTAGCTAGCTA\n")
 
         # FASTA with multiple sequences
-        with open(os.path.join(self.test_dir, 'primer2.fasta'), 'w') as f:
+        with open(os.path.join(self.test_dir, "primer2.fasta"), "w") as f:
             f.write(">seq3|Species Name 3\n")
             f.write("TAGCTAGCTAGC\n")
             f.write(">seq4|Species Name 4\n")
             f.write("CGATCGATCGAT\n")
 
         # FASTA with problematic header
-        with open(os.path.join(self.test_dir, 'primer3.fasta'), 'w') as f:
+        with open(os.path.join(self.test_dir, "primer3.fasta"), "w") as f:
             f.write(">seq5\n")  # Missing species name
             f.write("ATCGATCG\n")
 
@@ -220,16 +221,18 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         """
         Method to test the main function create_MultiBarcodeTools_input.
         """
-        output_file = os.path.join(self.test_dir, 'output.tsv')
+        output_file = os.path.join(self.test_dir, "output.tsv")
 
         create_MultiBarcodeTools_input(self.test_dir, output_file)
 
         self.assertTrue(os.path.exists(output_file))
 
-        with open(output_file, 'r') as f:
+        with open(output_file, "r") as f:
             lines = f.readlines()
 
-        self.assertEqual(lines[0].strip(), "seq_ID\tprimer_name\tspecies_name\tinsert_sequence")
+        self.assertEqual(
+            lines[0].strip(), "seq_ID\tprimer_name\tspecies_name\tinsert_sequence"
+        )
 
         self.assertEqual(len(lines) - 1, 4)
 
@@ -237,7 +240,7 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         """
         Mehtod to test process_sequence with a valid header.
         """
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as mock_tsv:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as mock_tsv:
             try:
                 header = "seq1|Awesome Species"
                 sequence_lines = ["ATCGATCGATCG"]
@@ -247,7 +250,7 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
 
                 mock_tsv.close()
 
-                with open(mock_tsv.name, 'r') as f:
+                with open(mock_tsv.name, "r") as f:
                     content = f.read().strip()
 
                 expected_output = "seq1\ttest_primer\tAwesome Species\tATCGATCGATCG"
@@ -266,7 +269,7 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         stdout = io.StringIO()
         sys.stdout = stdout
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as mock_tsv:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as mock_tsv:
             try:
                 header = "seq1"
                 sequence_lines = ["ATCGATCGATCG"]
@@ -279,7 +282,7 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
                 error_msg = stdout.getvalue().strip()
                 self.assertIn("mozaico WARNING: Unexpected header format", error_msg)
 
-                with open(mock_tsv.name, 'r') as f:
+                with open(mock_tsv.name, "r") as f:
                     content = f.read().strip()
                     self.assertEqual(content, "")
 
