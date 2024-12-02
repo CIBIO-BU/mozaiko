@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, call, mock_open, patch
 
 from pandas._testing import assert_frame_equal
 
+import src
 from src.marker_scoring.metrics_system import *
 from src.marker_scoring.scoring_utils import *
 
@@ -720,7 +721,7 @@ class TestBinding(unittest.TestCase):
             "mock_amplicon_folder",
             "mock_insert_folder",
             "mock_primer_table",
-            save_results=False,
+            save_results=True,
         )
 
         self.assertIsInstance(primer_pbs_df, dict)
@@ -769,6 +770,74 @@ class TestBinding(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
+class TestPrimerPBSAnalysis(unittest.TestCase):
+    def setUp(self):
+        self.binding = Binding()
+
+    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.validate_primer_table")
+    @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
+    @patch("Bio.SeqUtils.MeltingTemp.Tm_GC")
+    @patch("Bio.SeqUtils.gc_fraction")
+    @patch("src.marker_scoring.metrics_system.Binding.get_primer_table")
+    @patch("src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders")
+    @patch("src.marker_scoring.metrics_system.Binding.get_pbs_table")
+    def test_primer_pbs_analysis_single_primer(
+        self,
+        mock_get_pbs_table,
+        mock_parse_files,
+        mock_get_primer_table,
+        mock_gc_fraction,
+        mock_tm_gc,
+        mock_calculate_mismatches,
+        mock_validate_primer_table
+    ):
+        mock_validate_primer_table.return_value = None
+
+        mock_primer_table = pd.DataFrame([
+            {
+                "barcode_region": "COI",
+                "assay_name": "TestAssay",
+                "fwd_seq": "AGCTTAGCTA",
+                "rev_seq": "TCGATCGATC",
+            }
+        ])
+        mock_get_primer_table.return_value = mock_primer_table
+
+        mock_parse_files.return_value = [
+            ("COI_TestAssay.fasta", "COI_TestAssay_insert.fasta")
+        ]
+
+        mock_pbs_table = pd.DataFrame([
+            {"header": ">seq1|taxon1", "fwd_seq": "AGCTT", "rev_seq": "TCGAT"},
+            {"header": ">seq2|taxon2", "fwd_seq": "AGCTA", "rev_seq": "TCGAC"}
+        ])
+        mock_get_pbs_table.return_value = mock_pbs_table
+
+        mock_gc_fraction.side_effect = lambda seq: len([c for c in seq if c in "GC"]) / len(seq)
+        mock_tm_gc.return_value = 60.0
+        mock_calculate_mismatches.side_effect = lambda seq1, seq2, search_gc_clamp=False: (
+            (1 if seq1 != seq2 else 0, 2 if search_gc_clamp else 0)
+        )
+
+        primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
+            "mock_amplicon_folder",
+            "mock_insert_folder",
+            "mock_primer_table",
+            save_results=True
+        )
+
+        self.assertIsInstance(primer_pbs_df, dict)
+        self.assertIsInstance(primer_gc_df, pd.DataFrame)
+
+        self.assertIn("COI_TestAssay", primer_pbs_df)
+
+        comprehensive_df = primer_pbs_df["COI_TestAssay"]
+        self.assertEqual(len(comprehensive_df), 2)
+        self.assertTrue(all(col in comprehensive_df.columns for col in [
+            "seq_id", "taxon", "full_len_mismatch_sum",
+            "three_end_mismatch_sum", "gc_matches_fwd",
+            "gc_matches_rev", "min_tm", "delta_tm"
+        ]))
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
