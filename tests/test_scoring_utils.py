@@ -38,8 +38,12 @@ class TestScoringUtils(unittest.TestCase):
         with open(mismatches_cases, "r") as file:
             for line in file:
                 print(line)
-                seq1, seq2, expected_mismatches, expected_gc_matches = line.strip().split(" ")
-                mismatches, real_gc_matches = calculate_iupac_mismatches(seq1, seq2, search_gc_clamp=True)
+                seq1, seq2, expected_mismatches, expected_gc_matches = (
+                    line.strip().split(" ")
+                )
+                mismatches, real_gc_matches = calculate_iupac_mismatches(
+                    seq1, seq2, search_gc_clamp=True
+                )
                 self.assertEqual(real_gc_matches, int(expected_gc_matches))
 
     def test_calculate_ambiguous_percentage(self):

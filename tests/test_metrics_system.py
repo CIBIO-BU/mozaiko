@@ -294,6 +294,7 @@ class TestBinding(unittest.TestCase):
             "primer_1": pd.DataFrame({"taxon": ["A", "B"], "value": [1, 2]}),
             "primer_2": pd.DataFrame({"taxon": ["C", "D"], "value": [3, 4]}),
         }
+        self.created_files = []
 
     def test_init_with_default_mismatches(self):
         """
@@ -578,47 +579,57 @@ class TestBinding(unittest.TestCase):
         pd.testing.assert_frame_equal(result, expected)
 
         # Test min operation
-        result_min = self.binding.process_analysis_per_taxon(primer_df, operation="min", analysis_name="value")
+        result_min = self.binding.process_analysis_per_taxon(
+            primer_df, operation="min", analysis_name="value"
+        )
         expected_min = pd.DataFrame({"value": {"A": 5.0, "B": 20.0}})
         expected_min.index.name = "taxon"
         pd.testing.assert_frame_equal(result_min, expected_min)
 
         # Test max operation
-        result_max = self.binding.process_analysis_per_taxon(primer_df, operation="max", analysis_name="value")
+        result_max = self.binding.process_analysis_per_taxon(
+            primer_df, operation="max", analysis_name="value"
+        )
         expected_max = pd.DataFrame({"value": {"A": 10.0, "B": 20.0}})
         expected_max.index.name = "taxon"
         pd.testing.assert_frame_equal(result_max, expected_max)
 
         # Test sum operation
-        result_sum = self.binding.process_analysis_per_taxon(primer_df, operation="sum", analysis_name="value")
+        result_sum = self.binding.process_analysis_per_taxon(
+            primer_df, operation="sum", analysis_name="value"
+        )
         expected_sum = pd.DataFrame({"value": {"A": 15.0, "B": 20.0}})
         expected_sum.index.name = "taxon"
         pd.testing.assert_frame_equal(result_sum, expected_sum)
 
         # Test coef_var operation
-        result_coef_var = self.binding.process_analysis_per_taxon(primer_df, operation="coef_var", analysis_name="value")
+        result_coef_var = self.binding.process_analysis_per_taxon(
+            primer_df, operation="coef_var", analysis_name="value"
+        )
         expected_coef_var = pd.DataFrame({"value": {"A": 47.14, "B": np.nan}})
         expected_coef_var.index.name = "taxon"
         pd.testing.assert_frame_equal(result_coef_var, expected_coef_var)
 
     def test_process_analysis_per_taxon_single_row(self):
-        primer_df = pd.DataFrame({
-            "seq-id": ["abc"],
-            "taxon": ["A"],
-            "value": [5]
-        })
-        result = self.binding.process_analysis_per_taxon(primer_df, operation="mean", analysis_name="value")
+        primer_df = pd.DataFrame({"seq-id": ["abc"], "taxon": ["A"], "value": [5]})
+        result = self.binding.process_analysis_per_taxon(
+            primer_df, operation="mean", analysis_name="value"
+        )
         expected = pd.DataFrame({"value": {"A": 5.0}})
         expected.index.name = "taxon"
         pd.testing.assert_frame_equal(result, expected)
 
     def test_process_analysis_per_taxon_missing_values(self):
-        primer_df = pd.DataFrame({
-            "seq-id": ["abc", "def", "gh"],
-            "taxon": ["A", "A", "B"],
-            "value": [5, None, 20]
-        })
-        result = self.binding.process_analysis_per_taxon(primer_df, operation="coef_var", analysis_name="value")
+        primer_df = pd.DataFrame(
+            {
+                "seq-id": ["abc", "def", "gh"],
+                "taxon": ["A", "A", "B"],
+                "value": [5, None, 20],
+            }
+        )
+        result = self.binding.process_analysis_per_taxon(
+            primer_df, operation="coef_var", analysis_name="value"
+        )
         expected = pd.DataFrame({"value": {"A": np.nan, "B": np.nan}})
         expected.index.name = "taxon"
         pd.testing.assert_frame_equal(result, expected)
@@ -661,7 +672,9 @@ class TestBinding(unittest.TestCase):
     def test_process_analysis_across_taxon_invalid_operation(self):
         tax_grouped_df = pd.DataFrame({"value": [10, 20]})
         with self.assertRaises(ValueError):
-            self.binding.process_analysis_across_taxon(tax_grouped_df, operation="invalid_op")
+            self.binding.process_analysis_across_taxon(
+                tax_grouped_df, operation="invalid_op"
+            )
 
     @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
     @patch("Bio.SeqUtils.MeltingTemp.Tm_GC", return_value=60.0)
@@ -730,6 +743,97 @@ class TestBinding(unittest.TestCase):
         self.assertEqual(primer_gc_df.iloc[0]["barcode_region"], "COI")
         self.assertEqual(primer_gc_df.iloc[0]["assay_name"], "TestAssay")
 
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.validate_primer_table"
+    )
+    @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
+    @patch("Bio.SeqUtils.MeltingTemp.Tm_GC")
+    @patch("Bio.SeqUtils.gc_fraction")
+    @patch("src.marker_scoring.metrics_system.Binding.get_primer_table")
+    @patch(
+        "src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders"
+    )
+    @patch("src.marker_scoring.metrics_system.Binding.get_pbs_table")
+    def test_primer_pbs_analysis_single_primer(
+        self,
+        mock_get_pbs_table,
+        mock_parse_files,
+        mock_get_primer_table,
+        mock_gc_fraction,
+        mock_tm_gc,
+        mock_calculate_mismatches,
+        mock_validate_primer_table,
+    ):
+        mock_validate_primer_table.return_value = None
+
+        mock_primer_table = pd.DataFrame(
+            [
+                {
+                    "barcode_region": "COI",
+                    "assay_name": "TestAssay",
+                    "fwd_seq": "AGCTTAGCTA",
+                    "rev_seq": "TCGATCGATC",
+                }
+            ]
+        )
+        mock_get_primer_table.return_value = mock_primer_table
+
+        mock_parse_files.return_value = [
+            ("COI_TestAssay.fasta", "COI_TestAssay_insert.fasta")
+        ]
+
+        mock_pbs_table = pd.DataFrame(
+            [
+                {"header": ">seq1|taxon1", "fwd_seq": "AGCTT", "rev_seq": "TCGAT"},
+                {"header": ">seq2|taxon2", "fwd_seq": "AGCTA", "rev_seq": "TCGAC"},
+            ]
+        )
+        mock_get_pbs_table.return_value = mock_pbs_table
+
+        mock_gc_fraction.side_effect = lambda seq: len(
+            [c for c in seq if c in "GC"]
+        ) / len(seq)
+        mock_tm_gc.return_value = 60.0
+        mock_calculate_mismatches.side_effect = (
+            lambda seq1, seq2, search_gc_clamp=False: (
+                (1 if seq1 != seq2 else 0, 2 if search_gc_clamp else 0)
+            )
+        )
+
+        primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
+            "mock_amplicon_folder",
+            "mock_insert_folder",
+            "mock_primer_table",
+            save_results=True,
+        )
+
+        self.assertIsInstance(primer_pbs_df, dict)
+        self.assertIsInstance(primer_gc_df, pd.DataFrame)
+
+        self.assertIn("COI_TestAssay", primer_pbs_df)
+
+        comprehensive_df = primer_pbs_df["COI_TestAssay"]
+        self.assertEqual(len(comprehensive_df), 2)
+        self.assertTrue(
+            all(
+                col in comprehensive_df.columns
+                for col in [
+                    "seq_id",
+                    "taxon",
+                    "full_len_mismatch_sum",
+                    "three_end_mismatch_sum",
+                    "gc_matches_fwd",
+                    "gc_matches_rev",
+                    "min_tm",
+                    "delta_tm",
+                ]
+            )
+        )
+
+        self.created_files.extend(
+            ["COI_TestAssay_comprehensive.csv", "primer_gc_fractions.csv"]
+        )
+
     def test_get_priming_ratio(self):
         max_mismatch_full_len = pd.DataFrame(
             {"full_len_mismatch_sum": [10, 20]}, index=["A", "B"]
@@ -770,74 +874,12 @@ class TestBinding(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
-class TestPrimerPBSAnalysis(unittest.TestCase):
-    def setUp(self):
-        self.binding = Binding()
+    def tearDown(self):
+        for file_path in self.created_files:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        self.created_files.clear()
 
-    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.validate_primer_table")
-    @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
-    @patch("Bio.SeqUtils.MeltingTemp.Tm_GC")
-    @patch("Bio.SeqUtils.gc_fraction")
-    @patch("src.marker_scoring.metrics_system.Binding.get_primer_table")
-    @patch("src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders")
-    @patch("src.marker_scoring.metrics_system.Binding.get_pbs_table")
-    def test_primer_pbs_analysis_single_primer(
-        self,
-        mock_get_pbs_table,
-        mock_parse_files,
-        mock_get_primer_table,
-        mock_gc_fraction,
-        mock_tm_gc,
-        mock_calculate_mismatches,
-        mock_validate_primer_table
-    ):
-        mock_validate_primer_table.return_value = None
-
-        mock_primer_table = pd.DataFrame([
-            {
-                "barcode_region": "COI",
-                "assay_name": "TestAssay",
-                "fwd_seq": "AGCTTAGCTA",
-                "rev_seq": "TCGATCGATC",
-            }
-        ])
-        mock_get_primer_table.return_value = mock_primer_table
-
-        mock_parse_files.return_value = [
-            ("COI_TestAssay.fasta", "COI_TestAssay_insert.fasta")
-        ]
-
-        mock_pbs_table = pd.DataFrame([
-            {"header": ">seq1|taxon1", "fwd_seq": "AGCTT", "rev_seq": "TCGAT"},
-            {"header": ">seq2|taxon2", "fwd_seq": "AGCTA", "rev_seq": "TCGAC"}
-        ])
-        mock_get_pbs_table.return_value = mock_pbs_table
-
-        mock_gc_fraction.side_effect = lambda seq: len([c for c in seq if c in "GC"]) / len(seq)
-        mock_tm_gc.return_value = 60.0
-        mock_calculate_mismatches.side_effect = lambda seq1, seq2, search_gc_clamp=False: (
-            (1 if seq1 != seq2 else 0, 2 if search_gc_clamp else 0)
-        )
-
-        primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
-            "mock_amplicon_folder",
-            "mock_insert_folder",
-            "mock_primer_table",
-            save_results=True
-        )
-
-        self.assertIsInstance(primer_pbs_df, dict)
-        self.assertIsInstance(primer_gc_df, pd.DataFrame)
-
-        self.assertIn("COI_TestAssay", primer_pbs_df)
-
-        comprehensive_df = primer_pbs_df["COI_TestAssay"]
-        self.assertEqual(len(comprehensive_df), 2)
-        self.assertTrue(all(col in comprehensive_df.columns for col in [
-            "seq_id", "taxon", "full_len_mismatch_sum",
-            "three_end_mismatch_sum", "gc_matches_fwd",
-            "gc_matches_rev", "min_tm", "delta_tm"
-        ]))
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):

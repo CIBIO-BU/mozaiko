@@ -159,6 +159,12 @@ class TestInSilicoAmplification(unittest.TestCase):
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
     )
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.add_taxonomy_to_pga_outputs"
+    )
+    @patch(
+        "src.in_silico_analysis.amplification.InSilicoAmplification.remove_intersection_sequences"
+    )
     @patch("builtins.input", side_effect=["test_output_folder"])
     @patch("pathlib.Path.is_dir", return_value=True)
     @patch("pathlib.Path.glob", return_value=[Path("dummy.fasta")])
@@ -173,8 +179,10 @@ class TestInSilicoAmplification(unittest.TestCase):
         _mock_glob,
         _mock_dir,
         _mock_input,
+        mock_intersection,
         mock_read_tables,
         mock_validate_fasta,
+        mock_taxonomy_add,
         mock_check_crabs,
         mock_check_cutadapt,
         _mock_copytree,
@@ -190,6 +198,8 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_check_crabs.assert_called_once()
         mock_validate_fasta.assert_called_once()
         mock_read_tables.assert_called_once()
+        mock_taxonomy_add.assert_called_once()
+        self.assertEqual(mock_intersection.call_count, 2)
         self.assertEqual(self.amplification.run_name, "test_output_folder")
         self.assertIsNotNone(self.amplification.output_dirs)
 
@@ -534,3 +544,73 @@ class TestInSilicoAmplification(unittest.TestCase):
     def tearDown(self):
         if os.path.exists("dummy.fasta"):
             os.remove("dummy.fasta")
+
+    def test_add_taxonomy_to_pga_outputs_missing_taxonomy(self):
+        """
+        Test adding taxonomy to records missing taxonomy information.
+        """
+        mock_custom_fasta_import = MagicMock()
+        mock_custom_fasta_import.get_mapping_between_seq_id_taxonomy.return_value = {
+            "seq1": "Chordata",
+            "seq2": "Actinopterygii"
+        }
+
+        with patch(
+            "src.in_silico_analysis.amplification.CustomFastaImport",
+            return_value=mock_custom_fasta_import
+        ):
+            test_input_folders = [Path("test_folder")]
+            test_fasta_file = Path("test_folder/output.fasta")
+
+            mock_records = [
+                MagicMock(
+                    description="seq1",
+                    id="seq1",
+                    seq="ATCG"
+                ),
+                MagicMock(
+                    description="seq2",
+                    id="seq2",
+                    seq="GCTA"
+                )
+            ]
+
+            with patch("Bio.SeqIO.parse", return_value=mock_records), \
+                patch("pathlib.Path.glob", return_value=[test_fasta_file]), \
+                patch("builtins.open", mock_open()) as mock_file:
+
+                self.amplification.data = "input_fasta.fasta"
+                self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
+
+                mock_file.assert_called_once_with(test_fasta_file, "w")
+
+    def test_add_taxonomy_to_pga_outputs_no_mapping(self):
+        """
+        Test behavior when no taxonomy mapping exists for a sequence.
+        """
+        test_input_folders = [Path("test_folder")]
+        test_fasta_file = Path("test_folder/output.fasta")
+
+        mock_records = [
+            MagicMock(
+                description="seq1",
+                id="seq1",
+                seq="ATCG"
+            )
+        ]
+
+        mock_custom_fasta_import = MagicMock()
+        mock_custom_fasta_import.get_mapping_between_seq_id_taxonomy.return_value = {}
+
+        with patch(
+            "src.in_silico_analysis.amplification.CustomFastaImport",
+            return_value=mock_custom_fasta_import
+        ):
+            with patch("Bio.SeqIO.parse", return_value=mock_records), \
+                patch("pathlib.Path.glob", return_value=[test_fasta_file]), \
+                patch("builtins.open", mock_open()) as mock_file:
+
+                self.amplification.data = "input_fasta.fasta"
+                self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
+
+                mock_file.assert_not_called()

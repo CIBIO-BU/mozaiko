@@ -3,7 +3,9 @@ import os
 import re
 import subprocess
 from pathlib import Path
+from typing import Union
 
+import numpy as np
 import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -86,8 +88,7 @@ def write_filtered_sequence(output_handle, record):
     - output_handle: File handle for writing
     - record: SeqIO record object
     """
-    sequence = str(record.seq)
-    output_handle.write(f">{record.description}\n{sequence}\n")
+    output_handle.write(f">{record.description}\n{record.seq}\n")
 
 
 def filter_sequences_by_ambiguity(
@@ -242,13 +243,17 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     return primer_dataframe
 
 
-def sequence_count_tracking(original_database, analysis_folder):
+def sequence_count_tracking(
+    original_database, analysis_folder, save_results: bool = True
+):
     """
     This method tracks sequence count per each analysis step.
 
     Parameters:
     - original_database: path to the FASTA file containing the original inputted database.
     - analysis_folder: path to the folder contaning the analysis outcomes.
+    - save_results: bool
+        A boolean parameter to save the results to an CSV file, if the parameter is set to True.
 
     Output:
     - sequence_count_track (Dataframe): TSV file containing the number of sequenc21h45 	22h03es in the original
@@ -282,12 +287,12 @@ def sequence_count_tracking(original_database, analysis_folder):
                 sequence_counts[file_path] = count
             except subprocess.CalledProcessError as e:
                 print(f"mozaiko ERROR: Error processing file {file_path}: {e}")
-                sequence_counts[file_path] = "NA"
+                sequence_counts[file_path] = np.na
             except ValueError as e:
                 print(
                     f"mozaiko ERROR: Error counting sequences for file {file_path}: {e}"
                 )
-                sequence_counts[file_path] = "NA"
+                sequence_counts[file_path] = np.na
 
         records = []
 
@@ -332,17 +337,18 @@ def sequence_count_tracking(original_database, analysis_folder):
 
         df_pivoted = df_pivoted[existing_cols].fillna("NA")
 
-        run_name = os.path.basename(analysis_folder)
-        output_name = "sequence_count_track.tsv"
-        output_path = analysis_folder + "/" + run_name + "-" + output_name
+        if save_results == True:
+            run_name = os.path.basename(analysis_folder)
+            output_name = "sequence_count_track.tsv"
+            output_path = analysis_folder + "/" + run_name + "-" + output_name
 
-        df_pivoted.to_csv(
-            output_path, sep="\t", index=True, header=True, index_label=""
-        )
+            df_pivoted.to_csv(
+                output_path, sep="\t", index=True, header=True, index_label=""
+            )
 
-        print(
-            f"mozaiko INFO: Sequence count tracking file successfully saved to {output_path}."
-        )
+            print(
+                f"mozaiko INFO: Sequence count tracking file successfully saved to {output_path}."
+            )
 
         return df_pivoted
 

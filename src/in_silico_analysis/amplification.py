@@ -17,11 +17,9 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from pandas import DataFrame
 
-from ..marker_scoring.scoring_utils import (
-    filter_sequences_by_ambiguity,
-    write_filtered_sequence,
-)
-from ..reference_database.db_curation import CrabsScriptGenerator
+from src.marker_scoring.scoring_utils import filter_sequences_by_ambiguity
+from src.reference_database.db_curation import CrabsScriptGenerator
+from src.reference_database.sequence_import import CustomFastaImport
 
 
 class InSilicoAmplification:
@@ -127,14 +125,18 @@ class InSilicoAmplification:
         """
 
         if not os.path.exists(primer_table):
-            raise ValueError("mozaiko INFO: The primer table does not exist. Exiting...")
+            raise ValueError(
+                "mozaiko INFO: The primer table does not exist. Exiting..."
+            )
 
         _, file_extension = os.path.splitext(primer_table)
 
         file_extension = file_extension.lstrip(".")
 
         if file_extension.lower() != "tsv":
-            raise ValueError("mozaiko INFO: The primer table must be a TSV file. Exiting...")
+            raise ValueError(
+                "mozaiko INFO: The primer table must be a TSV file. Exiting..."
+            )
 
         primer_table = pd.read_csv(primer_table, sep="\t", header=0, dtype=str)
 
@@ -263,11 +265,14 @@ class InSilicoAmplification:
 
     def remove_intersection_sequences(self, input_path, filter_path):
         """
-        This method removes any sequences that are present in both files. As such, it filters the
-        sequences present in one file (filter_path) from the other (input_path).
+        This method removes sequences that are present in both files. As such, it filters the
+        sequences present in the filter file (filter_path) from the other (input_path).
         """
         input_path = Path(input_path)
         filter_path = Path(filter_path)
+
+        filtered_output_dir = input_path / "filtered_intersection"
+        filtered_output_dir.mkdir(parents=True, exist_ok=True)
 
         if input_path.is_file():
             input_files = [input_path]
@@ -302,36 +307,80 @@ class InSilicoAmplification:
 
             matching_primer = filter_primer_mapping[input_file.stem]
 
-            all_PBS_count = self._count_sequences(input_file)
-            incomplete_psb_count = self._count_sequences(matching_primer)
+            # all_PBS_count = self._count_sequences(input_file)
+            # incomplete_psb_count = self._count_sequences(matching_primer)
 
-            filtered_sequences = set()
+            output_file = filtered_output_dir / input_file.name
+
+            ids_to_filter = set()
             for record in SeqIO.parse(matching_primer, "fasta"):
-                seq_string = str(record.seq).upper()
-                filtered_sequences.add(seq_string)
+                # seq_string_filtered = str(record.seq).upper()
+                id_filtered = record.id
+                ids_to_filter.add(id_filtered)
 
             with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
-                retained_sequences = []
-
+                retained_sequences = set()
                 for record in SeqIO.parse(input_file, "fasta"):
-                    seq_string = str(record.seq).upper()
-                    if seq_string not in filtered_sequences:
-                        retained_sequences.append(record)
+                    seq_string_retained = str(record.seq).upper()
+                    record_retained = record.description
+                    record_id = record.id
+                    if record_id not in ids_to_filter:
+                        retained_sequences.add((seq_string_retained, record_retained))
 
-                with open(temp_file.name, "w") as output_handle:
-                    for record in retained_sequences:
-                        write_filtered_sequence(output_handle, record)
-
-                shutil.move(temp_file.name, input_file)
+                with open(output_file, "w") as output_handle:
+                    for seq_string_retained, record_retained in retained_sequences:
+                        output_handle.write(
+                            f">{record_retained}\n{seq_string_retained}\n"
+                        )
 
                 results[input_file] = {
                     "retained_sequences": len(retained_sequences),
                     "filter_file_used": matching_primer,
+                    "output_file": output_file,
                 }
 
             print(
                 f"    For {input_file.stem}: {results[input_file]['retained_sequences']} sequences were retained."
             )
+
+    def add_taxonomy_to_pga_outputs(self, input_folders):
+        """
+        This method adds taxonomy information to FASTA file headers where it's missing (PGA outputs).
+
+        Parameters:
+        - input_folders (list):
+        List of folder paths containing FASTA files to process
+        """
+        if not input_folders:
+            return
+
+        # Load mapping between taxonomy and seq-id
+        self.custom_fasta_import = CustomFastaImport(self.data)
+        self.custom_fasta_import.read_fasta(self.data)
+        seq_id_taxonomy_dict = self.custom_fasta_import.get_mapping_between_seq_id_taxonomy()
+
+        for folder_path in input_folders:
+            folder_path = Path(folder_path)
+            fasta_files = list(folder_path.glob("*.fasta"))
+
+            for fasta_file in fasta_files:
+                records = list(SeqIO.parse(fasta_file, "fasta"))
+
+                modified = False
+                for record in records:
+                    if "|" not in record.description:
+                        if record.id in seq_id_taxonomy_dict:
+                            new_description = f"{record.description} | {seq_id_taxonomy_dict[record.id]}"
+                            record.description = new_description
+                            record.id = new_description.split()[0]
+                            modified = True
+
+                if modified:
+                    with open(fasta_file, "w") as output_handle:
+                        for record in records:
+                            output_handle.write(
+                                f">{record.description}\n{str(record.seq)}\n"
+                            )
 
     def run_in_silico_analysis(
         self, primer_table=None, max_len_according_to_ilumina: bool = True
@@ -377,6 +426,12 @@ class InSilicoAmplification:
                 f"   --------   {index + 1}/{len(self.primer_table)} processed   --------   "
             )
 
+        pga_directories = [
+            self.output_dirs["all_complete_pbs"],
+            self.output_dirs["incomplete_pbs"],
+        ]
+        self.add_taxonomy_to_pga_outputs(pga_directories)
+
         directories_to_filter = ["amplicon", "all_complete_pbs", "incomplete_pbs"]
         for dir_name in directories_to_filter:
             try:
@@ -394,7 +449,7 @@ class InSilicoAmplification:
             number_of_sequences = self._count_sequences(file)
             print(f"    For {file.stem}, {number_of_sequences} were retained.")
 
-        # Copy PGA output before filtering sequences
+        # Make a copy of the inserts file to avoid alterations in downstream tasks (intersections)
         all_inserts_path = self.run_dir / "all_inserts"
         shutil.copytree(filter_inserts_path, all_inserts_path)
 
@@ -408,7 +463,7 @@ class InSilicoAmplification:
 
         print("mozaiko INFO: Number of inserts with incomplete PBS...")
         self.remove_intersection_sequences(
-            self.output_dirs["incomplete_pbs"] / "filtered",
+            self.output_dirs["all_complete_pbs"] / "filtered",
             self.output_dirs["insert"] / "filtered",
         )
 
@@ -550,7 +605,7 @@ class InSilicoAmplification:
 
         full_command = base_command + additional_args
 
-        print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        # print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
         # print(f"mozaiko INFO: Input file: {input_file}")
         # print(f"mozaiko INFO: Output file: {output_file}")
 
@@ -638,3 +693,11 @@ class InSilicoAmplification:
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: CRABS PGA command failed: {e}")
             sys.exit(1)
+
+
+# if __name__ == "__main__":
+#     data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-taxa.fasta"
+#     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-primers.tsv"
+#     run_name = "diat-barcode-test-checkalters"
+#     cutadapt = InSilicoAmplification(data, run_name=run_name)
+#     cutadapt.run_in_silico_analysis(primer_table=primer_table)

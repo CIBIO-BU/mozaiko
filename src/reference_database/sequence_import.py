@@ -232,6 +232,19 @@ class CustomFastaImport:
 
         return self.fasta_file
 
+    def get_mapping_between_seq_id_taxonomy(self):
+        """
+        This method creates a mapping between the seq-id and the taxonomy present in the inputed
+        FASTA file.
+
+        Returns:
+        - seq_id_taxonomy_dict: Dict
+            A dictionary with seq-ids as keys and the taxonomy information as values.
+        """
+        seq_id_taxonomy_dict = dict(zip(self.data['seq_id'], self.data['taxa_info']))
+
+        return seq_id_taxonomy_dict
+
 
 class LineageFileLoader:
     """

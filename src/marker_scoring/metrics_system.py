@@ -927,6 +927,28 @@ class Binding:
 
         return tm_score
 
+    def get_amplified_taxa_count(self, results_folder):
+        """
+        This method computes the total number of taxa that were successfuly amplified in-silico.
+        A taxa is amplified if at least one sequence identified with the nomenclature is kept after
+        the in-silico process.
+
+        Parameters:
+        - results_folder: str
+            Path to the folder containing the results from the amplification process and its
+             subdirectories. Subdirectories names should not be changed.
+
+        Return:
+        - amplified_taxa_count: int
+            Total number of taxa that were successfuly amplified
+        """
+        # Input A
+        in_silico_amplified_inserts = results_folder + "/all_inserts"
+        # Input B
+        all_inserts_with_pbs = results_folder + "/all_complete_pbs/filtered"
+        # Input C
+        inserts_with_incomplete_pbs = results_folder + "/incomplete_pbs/filtered"
+
 
 class MetricsSystemExecutor:
     """
