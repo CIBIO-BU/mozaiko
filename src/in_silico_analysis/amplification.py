@@ -251,7 +251,7 @@ class InSilicoAmplification:
             print("mozaiko INFO: Input file must be a FASTA file. Exiting...")
             sys.exit(1)
 
-    def _count_sequences(self, fasta_file):
+    def count_sequences(self, fasta_file):
         """
         Count the number of sequences in a FASTA file.
 
@@ -307,8 +307,8 @@ class InSilicoAmplification:
 
             matching_primer = filter_primer_mapping[input_file.stem]
 
-            # all_PBS_count = self._count_sequences(input_file)
-            # incomplete_psb_count = self._count_sequences(matching_primer)
+            # all_PBS_count = self.count_sequences(input_file)
+            # incomplete_psb_count = self.count_sequences(matching_primer)
 
             output_file = filtered_output_dir / input_file.name
 
@@ -351,9 +351,6 @@ class InSilicoAmplification:
         - input_folders (list):
         List of folder paths containing FASTA files to process
         """
-        if not input_folders:
-            return
-
         # Load mapping between taxonomy and seq-id
         self.custom_fasta_import = CustomFastaImport(self.data)
         self.custom_fasta_import.read_fasta(self.data)
@@ -446,7 +443,7 @@ class InSilicoAmplification:
         filter_inserts_path = self.output_dirs["insert"] / "filtered"
         insert_files = list(filter_inserts_path.glob("*.fasta"))
         for file in insert_files:
-            number_of_sequences = self._count_sequences(file)
+            number_of_sequences = self.count_sequences(file)
             print(f"    For {file.stem}, {number_of_sequences} were retained.")
 
         # Make a copy of the inserts file to avoid alterations in downstream tasks (intersections)

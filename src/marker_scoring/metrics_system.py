@@ -927,9 +927,22 @@ class Binding:
 
         return tm_score
 
-    def get_amplified_taxa_count(self, results_folder):
+    def count_unique_taxa(self, fasta_file):
+        unique_taxa = set()
+
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            parts = record.description.split("|")
+            if len(parts) > 1:
+                taxonomy = parts[1].strip()
+                unique_taxa.add(taxonomy)
+
+        return len(unique_taxa)
+
+    def get_outputs_taxa_counts(self, results_folder):
         """
-        This method computes the total number of taxa that were successfuly amplified in-silico.
+        This method computes the total number of taxa that were successfuly amplified in-silico,
+        the number of taxa that contain PBS, even if amplification was not successful, and the number
+        of taxa that did not contain PBS.
         A taxa is amplified if at least one sequence identified with the nomenclature is kept after
         the in-silico process.
 
@@ -948,6 +961,54 @@ class Binding:
         all_inserts_with_pbs = results_folder + "/all_complete_pbs/filtered"
         # Input C
         inserts_with_incomplete_pbs = results_folder + "/incomplete_pbs/filtered"
+
+        folder_list = [
+            ("taxa_in_silico_amplified", in_silico_amplified_inserts),
+            ("taxa_with_pbs", all_inserts_with_pbs),
+            ("taxa_with_incomplete_pbs", inserts_with_incomplete_pbs),
+        ]
+        data = {}
+
+        for folder_name, folder_path in folder_list:
+            data[folder_name] = {}
+            for root, dirs, files in os.walk(folder_path):
+                for file in files:
+                    if file.endswith(".fasta"):
+                        primer_name = os.path.splitext(file)[0]
+                        file_path = os.path.join(root, file)
+
+                        unique_taxa_count = self.count_unique_taxa(file_path)
+
+                        data[folder_name][primer_name] = unique_taxa_count
+
+        insert_taxa_counts_df = pd.DataFrame(data).fillna(0).astype(int)
+
+        insert_taxa_counts_df = insert_taxa_counts_df
+
+        insert_taxa_counts_df["taxa_with_pbs"] = (
+            insert_taxa_counts_df["taxa_in_silico_amplified"]
+            + insert_taxa_counts_df["taxa_with_pbs"]
+        )
+
+        return insert_taxa_counts_df
+
+    def calculate_amplification_success_score(self, results_folder):
+        """
+        This method calculates the percentage of successfully amplified taxa, computed by divinding
+        the number of in-silico amplified taxa by taxa with PBS.
+        """
+        insert_taxa_counts_df = self.get_outputs_taxa_counts(results_folder)
+
+        amplification_score = (
+            insert_taxa_counts_df["taxa_in_silico_amplified"]
+            / insert_taxa_counts_df["taxa_with_pbs"]
+            * 100
+        )
+        insert_taxa_counts_df["amplification_sucess_percent"] = round(
+            amplification_score, 2
+        )
+
+        return insert_taxa_counts_df
 
 
 class MetricsSystemExecutor:

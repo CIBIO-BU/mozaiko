@@ -241,7 +241,7 @@ class CustomFastaImport:
         - seq_id_taxonomy_dict: Dict
             A dictionary with seq-ids as keys and the taxonomy information as values.
         """
-        seq_id_taxonomy_dict = dict(zip(self.data['seq_id'], self.data['taxa_info']))
+        seq_id_taxonomy_dict = dict(zip(self.data["seq_id"], self.data["taxa_info"]))
 
         return seq_id_taxonomy_dict
 
