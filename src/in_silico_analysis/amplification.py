@@ -271,7 +271,10 @@ class InSilicoAmplification:
         input_path = Path(input_path)
         filter_path = Path(filter_path)
 
-        filtered_output_dir = input_path / "filtered_intersection"
+        is_input_dir = input_path.is_dir()
+
+        # Create filtered output directory
+        filtered_output_dir = (input_path.parent if not is_input_dir else input_path) / "filtered_intersection"
         filtered_output_dir.mkdir(parents=True, exist_ok=True)
 
         if input_path.is_file():

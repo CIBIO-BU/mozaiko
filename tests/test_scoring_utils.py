@@ -116,8 +116,8 @@ class TestScoringUtils(unittest.TestCase):
             )
 
     def test_extract_primer_binding_sites(self):
-        amplicon_file = self.test_directory / "amplicon-test/amplicon_test.fasta"
-        insert_file = self.test_directory / "insert-test/insert_test.fasta"
+        amplicon_file = self.test_directory / "amplicon-test/primerC.fasta"
+        insert_file = self.test_directory / "insert-test/primerA.fasta"
 
         result = extract_primer_binding_sites(amplicon_file, insert_file)
 
@@ -128,8 +128,8 @@ class TestScoringUtils(unittest.TestCase):
             ["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"],
         )
 
-        self.assertEqual(result["header"].iloc[0], "> abc")
-        self.assertEqual(result["header"].iloc[1], "> def")
+        self.assertEqual(result["header"].iloc[0], ">abc")
+        self.assertEqual(result["header"].iloc[1], ">def")
         self.assertEqual(result["fwd_seq"].iloc[0], "ACGTAGCA")
         self.assertEqual(result["rev_seq"].iloc[0], "ACCATCA")
         self.assertEqual(result["fwd_seq"].iloc[1], "AGTGA")

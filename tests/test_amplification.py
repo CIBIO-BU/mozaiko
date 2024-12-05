@@ -6,12 +6,16 @@ import os
 import subprocess
 import sys
 import unittest
+import tempfile
+import shutil
 from io import StringIO
+from Bio import SeqIO
 from pathlib import Path, PosixPath
 from unittest.mock import MagicMock, mock_open, patch
 
 import pandas as pd
 from Bio.Seq import Seq
+import shutil
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
@@ -614,3 +618,33 @@ class TestInSilicoAmplification(unittest.TestCase):
                 self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
 
                 mock_file.assert_not_called()
+
+    def test_remove_intersection_sequences_single_file(self):
+        """
+        Test remove_intersection_sequences with a single input file
+        """
+        input_dir = Path("data/test_data/amplicon-test")
+        filter_dir = Path("data/test_data/insert-test")
+
+        input_file = input_dir / "primerA.fasta"
+        filter_file = filter_dir / "primerA.fasta"
+
+        self.amplification.remove_intersection_sequences(input_file, filter_file)
+
+        filtered_dir = input_file.parent / "filtered_intersection"
+        filtered_file = filtered_dir / "primerA.fasta"
+
+        output_records = list(SeqIO.parse(filtered_file, "fasta"))
+        output_ids = [record.id for record in output_records]
+
+        assert len(output_records) == 1, f"Expected 1 sequence, got {len(output_records)}"
+        assert "def" not in output_ids, "def should be filtered out"
+        assert "xyz" in output_ids, "abc should be retained"
+
+    def tearDown(self):
+        """
+        Clean up any files created during tests.
+        """
+        filtered_dir = Path(self.data_dir + "/amplicon-test/filtered_intersection")
+        if filtered_dir.exists():
+            shutil.rmtree(filtered_dir)

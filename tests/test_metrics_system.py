@@ -880,7 +880,6 @@ class TestBinding(unittest.TestCase):
                 os.remove(file_path)
         self.created_files.clear()
 
-
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
         self.all_inserts_folder = "data/test_data/test-folder-metrics"
