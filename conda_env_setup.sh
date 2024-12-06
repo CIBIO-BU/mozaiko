@@ -336,7 +336,8 @@ main() {
     echo "mozaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
     echo "Proceeding with installation..."
     install_crabs_release
-    install_cutadapt_packageInstalling
+    install_cutadapt_package
+    install_multibarcodetools
     echo "Instalation complete"
 }
 
