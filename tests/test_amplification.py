@@ -545,10 +545,6 @@ class TestInSilicoAmplification(unittest.TestCase):
                 self.primer_list, max_len_according_to_ilumina=False
             )
 
-    def tearDown(self):
-        if os.path.exists("dummy.fasta"):
-            os.remove("dummy.fasta")
-
     def test_add_taxonomy_to_pga_outputs_missing_taxonomy(self):
         """
         Test adding taxonomy to records missing taxonomy information.
@@ -648,3 +644,6 @@ class TestInSilicoAmplification(unittest.TestCase):
         filtered_dir = Path(self.data_dir + "/amplicon-test/filtered_intersection")
         if filtered_dir.exists():
             shutil.rmtree(filtered_dir)
+
+        if os.path.exists("dummy.fasta"):
+            os.remove("dummy.fasta")
