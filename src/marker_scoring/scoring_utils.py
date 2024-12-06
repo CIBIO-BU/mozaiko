@@ -363,7 +363,7 @@ def create_MultiBarcodeTools_input(insert_folder, output_file):
 
     Parameters:
     - folder_path:Path to the folder containing FASTA files
-    - output_file: Path and ame of the output TSV file
+    - output_file: Path to the output TSV file
     """
     with open(output_file, "w") as tsv_file:
         tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")

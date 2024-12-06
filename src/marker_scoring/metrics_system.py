@@ -349,6 +349,10 @@ class ReferenceDatabaseQuality:
 
 
 class Binding:
+    """
+    This class implements the method related to evaluating the binding efficency and performance
+    between the primer-sets and the PBS.
+    """
     def __init__(self, number_of_mismatches=None):
         self.amplification_instance = InSilicoAmplification()
         if number_of_mismatches is None:
@@ -983,8 +987,6 @@ class Binding:
 
         insert_taxa_counts_df = pd.DataFrame(data).fillna(0).astype(int)
 
-        insert_taxa_counts_df = insert_taxa_counts_df
-
         insert_taxa_counts_df["taxa_with_pbs"] = (
             insert_taxa_counts_df["taxa_in_silico_amplified"]
             + insert_taxa_counts_df["taxa_with_pbs"]
@@ -1010,6 +1012,103 @@ class Binding:
 
         return insert_taxa_counts_df
 
+class TraitsAndResolution:
+    def __init__(self, insert_folder_path, amplicon_folder_path):
+        self.insert_folder_path = insert_folder_path
+        self.amplicon_folder_path = amplicon_folder_path
+        self.tool_file_path = self.insert_folder_path + "/multibarcodetools-input.tsv"
+        multibarcodetools_input = create_MultiBarcodeTools_input(insert_folder_path, self.tool_file_path)
+
+    def get_min_max_avg_seq_length_in_a_fasta(self, fasta_file):
+        """
+        This method calculates the  minimum, maximum, and average sequence lengths in a FASTA file.
+
+        Parameters:
+        - fasta_file: str
+            Path to the FASTA file
+
+        Returns:
+            tuple: (min_length, max_length, avg_length)
+        """
+        try:
+            seq_lengths = [len(record.seq) for record in SeqIO.parse(fasta_file, "fasta")]
+
+            if not seq_lengths:
+                return np.nan, np.nan, np.nan
+
+            min_length = min(seq_lengths)
+            max_length = max(seq_lengths)
+            avg_length = sum(seq_lengths) / len(seq_lengths)
+
+            return min_length, max_length, round(avg_length, 2)
+
+        except Exception as e:
+            print(f"mozaiko ERROR: Error processing {fasta_file}: {e}")
+            return np.nan, np.nan, np.nan
+
+    def get_length_stats_for_amplicon_and_insert(self,
+                                                 insert_folder_path=None,
+                                                 amplicon_folder_path=None):
+        """
+        This method analyzes sequence lengths for insert and amplicon FASTA files.
+
+        Parameters:
+        - insert_folder_path (str, optional):
+            Path to insert FASTA files
+        - amplicon_folder_path (str, optional):
+            Path to amplicon FASTA files
+
+        Returns:
+            pd.DataFrame: DataFrame with sequence length stats
+        """
+        if insert_folder_path is None:
+            insert_folder_path = self.insert_folder_path
+        if amplicon_folder_path is None:
+            amplicon_folder_path = self.amplicon_folder_path
+
+        if not (insert_folder_path and amplicon_folder_path):
+            raise ValueError("mozaiko ERROR: Insert or amplicon folder paths are not specified.")
+
+        length_data = {
+            'insert': {},
+            'amplicon': {}
+        }
+
+        for root, dirs, files in os.walk(insert_folder_path):
+            for file in files:
+                if file.endswith(".fasta"):
+                    primer_name = os.path.splitext(file)[0]
+                    file_path = os.path.join(root, file)
+
+                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(file_path)
+
+                    length_data['insert'][primer_name] = {
+                        'avg_length': avg
+                    }
+
+        for root, dirs, files in os.walk(amplicon_folder_path):
+            for file in files:
+                if file.endswith(".fasta"):
+                    primer_name = os.path.splitext(file)[0]
+                    file_path = os.path.join(root, file)
+
+                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(file_path)
+
+                    length_data['amplicon'][primer_name] = {
+                        'min_length': min,
+                        'max_length': max,
+                        'avg_length': avg
+                    }
+
+        insert_df = pd.DataFrame.from_dict(length_data['insert'], orient='index')
+        amplicon_df = pd.DataFrame.from_dict(length_data['amplicon'], orient='index')
+
+        result_df = pd.concat([
+            insert_df.add_prefix('insert_'),
+            amplicon_df.add_prefix('amplicon_')
+        ], axis=1)
+
+        return result_df.fillna(np.nan)
 
 class MetricsSystemExecutor:
     """

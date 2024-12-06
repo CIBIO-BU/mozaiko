@@ -987,6 +987,73 @@ class TestBinding(unittest.TestCase):
 
         shutil.rmtree(self.mock_test_dir)
 
+class TestTraitsAndResolution(unittest.TestCase):
+    def setUp(self):
+        """
+        Set up test parameters using existing directories
+        """
+        self.amplicon_dir = "data/test_data/amplicon-test"
+        self.insert_dir = "data/test_data/insert-test"
+        self.multibarcodetools_input = "data/test_data/insert-test/multibarcodetools-input.tsv"
+        self.traits = TraitsAndResolution(
+            insert_folder_path=self.insert_dir,
+            amplicon_folder_path=self.amplicon_dir
+        )
+        self.created_files = [self.multibarcodetools_input]
+
+    def test_get_min_max_avg_seq_length_in_a_fasta(self):
+        """
+        Test sequence length calculation for individual FASTA files
+        """
+        amplicon_primer_a_path = os.path.join(self.amplicon_dir, 'primerA.fasta')
+        min_len, max_len, avg_len = self.traits.get_min_max_avg_seq_length_in_a_fasta(amplicon_primer_a_path)
+
+        self.assertEqual(min_len, 6)
+        self.assertEqual(max_len, 26)
+        self.assertAlmostEqual(avg_len, 18.33)
+
+    def test_get_length_stats_for_amplicon_and_insert(self):
+        """
+        Test getting length statistics for both amplicon and insert
+        """
+        length_stats = self.traits.get_length_stats_for_amplicon_and_insert()
+
+        self.assertIsInstance(length_stats, pd.DataFrame)
+
+        self.assertListEqual(list(length_stats.index), ['primerA', 'primerC'])
+
+        # Insert average length
+        self.assertAlmostEqual(length_stats.loc['primerA', 'insert_avg_length'], 9.0)
+        self.assertTrue(np.isnan(length_stats.loc['primerC', 'insert_avg_length']))
+
+        # Amplicon min length
+        self.assertAlmostEqual(length_stats.loc['primerA', 'amplicon_min_length'], 6)
+        self.assertAlmostEqual(length_stats.loc['primerC', 'amplicon_min_length'], 23)
+
+        # Amplicon max length
+        self.assertAlmostEqual(length_stats.loc['primerA', 'amplicon_max_length'], 26)
+        self.assertAlmostEqual(length_stats.loc['primerC', 'amplicon_max_length'], 26)
+
+        # Amplicon average length
+        self.assertAlmostEqual(length_stats.loc['primerA', 'amplicon_avg_length'], 18.33, places=2)
+        self.assertAlmostEqual(length_stats.loc['primerC', 'amplicon_avg_length'], 24.50, places=2)
+
+        expected_columns = [
+            'amplicon_min_length',
+            'amplicon_max_length',
+            'amplicon_avg_length',
+            'insert_avg_length'
+        ]
+        for column in expected_columns:
+            self.assertIn(column, length_stats.columns, f"{column} column missing")
+
+    def tearDown(self):
+        print(self.created_files)
+
+        for file_path in self.created_files:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        self.created_files.clear()
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
