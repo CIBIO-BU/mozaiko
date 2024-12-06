@@ -270,6 +270,24 @@ install_multibarcodetools() {
         }
     fi
 
+        # Ensure Conda is installed for MAFFT installation
+    if ! command -v conda &> /dev/null; then
+        echo "Conda is not installed. Please install Conda and rerun this script."
+        return 1
+    fi
+
+    # Install MAFFT using Conda
+    echo "Checking if MAFFT is installed..."
+    if ! conda list | grep -q mafft; then
+        echo "MAFFT not found. Installing MAFFT via Conda..."
+        conda install -c bioconda mafft -y || {
+            echo "Failed to install MAFFT. Ensure Conda is set up correctly and try again."
+            return 1
+        }
+    else
+        echo "MAFFT is already installed."
+    fi
+
     # Create a directory for installation if it doesn't exist
     INSTALL_DIR="${HOME}/tools/MultiBarcodePipeline"
     mkdir -p "${INSTALL_DIR}"

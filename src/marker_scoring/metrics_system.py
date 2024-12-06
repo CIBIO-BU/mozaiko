@@ -1110,6 +1110,9 @@ class TraitsAndResolution:
 
         return result_df.fillna(np.nan)
 
+    def run_multibarcode_pipeline(self, amplicon_input_file, output_path):
+        pass
+
 class MetricsSystemExecutor:
     """
     This class orchestrates the entire Metrics System, coordinating the execution of all evaluation

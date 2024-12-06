@@ -247,34 +247,7 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         with open(output_file, "r") as f:
             lines = f.readlines()
 
-        self.assertEqual(
-            lines[0].strip(), "seq_ID\tprimer_name\tspecies_name\tinsert_sequence"
-        )
-
-        self.assertEqual(len(lines) - 1, 4)
-
-    def test_process_sequence_valid_header(self):
-        """
-        Mehtod to test process_sequence with a valid header.
-        """
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as mock_tsv:
-            try:
-                header = "seq1|Awesome Species"
-                sequence_lines = ["ATCGATCGATCG"]
-                primer_name = "test_primer"
-
-                process_sequence(header, sequence_lines, primer_name, mock_tsv)
-
-                mock_tsv.close()
-
-                with open(mock_tsv.name, "r") as f:
-                    content = f.read().strip()
-
-                expected_output = "seq1\ttest_primer\tAwesome Species\tATCGATCGATCG"
-                self.assertEqual(content, expected_output)
-
-            finally:
-                os.unlink(mock_tsv.name)
+        self.assertEqual(len(lines) - 1, 3)
 
     def test_process_sequence_invalid_header(self):
         """

@@ -366,7 +366,6 @@ def create_MultiBarcodeTools_input(insert_folder, output_file):
     - output_file: Path to the output TSV file
     """
     with open(output_file, "w") as tsv_file:
-        tsv_file.write("seq_ID\tprimer_name\tspecies_name\tinsert_sequence\n")
 
         fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta"))
 
