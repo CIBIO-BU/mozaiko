@@ -258,6 +258,18 @@ install_multibarcodetools() {
         sudo apt-get install -y git
     fi
 
+    if ! command -v python3.9 &> /dev/null; then
+        echo "Python 3.9 is not installed. Installing Python 3.9..."
+        sudo apt update
+        sudo apt install -y software-properties-common
+        sudo add-apt-repository -y ppa:deadsnakes/ppa
+        sudo apt update
+        sudo apt install -y python3.9 python3.9-venv python3.9-distutils || {
+            echo "Failed to install Python 3.9. Please install it manually and rerun this script."
+            return 1
+        }
+    fi
+
     # Create a directory for installation if it doesn't exist
     INSTALL_DIR="${HOME}/tools/MultiBarcodePipeline"
     mkdir -p "${INSTALL_DIR}"
