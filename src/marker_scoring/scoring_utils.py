@@ -397,7 +397,8 @@ def create_MultiBarcodeTools_input(insert_folder, output_file):
                         current_header, current_sequence, primer_name, tsv_file
                     )
 
-    print(f"Conversion complete. Output written to {output_file}")
+    print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
+    return output_file
 
 
 def process_sequence(header, sequence_lines, primer_name, tsv_file):

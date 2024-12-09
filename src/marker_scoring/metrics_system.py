@@ -1,4 +1,5 @@
 import json
+import subprocess
 import os
 import sys
 from collections import defaultdict
@@ -1013,11 +1014,10 @@ class Binding:
         return insert_taxa_counts_df
 
 class TraitsAndResolution:
-    def __init__(self, insert_folder_path, amplicon_folder_path):
-        self.insert_folder_path = insert_folder_path
-        self.amplicon_folder_path = amplicon_folder_path
-        self.tool_file_path = self.insert_folder_path + "/multibarcodetools-input.tsv"
-        multibarcodetools_input = create_MultiBarcodeTools_input(insert_folder_path, self.tool_file_path)
+    def __init__(self, results_folder):
+        self.results_folder = results_folder
+        self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
+        self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
 
     def get_min_max_avg_seq_length_in_a_fasta(self, fasta_file):
         """
@@ -1110,8 +1110,84 @@ class TraitsAndResolution:
 
         return result_df.fillna(np.nan)
 
-    def run_multibarcode_pipeline(self, amplicon_input_file, output_path):
-        pass
+    def run_multibarcode_pipeline(self, results_folder=None):
+        """
+        Runs MultiBarcodePipeline on the insert files.
+
+        Zhu, T., & Iwasaki, W. (2023). MultiBarcodeTools: Easy selection of optimal primers for
+        eDNA multi-metabarcoding. Environmental DNA, 5, 1793-1808. https://doi.org/10.1002/edn3.499
+
+
+        Parameters:
+        - results_folder: str
+            Path to the folder containing the results from the amplification process and its
+             subdirectories. Subdirectories names should not be changed.
+        """
+        if results_folder is None:
+            results_folder = self.results_folder
+
+        output_folder = os.path.join(results_folder, 'multibarcode')
+        os.makedirs(output_folder, exist_ok=True)
+
+        multibarcode_outputdir = os.path.join(output_folder, 'multibarcode_input.tsv')
+
+        multibarcode_file = create_MultiBarcodeTools_input(self.insert_folder_path, multibarcode_outputdir)
+
+        multibarcode_script = './multibarcodepipeline.sh'
+        os.chmod(multibarcode_script, 0o755)
+
+        try:
+            result = subprocess.run([
+                multibarcode_script,
+                output_folder,
+                multibarcode_file
+            ], check=True, capture_output=True, text=True)
+            print(result.stdout)
+            print(f"mozaiko INFO: MultiBarcodePipeline completed. Output in {output_folder}")
+        except subprocess.CalledProcessError as e:
+            print(f"mozaiko ERROR: Error running MultiBarcodePipeline - {e}")
+            print(f"Command output: {e.output}")
+
+        result = result.stdout
+
+        return result
+
+    def parse_multibarcode_output(self, result_stdout):
+        """
+        Method to parse MultiBarcode stdout into a DataFrame.
+
+        Paranters:
+            result_stdout: str
+        Output string from MultiBarcode
+
+        Returns:
+            pandas.DataFrame: Parsed primer information
+        """
+        primers = []
+        species_counts = []
+        cumulative_counts = []
+
+        # Regular expression to extract primer and species count
+        pattern = r'(\d+):\s*([\w-]+),\s*resolve\s*(?:additional\s*)?(\d+)\s*species'
+
+        cumulative = 0
+        for match in re.finditer(pattern, result_stdout):
+            primer = match.group(2)
+            count = int(match.group(3))
+
+            primers.append(primer)
+            species_counts.append(count)
+
+            cumulative += count
+            cumulative_counts.append(cumulative)
+
+        primer_resolv_species = pd.DataFrame({
+                    'primer': primers,
+                    'additional_resolved_species': species_counts,
+                    'cumulative_resolved_species': cumulative_counts
+                })
+
+        return primer_resolv_species
 
 class MetricsSystemExecutor:
     """
@@ -1160,3 +1236,8 @@ class MetricsSystemExecutor:
         return reference_db_quality
 
     # TODO: check how to best do folder and file intake, otl handling
+
+if __name__ == "__main__":
+    trait = TraitsAndResolution("/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test")
+    output_str = trait.run_multibarcode_pipeline()
+    trait.parse_multibarcode_output(output_str)

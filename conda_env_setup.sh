@@ -294,7 +294,7 @@ install_multibarcodetools() {
     cd "${INSTALL_DIR}"
 
     # Create a separate virtual environment for MultiBarcodePipeline with Python 3.9
-    VENV_NAME="multibarcode_py39_env"
+    VENV_NAME="multibarcode"
 
     # Check if the virtual environment already exists
     if [ ! -d "$VENV_NAME" ]; then
