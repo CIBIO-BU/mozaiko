@@ -1203,7 +1203,23 @@ class TraitsAndResolution:
                     'cumulative_resolved_species': cumulative_counts
                 })
 
-        return primer_resolv_species
+        self.primer_resolv_species = primer_resolv_species
+
+        return self.primer_resolv_species
+
+    def get_taxonomic_resolution(self, otl_total_taxa_count):
+        """
+        This method computes the percentage of resolved taxa according to the total taxa count in
+        the OTL.
+
+        Parameter:
+        - otl_total_taxa_count: int
+            Total number of taxa considered
+        """
+        self.primer_resolv_species['taxonomic_resolution_percentage'] = round((self.primer_resolv_species['cumulative_resolved_species'] / otl_total_taxa_count ) * 100, 2)
+
+        return self.primer_resolv_species
+
 
 class MetricsSystemExecutor:
     """

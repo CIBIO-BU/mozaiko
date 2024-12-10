@@ -1004,6 +1004,12 @@ class TestTraitsAndResolution(unittest.TestCase):
         )
         self.created_files = [self.multibarcodetools_input]
         self.expected_multibarcode_output_folder = os.path.join(os.path.dirname(self.traits.insert_folder_path), 'multibarcode')
+        self.primer_resolv_species = pd.DataFrame({
+            'primer': ['primerA', 'primerB', 'primerC'],
+            'additional_resolved_species': [90, 8, 2],
+            'cumulative_resolved_species': [90, 98, 100]
+        })
+        self.traits.primer_resolv_species = self.primer_resolv_species
 
     def test_get_min_max_avg_seq_length_in_a_fasta(self):
         """
@@ -1110,6 +1116,15 @@ class TestTraitsAndResolution(unittest.TestCase):
 
         with self.assertRaises(subprocess.CalledProcessError):
             self.traits.run_multibarcode_pipeline()
+
+    def test_get_taxonomic_resolution(self):
+        tax_rex_df = self.traits.get_taxonomic_resolution(otl_total_taxa_count=100)
+
+        self.assertIn('taxonomic_resolution_percentage', tax_rex_df.columns)
+
+        self.assertEqual(tax_rex_df.iloc[0]['taxonomic_resolution_percentage'], 90.0)
+        self.assertEqual(tax_rex_df.iloc[1]['taxonomic_resolution_percentage'], 98.0)
+        self.assertEqual(tax_rex_df.iloc[-1]['taxonomic_resolution_percentage'], 100.0)
 
     def tearDown(self):
         for file_path in self.created_files:
