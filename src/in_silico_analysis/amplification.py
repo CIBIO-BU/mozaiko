@@ -457,6 +457,11 @@ class InSilicoAmplification:
             "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."
         )
         self.remove_intersection_sequences(
+            self.output_dirs["incomplete_pbs"] / "filtered",
+            self.output_dirs["insert"] / "filtered",
+        )
+
+        self.remove_intersection_sequences(
             self.output_dirs["all_complete_pbs"] / "filtered",
             self.output_dirs["incomplete_pbs"] / "filtered",
         )

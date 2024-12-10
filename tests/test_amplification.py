@@ -203,7 +203,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_validate_fasta.assert_called_once()
         mock_read_tables.assert_called_once()
         mock_taxonomy_add.assert_called_once()
-        self.assertEqual(mock_intersection.call_count, 2)
+        self.assertEqual(mock_intersection.call_count, 3)
         self.assertEqual(self.amplification.run_name, "test_output_folder")
         self.assertIsNotNone(self.amplification.output_dirs)
 

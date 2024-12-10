@@ -1014,10 +1014,23 @@ class Binding:
         return insert_taxa_counts_df
 
 class TraitsAndResolution:
-    def __init__(self, results_folder):
-        self.results_folder = results_folder
-        self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
-        self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
+    def __init__(self, results_folder: Optional[str] = None,
+                        insert_folder_path: Optional[str] = None,
+                        amplicon_folder_path: Optional[str] = None):
+        if results_folder is not None:
+            self.results_folder = results_folder
+            self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
+            self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
+        if insert_folder_path is not None and amplicon_folder_path is not None:
+            self.insert_folder_path = insert_folder_path
+            self.amplicon_folder_path = amplicon_folder_path
+        else:
+            raise ValueError(
+                "mozaiko ERROR: Either provide a path to the in-silico amplification results folder "
+                "('results_folder') or paths to both the insert ('insert_folder_path') and amplicon "
+                "('amplicon_folder_path') results folders."
+            )
+
 
     def get_min_max_avg_seq_length_in_a_fasta(self, fasta_file):
         """
