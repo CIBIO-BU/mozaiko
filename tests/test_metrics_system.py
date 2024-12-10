@@ -992,16 +992,18 @@ class TestTraitsAndResolution(unittest.TestCase):
         """
         Set up test parameters using existing directories
         """
-        self.amplicon_dir = "data/test_data/amplicon-test"
-        self.insert_dir = "data/test_data/insert-test"
-        self.incomplete_pbs_dir="data/test_data/insert-test"
-        self.multibarcodetools_input = "data/test_data/insert-test/multibarcodetools-input.tsv"
+        self.test_dir = "data/test_data"
+        self.amplicon_dir = self.test_dir + "/amplicon-test"
+        self.insert_dir = self.test_dir + "/insert-test"
+        self.incomplete_pbs_dir= self.test_dir + "/insert-test"
+        self.multibarcodetools_input = self.test_dir + "/insert-test/multibarcodetools-input.tsv"
         self.traits = TraitsAndResolution(
             insert_folder_path=self.insert_dir,
             amplicon_folder_path=self.amplicon_dir,
             incomplete_pbs_folder_path=self.incomplete_pbs_dir
         )
         self.created_files = [self.multibarcodetools_input]
+        self.expected_multibarcode_output_folder = os.path.join(os.path.dirname(self.traits.insert_folder_path), 'multibarcode')
 
     def test_get_min_max_avg_seq_length_in_a_fasta(self):
         """
@@ -1049,13 +1051,74 @@ class TestTraitsAndResolution(unittest.TestCase):
         for column in expected_columns:
             self.assertIn(column, length_stats.columns, f"{column} column missing")
 
-    def tearDown(self):
-        print(self.created_files)
+    @patch('subprocess.run')
+    def test_run_multibarcode_pipeline_success(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = """
+        1: primerA, resolve  3 species
+        2: primerC, resolve additional 1 species
+        """
+        mock_subprocess_run.return_value = mock_result
 
+        result = self.traits.run_multibarcode_pipeline()
+
+        mock_subprocess_run.assert_called_once()
+        self.assertIsNotNone(result)
+
+        expected_multibarcode_output_folder = os.path.join(self.test_dir, 'multibarcode')
+        self.assertTrue(os.path.exists(expected_multibarcode_output_folder))
+
+    def test_parse_multibarcode_output(self):
+        test_stdout = """
+        1: primerA, resolve  3 species
+        2: primerC, resolve additional 1 species
+        3: primerD, resolve additional 1 species
+        """
+
+        result_df = self.traits.parse_multibarcode_output(test_stdout)
+
+        self.assertIsInstance(result_df, pd.DataFrame)
+        self.assertEqual(len(result_df), 3)
+
+        expected_columns = [
+            'primer',
+            'additional_resolved_species',
+            'cumulative_resolved_species'
+        ]
+        self.assertListEqual(list(result_df.columns), expected_columns)
+
+        self.assertEqual(result_df.iloc[0]['primer'], 'primerA')
+        self.assertEqual(result_df.iloc[0]['additional_resolved_species'], 3)
+        self.assertEqual(result_df.iloc[0]['cumulative_resolved_species'], 3)
+
+        self.assertEqual(result_df.iloc[1]['primer'], 'primerC')
+        self.assertEqual(result_df.iloc[1]['additional_resolved_species'], 1)
+        self.assertEqual(result_df.iloc[1]['cumulative_resolved_species'], 4)
+
+    def test_parse_multibarcode_output_empty(self):
+        result_df = self.traits.parse_multibarcode_output("")
+
+        self.assertIsInstance(result_df, pd.DataFrame)
+        self.assertEqual(len(result_df), 0)
+
+    @patch('subprocess.run')
+    def test_run_multibarcode_pipeline_failure(self, mock_subprocess_run):
+        mock_subprocess_run.side_effect = subprocess.CalledProcessError(
+            returncode=1,
+            cmd=['multi-barcode']
+        )
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.traits.run_multibarcode_pipeline()
+
+    def tearDown(self):
         for file_path in self.created_files:
             if os.path.exists(file_path):
                 os.remove(file_path)
         self.created_files.clear()
+
+        if os.path.exists(self.expected_multibarcode_output_folder):
+            shutil.rmtree(self.expected_multibarcode_output_folder)
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):

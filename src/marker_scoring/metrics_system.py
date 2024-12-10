@@ -1141,10 +1141,8 @@ class TraitsAndResolution:
             Path to the folder containing the results from the amplification process and its
              subdirectories. Subdirectories names should not be changed.
         """
-        if results_folder is None:
-            results_folder = self.results_folder
-
-        output_folder = os.path.join(results_folder, 'multibarcode')
+        results_folder_base = os.path.dirname(self.insert_folder_path)
+        output_folder = os.path.join(results_folder_base, 'multibarcode')
         os.makedirs(output_folder, exist_ok=True)
 
         multibarcode_outputdir = os.path.join(output_folder, 'multibarcode_input.tsv')
@@ -1163,13 +1161,12 @@ class TraitsAndResolution:
             ], check=True, capture_output=True, text=True)
             print(result.stdout)
             print(f"mozaiko INFO: MultiBarcodePipeline completed. Output in {output_folder}")
+            return result.stdout
+
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: Error running MultiBarcodePipeline - {e}")
             print(f"Command output: {e.output}")
-
-        result = result.stdout
-
-        return result
+            raise
 
     def parse_multibarcode_output(self, result_stdout):
         """
