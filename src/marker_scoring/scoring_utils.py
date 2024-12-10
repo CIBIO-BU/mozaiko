@@ -357,7 +357,7 @@ def sequence_count_tracking(
         return None
 
 
-def create_MultiBarcodeTools_input(insert_folder, output_file):
+def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_file):
     """
     Process all FASTA files in a given folder and write extracted information to a TSV file.
 
@@ -365,40 +365,51 @@ def create_MultiBarcodeTools_input(insert_folder, output_file):
     - folder_path:Path to the folder containing FASTA files
     - output_file: Path to the output TSV file
     """
-    with open(output_file, "w") as tsv_file:
+    try:
+        fasta_files = (
+            glob.glob(os.path.join(insert_folder, "*.fasta")) +
+            glob.glob(os.path.join(pbs_incomplete_folder, "*.fasta"))
+        )
 
-        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta"))
+        if not fasta_files:
+            raise FileNotFoundError("mozaiko ERROR: No FASTA files found in the specified folders.")
 
-        for fasta_path in fasta_files:
-            primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+        with open(output_file, "w") as tsv_file:
 
-            with open(fasta_path, "r") as fasta:
+            for fasta_path in fasta_files:
+                primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
 
-                current_header = None
-                current_sequence = []
+                with open(fasta_path, "r") as fasta:
 
-                for line in fasta:
-                    line = line.strip()
+                    current_header = None
+                    current_sequence = []
 
-                    if line.startswith(">"):
-                        if current_header and current_sequence:
-                            process_sequence(
-                                current_header, current_sequence, primer_name, tsv_file
-                            )
+                    for line in fasta:
+                        line = line.strip()
 
-                        current_header = line[1:]
-                        current_sequence = []
+                        if line.startswith(">"):
+                            if current_header and current_sequence:
+                                process_sequence(
+                                    current_header, current_sequence, primer_name, tsv_file
+                                )
 
-                    elif line:
-                        current_sequence.append(line)
+                            current_header = line[1:]
+                            current_sequence = []
 
-                if current_header and current_sequence:
-                    process_sequence(
-                        current_header, current_sequence, primer_name, tsv_file
-                    )
+                        elif line:
+                            current_sequence.append(line)
 
-    print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
-    return output_file
+                    if current_header and current_sequence:
+                        process_sequence(
+                            current_header, current_sequence, primer_name, tsv_file
+                        )
+
+        print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
+        return output_file
+
+    except Exception as e:
+        print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")
+        return None
 
 
 def process_sequence(header, sequence_lines, primer_name, tsv_file):

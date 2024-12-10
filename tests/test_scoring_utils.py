@@ -240,14 +240,14 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         """
         output_file = os.path.join(self.test_dir, "output.tsv")
 
-        create_MultiBarcodeTools_input(self.test_dir, output_file)
+        create_MultiBarcodeTools_input(self.test_dir, self.test_dir, output_file)
 
         self.assertTrue(os.path.exists(output_file))
 
         with open(output_file, "r") as f:
             lines = f.readlines()
 
-        self.assertEqual(len(lines) - 1, 3)
+        self.assertEqual(len(lines), 8)
 
     def test_process_sequence_invalid_header(self):
         """

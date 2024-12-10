@@ -961,11 +961,11 @@ class Binding:
             Total number of taxa that were successfuly amplified
         """
         # Input A
-        in_silico_amplified_inserts = results_folder + "/all_inserts"
+        in_silico_amplified_inserts = results_folder + "/insert/filtered"
         # Input B
-        all_inserts_with_pbs = results_folder + "/all_complete_pbs/filtered"
+        all_inserts_with_pbs = results_folder + "/all_complete_pbs/filtered/filtered_intersection"
         # Input C
-        inserts_with_incomplete_pbs = results_folder + "/incomplete_pbs/filtered"
+        inserts_with_incomplete_pbs = results_folder + "/incomplete_pbs/filtered/filtered_intersection"
 
         folder_list = [
             ("taxa_in_silico_amplified", in_silico_amplified_inserts),
@@ -1016,21 +1016,26 @@ class Binding:
 class TraitsAndResolution:
     def __init__(self, results_folder: Optional[str] = None,
                         insert_folder_path: Optional[str] = None,
-                        amplicon_folder_path: Optional[str] = None):
+                        amplicon_folder_path: Optional[str] = None,
+                        incomplete_pbs_folder_path: Optional[str] = None):
+        print(f"results_folder: {results_folder}, insert_folder_path: {insert_folder_path}, amplicon_folder_path: {amplicon_folder_path}")
         if results_folder is not None:
             self.results_folder = results_folder
             self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
-            self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
-        if insert_folder_path is not None and amplicon_folder_path is not None:
+            self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered/filtered_intersection')
+            self.incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
+            print(f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}.")
+        elif insert_folder_path is not None and amplicon_folder_path is not None and incomplete_pbs_folder_path is not None:
             self.insert_folder_path = insert_folder_path
             self.amplicon_folder_path = amplicon_folder_path
+            self.incomplete_pbs_path = incomplete_pbs_folder_path
+            print("Using provided insert_folder_path, amplicon_folder_path and incomplete_pbs_folder_path.")
         else:
             raise ValueError(
                 "mozaiko ERROR: Either provide a path to the in-silico amplification results folder "
-                "('results_folder') or paths to both the insert ('insert_folder_path') and amplicon "
-                "('amplicon_folder_path') results folders."
+                "('results_folder') or paths to the insert ('insert_folder_path'), amplicon "
+                "('amplicon_folder_path') and incomplete PBS ('incomplete_pbs_path') results folders."
             )
-
 
     def get_min_max_avg_seq_length_in_a_fasta(self, fasta_file):
         """
@@ -1144,9 +1149,10 @@ class TraitsAndResolution:
 
         multibarcode_outputdir = os.path.join(output_folder, 'multibarcode_input.tsv')
 
-        multibarcode_file = create_MultiBarcodeTools_input(self.insert_folder_path, multibarcode_outputdir)
+        multibarcode_file = create_MultiBarcodeTools_input(self.insert_folder_path, self.incomplete_pbs_path, multibarcode_outputdir)
 
-        multibarcode_script = './multibarcodepipeline.sh'
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        multibarcode_script = os.path.join(script_dir, 'multibarcodepipeline.sh')
         os.chmod(multibarcode_script, 0o755)
 
         try:
@@ -1169,7 +1175,7 @@ class TraitsAndResolution:
         """
         Method to parse MultiBarcode stdout into a DataFrame.
 
-        Paranters:
+        Parameters:
             result_stdout: str
         Output string from MultiBarcode
 
@@ -1249,8 +1255,3 @@ class MetricsSystemExecutor:
         return reference_db_quality
 
     # TODO: check how to best do folder and file intake, otl handling
-
-if __name__ == "__main__":
-    trait = TraitsAndResolution("/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/output_data/diat-barcode-test")
-    output_str = trait.run_multibarcode_pipeline()
-    trait.parse_multibarcode_output(output_str)

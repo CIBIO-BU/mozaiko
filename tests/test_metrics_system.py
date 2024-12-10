@@ -927,9 +927,9 @@ class TestBinding(unittest.TestCase):
         calculate_amplification_success_score.
         """
         results_folder = self.mock_test_dir
-        os.makedirs(os.path.join(results_folder, "all_inserts"))
-        os.makedirs(os.path.join(results_folder, "all_complete_pbs/filtered"))
-        os.makedirs(os.path.join(results_folder, "incomplete_pbs/filtered"))
+        os.makedirs(os.path.join(results_folder, "insert/filtered"))
+        os.makedirs(os.path.join(results_folder, "all_complete_pbs/filtered/filtered_intersection"))
+        os.makedirs(os.path.join(results_folder, "incomplete_pbs/filtered/filtered_intersection"))
 
         in_silico_records = [
             SeqRecord(Seq("ATCG"), id="seq1", description="seq1|Taxon1"),
@@ -943,10 +943,10 @@ class TestBinding(unittest.TestCase):
             SeqRecord(Seq("AAAA"), id="seq5", description="seq5|Taxon4"),
         ]
 
-        self.create_mock_fasta("all_inserts/primer1.fasta", in_silico_records)
-        self.create_mock_fasta("all_complete_pbs/filtered/primer1.fasta", pbs_records)
+        self.create_mock_fasta("insert/filtered/primer1.fasta", in_silico_records)
+        self.create_mock_fasta("all_complete_pbs/filtered/filtered_intersection/primer1.fasta", pbs_records)
         self.create_mock_fasta(
-            "incomplete_pbs/filtered/primer1.fasta", incomplete_pbs_records
+            "incomplete_pbs/filtered/filtered_intersection/primer1.fasta", incomplete_pbs_records
         )
 
         result = self.binding.calculate_amplification_success_score(results_folder)
@@ -994,10 +994,12 @@ class TestTraitsAndResolution(unittest.TestCase):
         """
         self.amplicon_dir = "data/test_data/amplicon-test"
         self.insert_dir = "data/test_data/insert-test"
+        self.incomplete_pbs_dir="data/test_data/insert-test"
         self.multibarcodetools_input = "data/test_data/insert-test/multibarcodetools-input.tsv"
         self.traits = TraitsAndResolution(
             insert_folder_path=self.insert_dir,
-            amplicon_folder_path=self.amplicon_dir
+            amplicon_folder_path=self.amplicon_dir,
+            incomplete_pbs_folder_path=self.incomplete_pbs_dir
         )
         self.created_files = [self.multibarcodetools_input]
 

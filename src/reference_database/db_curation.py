@@ -1,12 +1,12 @@
 """
-This modules generates scripts to borrow methods from CRBAS. Its use is intended to assing Tax IDs,
+This modules generates scripts to borrow methods from CRABS. Its use is intended to assing Tax IDs,
 generate lineage files and dereplicate sequences.
 
 The CrabsScriptGenerator class contains the following methods:
-    - _check_if_crabs_installed: Function to check if CRBAS is installed.
+    - _check_if_crabs_installed: Function to check if CRABS is installed.
     - _load_parameters: Function to load the parameters from the JSON file.
     - _download_taxonomy_files: Functions to download the taxonomy files from the NCBI database.
-    - run_assign_tax_command: Function to run the assign_tax command from CRBAS.
+    - run_assign_tax_command: Function to run the assign_tax command from CRABS.
     - run_dereplicate_command: Function to write the script to dereplicate sequences.
 """
 
@@ -20,7 +20,7 @@ from src.reference_database.sequence_import import CustomFastaImport
 
 class CrabsScriptGenerator:
     """
-    This class generates commands to be executed in the shell to borrow methods from CRBAS.
+    This class generates commands to be executed in the shell to borrow methods from CRABS.
     """
 
     def __init__(self):
@@ -29,9 +29,9 @@ class CrabsScriptGenerator:
 
     def check_if_crabs_installed(self):
         """
-        Function to check if CRBAS is installed.
+        Function to check if CRABS is installed.
         """
-        print("mozaiko INFO: Checking if CRBAS is installed...")
+        print("mozaiko INFO: Checking if CRABS is installed...")
         try:
             subprocess.run(
                 ["crabs", "--version"],
@@ -40,11 +40,11 @@ class CrabsScriptGenerator:
                 stderr=subprocess.DEVNULL,
             )
 
-            print("mozaiko INFO: CRBAS is installed.")
+            print("mozaiko INFO: CRABS is installed.")
 
         except FileNotFoundError:
             print(
-                "mozaiko INFO: CRBAS is not installed. Please install CRBAS before running this \
+                "mozaiko INFO: CRABS is not installed. Please install CRABS before running this \
                     script."
             )
             print(
@@ -187,7 +187,7 @@ class CrabsScriptGenerator:
 
     def run_assign_tax_command(self, json_file):
         """
-        Function to run the assign_tax command from CRBAS.
+        Function to run the assign_tax command from CRABS.
         """
         self.check_if_crabs_installed()
 
