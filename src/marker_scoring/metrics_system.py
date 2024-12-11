@@ -1022,7 +1022,7 @@ class TraitsAndResolution:
         if results_folder is not None:
             self.results_folder = results_folder
             self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
-            self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered/filtered_intersection')
+            self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
             self.incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
             print(f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}.")
         elif insert_folder_path is not None and amplicon_folder_path is not None and incomplete_pbs_folder_path is not None:
@@ -1142,10 +1142,11 @@ class TraitsAndResolution:
              subdirectories. Subdirectories names should not be changed.
         """
         results_folder_base = os.path.dirname(self.insert_folder_path)
-        output_folder = os.path.join(results_folder_base, 'multibarcode')
-        os.makedirs(output_folder, exist_ok=True)
+        multibarcode_output_folder = os.path.join(results_folder_base, 'multibarcode')
+        self.multibarcode_output_folder = multibarcode_output_folder
+        os.makedirs(multibarcode_output_folder, exist_ok=True)
 
-        multibarcode_outputdir = os.path.join(output_folder, 'multibarcode_input.tsv')
+        multibarcode_outputdir = os.path.join(multibarcode_output_folder, 'multibarcode_input.tsv')
 
         multibarcode_file = create_MultiBarcodeTools_input(self.insert_folder_path, self.incomplete_pbs_path, multibarcode_outputdir)
 
@@ -1156,11 +1157,11 @@ class TraitsAndResolution:
         try:
             result = subprocess.run([
                 multibarcode_script,
-                output_folder,
+                self.multibarcode_output_folder,
                 multibarcode_file
             ], check=True, capture_output=True, text=True)
             print(result.stdout)
-            print(f"mozaiko INFO: MultiBarcodePipeline completed. Output in {output_folder}")
+            print(f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}")
             return result.stdout
 
         except subprocess.CalledProcessError as e:
@@ -1207,7 +1208,7 @@ class TraitsAndResolution:
 
         return self.primer_resolv_species
 
-    def get_taxonomic_resolution(self, otl_total_taxa_count):
+    def get_taxonomic_resolution(self, otl_total_taxa_count: int):
         """
         This method computes the percentage of resolved taxa according to the total taxa count in
         the OTL.
@@ -1220,6 +1221,121 @@ class TraitsAndResolution:
 
         return self.primer_resolv_species
 
+    def load_nucleotide_distance(self):
+        """
+        This method loads the nuclotide difference matrix into memory as outputed by MultiBarcode
+        pipeline.
+        """
+        nuc_dist_matrix_path = os.path.join(self.multibarcode_output_folder, 'matrix.xlsx')
+        nuc_dist_matrix = pd.read_excel(nuc_dist_matrix_path)
+
+        return nuc_dist_matrix
+
+    def compute_genetic_divergence_per_taxon(self):
+        """
+        Calculate the percentage of genetic divergence for each taxon.
+
+        Returns:
+        pd.DataFrame: Percentage of genetic divergence for each taxon
+        """
+        nuc_dist_matrix = self.load_nucleotide_distance()
+        self.nuc_dist_matrix = nuc_dist_matrix
+        insert_amplicon_len_stats = self.get_length_stats_for_amplicon_and_insert()
+        insert_avg_len_matrix = insert_amplicon_len_stats['insert_avg_length']
+
+        # Create mapping to harmonize primer naming format between MultiBarcode and
+        # Insert Length Matrix
+        name_mapping = {
+            col.replace('-', '_'): col
+            for col in insert_avg_len_matrix.index
+        }
+
+        divergence_percentages = {}
+
+        for taxon in nuc_dist_matrix.index:
+            taxa_distances_per_primer = nuc_dist_matrix.loc[taxon]
+            taxon_divergence = {}
+
+            # Include nuc_dist_matrix species as index
+            taxon_divergence['Species'] = taxa_distances_per_primer['Species']
+
+            for primer_set, nucleotide_distance in taxa_distances_per_primer.items():
+
+                if primer_set == 'Species': # Skip processing for 'Species' column
+                    continue
+
+                try:
+                    dist_numeric = float(nucleotide_distance)
+
+                    # Match nuc_dist_matrix primer name with internal dataframe format
+                    mapped_primer_set = name_mapping.get(primer_set, primer_set)
+
+                    if mapped_primer_set in insert_avg_len_matrix.index:
+                        # Convert insert length to float to handle potential division by zero
+                        insert_length = float(insert_avg_len_matrix[mapped_primer_set])
+
+                        if insert_length > 0:
+                            divergence_percentage = round(((dist_numeric / insert_length) * 100), 1)
+                        else:
+                            divergence_percentage = np.nan
+                    else:
+                        divergence_percentage = np.nan
+
+                except (ValueError, TypeError):
+                    # If conversion fails or any other error occurs set no Nan
+                    divergence_percentage = np.nan
+
+                taxon_divergence[primer_set] = divergence_percentage
+
+            divergence_percentages[taxon] = taxon_divergence
+
+        divergence_df = pd.DataFrame.from_dict(divergence_percentages, orient='index')
+
+        # Reorder to have 'Species' as first col
+        columns = ['Species'] + [col for col in divergence_df.columns if col != 'Species']
+        divergence_df = divergence_df[columns]
+
+        return divergence_df
+
+    def get_divergence_score(self, otl_total_taxa_count: int, cutoff: float = 2.0):
+        """
+        This method retrieves the divergence score for each primer set. The divergence score is
+        the percentage of taxa with a percentage of divergence bellow a cutoff according to the
+        total number of taxa in the OTL.
+
+        Parameters:
+        - otl_total_taxa_cont: int
+            The total number of taxa in the OTL.
+        - cutoff: float
+            The cutoff for genetic divergence. Float number representing a percentage. Default is
+            2.0, which is equivalent to 2.0%.
+
+        Returns:
+        """
+        if otl_total_taxa_count <= 0:
+            raise ValueError("mozaiko ERROR: The total number of taxa in OTL must be above 0.")
+
+        self.divergence_df = self.compute_genetic_divergence_per_taxon()
+
+        primer_cols = self.divergence_df.loc[:, self.divergence_df.columns != 'Species']
+
+        divergence_score_results = []
+
+        for column in primer_cols:
+            taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][column].count()
+
+            divergence_score = (taxa_above_cutoff / otl_total_taxa_count) * 100
+
+            divergence_score_results.append({
+                'primer': column,
+                'total_taxa': otl_total_taxa_count,
+                'n_taxa_above_cutoff': taxa_above_cutoff,
+                'divergence_score': round(divergence_score, 2)
+            })
+
+        divergence_score_df = pd.DataFrame(divergence_score_results)
+
+        return divergence_score_df
 
 class MetricsSystemExecutor:
     """
