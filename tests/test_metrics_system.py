@@ -1011,6 +1011,55 @@ class TestTraitsAndResolution(unittest.TestCase):
         })
         self.traits.primer_resolv_species = self.primer_resolv_species
 
+    def test_init_with_results_folder(self):
+        results_folder = "path/to/results"
+        expected_insert_path = os.path.join(results_folder, 'insert/filtered')
+        expected_amplicon_path = os.path.join(results_folder, 'amplicon/filtered')
+        expected_incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
+
+        traits = TraitsAndResolution(results_folder=results_folder)
+
+        self.assertEqual(traits.insert_folder_path, expected_insert_path)
+        self.assertEqual(traits.amplicon_folder_path, expected_amplicon_path)
+        self.assertEqual(traits.incomplete_pbs_path, expected_incomplete_pbs_path)
+
+    def test_init_with_individual_paths(self):
+        insert_path = "path/to/insert"
+        amplicon_path = "path/to/amplicon"
+        incomplete_pbs_path = "path/to/incomplete_pbs"
+
+        traits = TraitsAndResolution(
+            insert_folder_path=insert_path,
+            amplicon_folder_path=amplicon_path,
+            incomplete_pbs_folder_path=incomplete_pbs_path
+        )
+
+        self.assertEqual(traits.insert_folder_path, insert_path)
+        self.assertEqual(traits.amplicon_folder_path, amplicon_path)
+        self.assertEqual(traits.incomplete_pbs_path, incomplete_pbs_path)
+
+    def test_init_with_missing_arguments(self):
+        with self.assertRaises(ValueError) as context:
+            TraitsAndResolution()
+        self.assertIn("Either provide a path to the in-silico amplification results folder", str(context.exception))
+
+    def test_init_with_partial_arguments(self):
+        # Test missing amplicon_folder_path
+        with self.assertRaises(ValueError) as context:
+            TraitsAndResolution(
+                insert_folder_path="path/to/insert",
+                incomplete_pbs_folder_path="path/to/incomplete_pbs"
+            )
+        self.assertIn("Either provide a path to the in-silico amplification results folder", str(context.exception))
+
+        # Test missing insert_folder_path
+        with self.assertRaises(ValueError) as context:
+            TraitsAndResolution(
+                amplicon_folder_path="path/to/amplicon",
+                incomplete_pbs_folder_path="path/to/incomplete_pbs"
+            )
+        self.assertIn("Either provide a path to the in-silico amplification results folder", str(context.exception))
+
     def test_get_min_max_avg_seq_length_in_a_fasta(self):
         """
         Test sequence length calculation for individual FASTA files
@@ -1159,6 +1208,36 @@ class TestTraitsAndResolution(unittest.TestCase):
             'Species': ['Species1', 'Species2'],
             'primerA': [10.0, 20.0],  # (10/100)*100, (20/100)*100
             'primerB': [15.0, 20.0]   # (30/200)*100, (40/200)*100
+        })
+
+        pd.testing.assert_frame_equal(result, expected_result)
+
+        mock_load_nucleotide_distance.assert_called_once()
+        mock_get_length_stats.assert_called_once()
+
+    @patch.object(TraitsAndResolution, "load_nucleotide_distance")
+    @patch.object(TraitsAndResolution, "get_length_stats_for_amplicon_and_insert")
+    def test_compute_genetic_divergence_per_taxon_nan_values(self, mock_get_length_stats, mock_load_nucleotide_distance):
+        # Mock data for load_nucleotide_distance
+        mock_nuc_dist_matrix = pd.DataFrame({
+            'Species': ['Species1', 'Species2'],
+            'primerA': [10, 20],
+            'primerB': ['-', 40]
+        })
+        mock_load_nucleotide_distance.return_value = mock_nuc_dist_matrix
+
+        # Mock data for get_length_stats_for_amplicon_and_insert
+        mock_length_stats = {
+            'insert_avg_length': pd.Series([100, 0], index=['primerA', 'primerB'])
+            }
+        mock_get_length_stats.return_value = mock_length_stats
+
+        result = self.traits.compute_genetic_divergence_per_taxon()
+
+        expected_result = pd.DataFrame({
+            'Species': ['Species1', 'Species2'],
+            'primerA': [10.0, 20.0],  # (10/100)*100, no length insert results in NaN
+            'primerB': [np.nan, np.nan]   # 'invalid' results in NaN, no length insert results in NaN
         })
 
         pd.testing.assert_frame_equal(result, expected_result)
