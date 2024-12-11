@@ -1126,6 +1126,81 @@ class TestTraitsAndResolution(unittest.TestCase):
         self.assertEqual(tax_rex_df.iloc[1]['taxonomic_resolution_percentage'], 98.0)
         self.assertEqual(tax_rex_df.iloc[-1]['taxonomic_resolution_percentage'], 100.0)
 
+    def test_get_divergence_score_normal_case(self):
+        mock_divergence_df = pd.DataFrame({
+            'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
+            'primer1': [1.5, 2.5, 3.0, 1.0],
+            'primer2': [1.0, 1.5, 2.0, 3.0]
+        })
+
+        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
+                        return_value=mock_divergence_df):
+
+            result = self.traits.get_divergence_score(4)
+
+            self.assertIsInstance(result, pd.DataFrame)
+            self.assertEqual(len(result), 2)
+
+            expected_columns = ['primer', 'total_taxa', 'n_taxa_above_cutoff', 'divergence_score']
+            self.assertListEqual(list(result.columns), expected_columns)
+
+    def test_get_divergence_score_zero_total_taxa(self):
+        with self.assertRaises(ValueError):
+            self.traits.get_divergence_score(0)
+
+    def test_get_divergence_score_negative_total_taxa(self):
+        with self.assertRaises(ValueError):
+            self.traits.get_divergence_score(-5)
+
+    def test_get_divergence_score_custom_cutoff(self):
+        mock_divergence_df = pd.DataFrame({
+            'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
+            'primer1': [1.5, 2.5, 3.0, 1.0],
+            'primer2': [1.0, 1.5, 2.0, 3.0]
+        })
+
+        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
+                        return_value=mock_divergence_df):
+
+            result = self.traits.get_divergence_score(4, cutoff=1.8)
+
+            for _, row in result.iterrows():
+                expected_taxa_above_cutoff = sum(
+                    mock_divergence_df[row['primer']] > 1.8
+                )
+                self.assertEqual(row['n_taxa_above_cutoff'], expected_taxa_above_cutoff)
+
+    def test_get_divergence_score_no_taxa_above_cutoff(self):
+        mock_divergence_df = pd.DataFrame({
+            'Species': ['Species1', 'Species2'],
+            'primer1': [1.0, 1.5],
+            'primer2': [0.5, 1.0]
+        })
+
+        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
+                        return_value=mock_divergence_df):
+
+            result = self.traits.get_divergence_score(2, cutoff=2.0)
+
+            self.assertTrue((result['divergence_score'] == 0).all())
+
+    def test_get_divergence_score_dataframe_structure(self):
+        mock_divergence_df = pd.DataFrame({
+            'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
+            'primer1': [1.5, 2.5, 3.0, 1.0],
+            'primer2': [1.0, 1.5, 2.0, 3.0]
+        })
+
+        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
+                        return_value=mock_divergence_df):
+
+            result = self.traits.get_divergence_score(4)
+
+            self.assertTrue(result['primer'].is_unique)
+
+            self.assertTrue(((result['divergence_score'] >= 0) &
+                            (result['divergence_score'] <= 100)).all())
+
     def tearDown(self):
         for file_path in self.created_files:
             if os.path.exists(file_path):
