@@ -1003,7 +1003,7 @@ class TestTraitsAndResolution(unittest.TestCase):
             incomplete_pbs_folder_path=self.incomplete_pbs_dir
         )
         self.created_files = [self.multibarcodetools_input]
-        self.expected_multibarcode_output_folder = os.path.join(os.path.dirname(self.traits.insert_folder_path), 'multibarcode')
+        self.traits.multibarcode_output_folder = os.path.join(os.path.dirname(self.traits.insert_folder_path), 'multibarcode')
         self.primer_resolv_species = pd.DataFrame({
             'primer': ['primerA', 'primerB', 'primerC'],
             'additional_resolved_species': [90, 8, 2],
@@ -1126,11 +1126,51 @@ class TestTraitsAndResolution(unittest.TestCase):
         self.assertEqual(tax_rex_df.iloc[1]['taxonomic_resolution_percentage'], 98.0)
         self.assertEqual(tax_rex_df.iloc[-1]['taxonomic_resolution_percentage'], 100.0)
 
+    @patch("pandas.read_excel")
+    def test_load_nucleotide_distance(self, mock_read_excel):
+        mock_df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+        mock_read_excel.return_value = mock_df
+
+        result = self.traits.load_nucleotide_distance()
+
+        mock_read_excel.assert_called_once_with("data/test_data/multibarcode/matrix.xlsx")
+        pd.testing.assert_frame_equal(result, mock_df)
+
+    @patch.object(TraitsAndResolution, "load_nucleotide_distance")
+    @patch.object(TraitsAndResolution, "get_length_stats_for_amplicon_and_insert")
+    def test_compute_genetic_divergence_per_taxon(self, mock_get_length_stats, mock_load_nucleotide_distance):
+        # Mock data for load_nucleotide_distance
+        mock_nuc_dist_matrix = pd.DataFrame({
+            'Species': ['Species1', 'Species2'],
+            'primerA': [10, 20],
+            'primerB': [30, 40]
+        })
+        mock_load_nucleotide_distance.return_value = mock_nuc_dist_matrix
+
+        # Mock data for get_length_stats_for_amplicon_and_insert
+        mock_length_stats = {
+            'insert_avg_length': pd.Series([100, 200], index=['primerA', 'primerB'])
+            }
+        mock_get_length_stats.return_value = mock_length_stats
+
+        result = self.traits.compute_genetic_divergence_per_taxon()
+
+        expected_result = pd.DataFrame({
+            'Species': ['Species1', 'Species2'],
+            'primerA': [10.0, 20.0],  # (10/100)*100, (20/100)*100
+            'primerB': [15.0, 20.0]   # (30/200)*100, (40/200)*100
+        })
+
+        pd.testing.assert_frame_equal(result, expected_result)
+
+        mock_load_nucleotide_distance.assert_called_once()
+        mock_get_length_stats.assert_called_once()
+
     def test_get_divergence_score_normal_case(self):
         mock_divergence_df = pd.DataFrame({
             'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
-            'primer1': [1.5, 2.5, 3.0, 1.0],
-            'primer2': [1.0, 1.5, 2.0, 3.0]
+            'primerA': [1.5, 2.5, 3.0, 1.0],
+            'primerB': [1.0, 1.5, 2.0, 3.0]
         })
 
         with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
@@ -1155,8 +1195,8 @@ class TestTraitsAndResolution(unittest.TestCase):
     def test_get_divergence_score_custom_cutoff(self):
         mock_divergence_df = pd.DataFrame({
             'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
-            'primer1': [1.5, 2.5, 3.0, 1.0],
-            'primer2': [1.0, 1.5, 2.0, 3.0]
+            'primerA': [1.5, 2.5, 3.0, 1.0],
+            'primerB': [1.0, 1.5, 2.0, 3.0]
         })
 
         with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
@@ -1173,8 +1213,8 @@ class TestTraitsAndResolution(unittest.TestCase):
     def test_get_divergence_score_no_taxa_above_cutoff(self):
         mock_divergence_df = pd.DataFrame({
             'Species': ['Species1', 'Species2'],
-            'primer1': [1.0, 1.5],
-            'primer2': [0.5, 1.0]
+            'primerA': [1.0, 1.5],
+            'primerB': [0.5, 1.0]
         })
 
         with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
@@ -1187,8 +1227,8 @@ class TestTraitsAndResolution(unittest.TestCase):
     def test_get_divergence_score_dataframe_structure(self):
         mock_divergence_df = pd.DataFrame({
             'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
-            'primer1': [1.5, 2.5, 3.0, 1.0],
-            'primer2': [1.0, 1.5, 2.0, 3.0]
+            'primerA': [1.5, 2.5, 3.0, 1.0],
+            'primerB': [1.0, 1.5, 2.0, 3.0]
         })
 
         with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
@@ -1207,8 +1247,8 @@ class TestTraitsAndResolution(unittest.TestCase):
                 os.remove(file_path)
         self.created_files.clear()
 
-        if os.path.exists(self.expected_multibarcode_output_folder):
-            shutil.rmtree(self.expected_multibarcode_output_folder)
+        if os.path.exists(self.traits.multibarcode_output_folder):
+            shutil.rmtree(self.traits.multibarcode_output_folder)
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
