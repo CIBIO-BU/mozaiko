@@ -113,7 +113,7 @@ class CustomFastaImport:
 
         with open(input_file, "r", encoding="UTF-8") as fasta_file:
             records = SeqIO.parse(fasta_file, "fasta")
-            data_dict = {"seq_id": [], "sequence": [], "length": []}
+            data_dict: dict = {"seq_id": [], "sequence": [], "length": []}
             if not check_taxid:
                 data_dict["taxa_info"] = []
 

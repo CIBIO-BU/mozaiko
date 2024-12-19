@@ -118,7 +118,7 @@ class OtlHandler:
 
         with open(fasta_file, "r") as input_f, open(temp_file, "w") as output_f:
             current_header = ""
-            current_sequence = []
+            current_sequence: list = []
             keep_sequence = False
 
             for line in input_f:
@@ -143,7 +143,7 @@ class OtlHandler:
                             print(f"mozaiko WARNING: Taxonomy not present for - {line}")
                             continue
 
-                        taxa = header_parts[2].strip()
+                        taxa = header_parts[1].strip()
                         keep_sequence = taxa in otl_taxa_set
 
                         if keep_sequence:
@@ -1561,7 +1561,7 @@ class MetricsSystemExecutor:
 
         if save_results == True:
             if output_path == None:
-                output_path = self.results_folder / "ranked_primers.tsv"
+                output_path = Path(self.results_folder) / "ranked_primers.tsv"
                 metrics_df_sorted.to_csv(output_path, sep='\t', index=True)
                 print(f"mozaico INFO: Primer Ranking results saved to {output_path}")
             else:
