@@ -98,7 +98,7 @@ class CustomFastaImport:
                 )
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
-    def read_fasta(self, input_file, sep="|", check_taxid=False):
+    def read_fasta(self, input_file, sep="|", check_taxid=False, harmonized: bool = False):
         """
         Reads a fasta file.
 
@@ -121,17 +121,25 @@ class CustomFastaImport:
                 name, sequence, description = seq.id, str(seq.seq), seq.description
                 seq_len = len(sequence)
 
+                name = name.split("|")[0]
                 data_dict["seq_id"].append(name)
                 data_dict["sequence"].append(sequence)
                 data_dict["length"].append(seq_len)
 
                 if not check_taxid:
                     description_parts = description.split(sep)
-                    taxa_info = (
-                        description_parts[1].strip()
-                        if len(description_parts) > 1
-                        else ""
-                    )
+                    if harmonized == True:
+                        taxa_info = (
+                            description_parts[2].strip()
+                            if len(description_parts) > 1
+                            else ""
+                        )
+                    else:
+                        taxa_info = (
+                            description_parts[1].strip()
+                            if len(description_parts) > 1
+                            else ""
+                        )
                     data_dict["taxa_info"].append(taxa_info)
 
             self.data = pd.DataFrame(data_dict)

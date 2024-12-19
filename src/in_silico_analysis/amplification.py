@@ -610,7 +610,7 @@ class InSilicoAmplification:
 
         full_command = base_command + additional_args
 
-        # print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
+        print(f"mozaiko INFO: Running cutadapt command as: {' '.join(full_command)}")
         # print(f"mozaiko INFO: Input file: {input_file}")
         # print(f"mozaiko INFO: Output file: {output_file}")
 
@@ -629,8 +629,10 @@ class InSilicoAmplification:
 
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: cutadapt {command_type} command failed: {e}")
-            # print(f"mozaiko ERROR: Cutadapt stdout:\n{e.stdout}")
-            # print(f"mozaiko ERROR: Cutadapt stderr:\n{e.stderr}")
+            print(f"mozaiko ERROR: Cutadapt stdout:\n{e.stdout}")
+            print(f"mozaiko ERROR: Cutadapt stderr:\n{e.stderr}")
+            # print(f"mozaiko ERROR: Command: {' '.join(e.cmd)}")
+            # print(f"mozaiko ERROR: Return code: {e.returncode}")
             raise  # Re-raise the exception instead of calling sys.exit()
         except FileNotFoundError:
             print(

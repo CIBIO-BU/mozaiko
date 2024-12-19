@@ -48,7 +48,6 @@ class OtlHandler:
             sys.exit(1)
 
         otl_table = otl_table.dropna(subset=["taxa"])
-        print(otl_table)
 
         self.otl = otl_table
 
@@ -110,74 +109,58 @@ class OtlHandler:
             os.makedirs(filtered_folder, exist_ok=True)
             output_file = os.path.join(filtered_folder, file_name)
 
-        total_seq_count: int = 0
-        kept_seq_count: int = 0
-        current_header: str = ""
-        keep_sequence: bool = False
-        sequences_to_write: List[str] = []
-        current_sequence: List[str] = []
+        total_seq_count = 0
+        kept_seq_count = 0
 
-        with open(fasta_file, "r") as f:
-            for line in f:
+        # Use temporary file for safe writing
+        temp_file = output_file + ".temp"
+        os.makedirs(os.path.dirname(temp_file), exist_ok=True)
+
+        with open(fasta_file, "r") as input_f, open(temp_file, "w") as output_f:
+            current_header = ""
+            current_sequence = []
+            keep_sequence = False
+
+            for line in input_f:
                 line = line.strip()
+
                 if line.startswith(">"):
                     if current_header and keep_sequence:
-                        sequences_to_write.extend(
-                            [current_header, "".join(current_sequence)]
-                        )
-
+                        output_f.write(f"{current_header}\n")
+                        output_f.write("".join(current_sequence) + "\n")
                     current_header = line
                     current_sequence = []
                     total_seq_count += 1
+                    keep_sequence = False
 
                     try:
                         if "|" not in line:
-                            print(f"mozaico WARNING: No '|' found in header - {line}")
-                            keep_sequence = False
+                            print(f"mozaiko WARNING: No '|' found in header - {line}")
                             continue
 
-                        header_parts = line.split(" | ")
-                        print(header_parts)
-                        if len(header_parts) < 2 or not header_parts[1].strip():
-                            print(
-                                f"mozaico WARNING: Taxonomy seems to not be present for - {line}"
-                            )
+                        header_parts = line.strip().split("|")
+                        if len(header_parts) < 2:
+                            print(f"mozaiko WARNING: Taxonomy not present for - {line}")
+                            continue
 
-                        taxa = header_parts[1].strip()
-                        print(taxa)
-                        print(otl_taxa_set)
+                        taxa = header_parts[2].strip()
+                        keep_sequence = taxa in otl_taxa_set
 
-                        if len(header_parts) > 1:
-                            taxa = header_parts[1].strip()
-                            keep_sequence = taxa in otl_taxa_set
-                            print(keep_sequence)
-                            if keep_sequence:
-                                kept_seq_count += 1
-                        else:
-                            print(f"mozaico WARNING: Header parsing error - {line}")
-                            keep_sequence = False
+                        if keep_sequence:
+                            kept_seq_count += 1
+
                     except Exception as e:
-                        print(f"mozaico WARNING: Header parsing error - {line}")
-                        print(f"Error details: {str(e)}")
-                        keep_sequence = False
+                        print(f"mozaiko WARNING: Header parsing error - {line}: {str(e)}")
+
                 elif line and keep_sequence:
                     current_sequence.append(line)
 
-        if current_header and keep_sequence:
-            sequences_to_write.extend([current_header, "".join(current_sequence)])
-
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            if current_header and keep_sequence:
+                output_f.write(f"{current_header}\n")
+                output_f.write("".join(current_sequence) + "\n")
 
         if overwrite:
-            temp_file = output_file + ".temp"
-            with open(temp_file, "w") as f:
-                for line in sequences_to_write:
-                    f.write(f"{line}\n")
             os.replace(temp_file, output_file)
-        else:
-            with open(output_file, "w") as f:
-                for line in sequences_to_write:
-                    f.write(f"{line}\n")
 
         return total_seq_count, kept_seq_count, output_file
 
@@ -203,26 +186,22 @@ class OtlHandler:
         results = []
 
         for file_name in os.listdir(fasta_folder):
-            file_path = os.path.join(fasta_folder, file_name)
+            if file_name.endswith(".fasta"):
+                file_path = os.path.join(fasta_folder, file_name)
 
-            if file_name.endswith((".fasta")):
-                print(f"Processing file: {file_name}")
                 try:
-                    total_seq_count, kept_seq_count, output_file = (
-                        self.filter_fasta_for_species_not_in_otl(
-                            fasta_file=file_path,
-                            otl_taxa_set=otl_taxa_set,
-                            overwrite=overwrite,
-                        )
+                    result = self.filter_fasta_for_species_not_in_otl(
+                        fasta_file=file_path,
+                        otl_taxa_set=otl_taxa_set,
+                        overwrite=overwrite,
                     )
-                    results.append((output_file, total_seq_count, kept_seq_count))
+                    results.append(result)
                 except Exception as e:
                     print(
                         f"mozaico ERROR: Failed to process {file_name} due to {str(e)}"
                     )
 
         return results
-
 
 class ReferenceDatabaseQuality:
     def __init__(self, all_inserts_path=None, otl=None):
@@ -320,10 +299,9 @@ class ReferenceDatabaseQuality:
             Percentage of taxa with more than one barcode.
 
         Output:
-        - results: Dict
+        - barcoded_taxa_ratio: Dict
             A dictionary containing the raatio of barcoded taxa and the percentage of taxa with more than five barcodes per primer pair.
         """
-
         barcoded_taxa_five_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
             total_taxa_count, barcode_threshold=5
         )
@@ -331,7 +309,7 @@ class ReferenceDatabaseQuality:
             total_taxa_count, barcode_threshold=1
         )
 
-        results = {}
+        barcoded_taxa_ratio = {}
 
         for primer_pair in barcoded_taxa_five_plus.keys():
             percent_5plus = barcoded_taxa_five_plus[primer_pair]
@@ -341,12 +319,15 @@ class ReferenceDatabaseQuality:
                 percent_5plus / percent_1plus if percent_5plus > 0 else 0
             )
 
-            results[primer_pair] = {
-                "barcoded_taxa_five_plus": percent_5plus,
+            barcoded_taxa_ratio[primer_pair] = {
+                "barcoded_taxa_one_plus": percent_1plus,
                 "ratio_barcoded_taxa": round(ratio_barcoded_taxa, 2),
             }
 
-        return results
+
+        barcoded_taxa_ratio_df = pd.DataFrame(barcoded_taxa_ratio)
+
+        return barcoded_taxa_ratio_df.T
 
 
 class Binding:
@@ -484,6 +465,7 @@ class Binding:
         for _primer_ind, primer_row in self.primer_table.iterrows():
             barcode_region = primer_row["barcode_region"]
             assay_name = primer_row["assay_name"]
+            primer_name = barcode_region + '_' + assay_name
             pbs_filename = f"{barcode_region}_{assay_name}"
             primer_seq_fwd = primer_row["fwd_seq"]
             primer_seq_rev = primer_row["rev_seq"]
@@ -492,8 +474,7 @@ class Binding:
             # Compute GC fraction for Primer
             primer_gc_fractions.append(
                 {
-                    "barcode_region": barcode_region,
-                    "assay_name": assay_name,
+                    "primer_name": primer_name,
                     "forward_primer_gc_fraction": gc_fraction(primer_seq_fwd),
                     "reverse_primer_gc_fraction": gc_fraction(primer_seq_rev),
                 }
@@ -650,6 +631,7 @@ class Binding:
                     )
 
         primer_gc_df = pd.DataFrame(primer_gc_fractions)
+        primer_gc_df.set_index('primer_name', inplace=True)
 
         if save_results:
             primer_gc_df.to_csv("primer_gc_fractions.csv", index=False)
@@ -781,9 +763,7 @@ class Binding:
             result = getattr(grouped_taxa[analysis_name], operation)().astype(float)
         elif operation == "coef_var":
             mean = grouped_taxa[analysis_name].mean()
-            print(mean)
             std = grouped_taxa[analysis_name].std()
-            print(std)
             result = (std / mean.replace(0, pd.NA)) * 100
 
         else:
@@ -961,11 +941,11 @@ class Binding:
             Total number of taxa that were successfuly amplified
         """
         # Input A
-        in_silico_amplified_inserts = results_folder + "/insert/filtered"
+        in_silico_amplified_inserts = results_folder / "insert/filtered"
         # Input B
-        all_inserts_with_pbs = results_folder + "/all_complete_pbs/filtered/filtered_intersection"
+        all_inserts_with_pbs = results_folder / "all_complete_pbs/filtered/filtered_intersection"
         # Input C
-        inserts_with_incomplete_pbs = results_folder + "/incomplete_pbs/filtered/filtered_intersection"
+        inserts_with_incomplete_pbs = results_folder / "incomplete_pbs/filtered/filtered_intersection"
 
         folder_list = [
             ("taxa_in_silico_amplified", in_silico_amplified_inserts),
@@ -1128,18 +1108,12 @@ class TraitsAndResolution:
 
         return result_df.fillna(np.nan)
 
-    def run_multibarcode_pipeline(self, results_folder=None):
+    def run_multibarcode_pipeline(self):
         """
         Runs MultiBarcodePipeline on the insert files.
 
         Zhu, T., & Iwasaki, W. (2023). MultiBarcodeTools: Easy selection of optimal primers for
         eDNA multi-metabarcoding. Environmental DNA, 5, 1793-1808. https://doi.org/10.1002/edn3.499
-
-
-        Parameters:
-        - results_folder: str
-            Path to the folder containing the results from the amplification process and its
-             subdirectories. Subdirectories names should not be changed.
         """
         results_folder_base = os.path.dirname(self.insert_folder_path)
         multibarcode_output_folder = os.path.join(results_folder_base, 'multibarcode')
@@ -1160,7 +1134,7 @@ class TraitsAndResolution:
                 self.multibarcode_output_folder,
                 multibarcode_file
             ], check=True, capture_output=True, text=True)
-            print(result.stdout)
+            #print(result.stdout)
             print(f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}")
             return result.stdout
 
@@ -1208,18 +1182,18 @@ class TraitsAndResolution:
 
         return self.primer_resolv_species
 
-    def get_taxonomic_resolution(self, otl_total_taxa_count: int):
-        """
-        This method computes the percentage of resolved taxa according to the total taxa count in
-        the OTL.
+    # def get_taxonomic_resolution(self, total_otl_taxa_count: int):
+    #     """
+    #     This method computes the percentage of resolved taxa according to the total taxa count in
+    #     the OTL.
 
-        Parameter:
-        - otl_total_taxa_count: int
-            Total number of taxa considered
-        """
-        self.primer_resolv_species['taxonomic_resolution_percentage'] = round((self.primer_resolv_species['cumulative_resolved_species'] / otl_total_taxa_count ) * 100, 2)
+    #     Parameter:
+    #     - total_otl_taxa_count: int
+    #         Total number of taxa considered
+    #     """
+    #     self.primer_resolv_species['taxonomic_resolution_percentage'] = round((self.primer_resolv_species['cumulative_resolved_species'] / total_otl_taxa_count ) * 100, 2)
 
-        return self.primer_resolv_species
+    #     return self.primer_resolv_species
 
     def load_nucleotide_distance(self):
         """
@@ -1297,7 +1271,7 @@ class TraitsAndResolution:
 
         return divergence_df
 
-    def get_divergence_score(self, otl_total_taxa_count: int, cutoff: float = 2.0):
+    def get_divergence_score(self, total_otl_taxa_count: int, cutoff: float = 2.0):
         """
         This method retrieves the divergence score for each primer set. The divergence score is
         the percentage of taxa with a percentage of divergence bellow a cutoff according to the
@@ -1312,7 +1286,7 @@ class TraitsAndResolution:
 
         Returns:
         """
-        if otl_total_taxa_count <= 0:
+        if total_otl_taxa_count <= 0:
             raise ValueError("mozaiko ERROR: The total number of taxa in OTL must be above 0.")
 
         self.divergence_df = self.compute_genetic_divergence_per_taxon()
@@ -1324,11 +1298,11 @@ class TraitsAndResolution:
         for column in primer_cols:
             taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][column].count()
 
-            divergence_score = (taxa_above_cutoff / otl_total_taxa_count) * 100
+            divergence_score = (taxa_above_cutoff / total_otl_taxa_count) * 100
 
             divergence_score_results.append({
                 'primer': column,
-                'total_taxa': otl_total_taxa_count,
+                'total_taxa': total_otl_taxa_count,
                 'n_taxa_above_cutoff': taxa_above_cutoff,
                 'divergence_score': round(divergence_score, 2)
             })
@@ -1343,44 +1317,255 @@ class MetricsSystemExecutor:
     categories by calling the necessary classes and methods.
     """
 
-    def __init__(self, all_inserts_folder=None, otl=None):
+    def __init__(self, results_folder: str, otl: str, primer_table: str):
         # Initialize Reference Database Quality Category
         self.ref_db = ReferenceDatabaseQuality()
         # Initialize OTL and related variables
         self.otl = otl
-        self.all_inserts_folder = all_inserts_folder
         self.otl_handler = OtlHandler(self.otl)
         self.otl_handler.import_otl()
         self.total_otl_taxa_count = self.otl_handler.total_taxa
         self.otl_unique_taxa_set = self.otl_handler.otl_taxa_set
+        # Load files and folders into memory
+        self.primer_table = primer_table
+        self.results_folder = results_folder
+        self.results_folder = results_folder
+        self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
+        self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
+        self.incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
+        print(f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}.")
         # Filter FASTA files per OTL species
         self.otl_handler.apply_fasta_filtering_for_all_fasta_files_in_folder(
-            fasta_folder=self.all_inserts_folder,
+            fasta_folder=self.insert_folder_path,
             otl_taxa_set=self.otl_unique_taxa_set,
             overwrite=False,
         )
         self.filtered_inserts_folder = os.path.join(
-            self.all_inserts_folder,
-            os.path.basename(self.all_inserts_folder) + "_otl_filtered",
+            self.insert_folder_path,
+            os.path.basename(self.insert_folder_path) + "_otl_filtered",
         )
 
-    def calculate_reference_database_quality(self):
+    def get_reference_database_quality(self):
         """
-        This method processed the Reference Database Quality evaluation.
-        It calculates the Barcode Coverage Score (BCS) for each primer and stores the results.
+        Initializes the Reference Database Quality evaluation, calculating the Barcode Coverage
+        Score (BCS) for each primer and stores the results.
 
         Output:
-        - ref_bd_scores: dict
-            A dictionary where the key is the primer name and the value is a tuple containing
-            the percentage of taxa with more than five barcodes and the rounded Ratio of Barcoded
-            Taxa.
+        - ref_bd_scores: DataFrame
+            A DataFrane containing the percentage of taxa with more than five barcodes and the
+            rounded Ratio of Barcoded Taxa for each primer.
         """
-
-        cls = ReferenceDatabaseQuality(self.filtered_inserts_folder, self.otl)
-        reference_db_quality = cls.barcoded_taxa_ratio(
+        red_bd_qual = ReferenceDatabaseQuality(self.insert_folder_path, self.otl)
+        reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
             total_taxa_count=self.total_otl_taxa_count
         )
 
         return reference_db_quality
 
-    # TODO: check how to best do folder and file intake, otl handling
+    def get_primer_pbs_analysis(self):
+        """
+        Initializes the primer-pbs analysis and
+        """
+        binding = Binding()
+        primer_pbs_dict, gc_df = binding.primer_pbs_analysis(insert_folder=self.insert_folder_path,
+                                                    amplicon_folder=self.amplicon_folder_path,
+                                                    primer_table=self.primer_table)
+
+        gc_df.index.name = 'primer'
+
+        return primer_pbs_dict, gc_df
+
+    def comprehensive_primer_analysis(self, output_folder):
+        """
+        Perform comprehensive primer analysis across multiple metrics.
+
+        Parameters:
+        - cls : MetricsSystemExecutor
+            An instance of MetricsSystemExecutor with initialized data
+        - output_folder : str
+            Path to the output folder for storing results
+
+        Returns:
+        - binding_df: pd.DataFrame
+            Aggregated results of primer analyses
+        """
+        binding = Binding()
+
+        primer_pbs, gc_df = self.get_primer_pbs_analysis()
+
+        primer_results = {}
+
+        ref_qual = self.get_reference_database_quality()
+
+        primers_to_analyze = list(primer_pbs.keys())
+
+        for primer in primers_to_analyze:
+            primer_metrics = {}
+
+            # Mismatch Analyses
+            tax_lev_max_ms_full_len = binding.process_analysis_per_taxon(
+                primer_pbs[primer],
+                operation='max',
+                analysis_name='full_len_mismatch_sum'
+            )
+            primer_metrics['max_mismatch_across_taxon'] = int(
+                binding.process_analysis_across_taxon(
+                    tax_lev_max_ms_full_len,
+                    operation='sum'
+                )
+            )
+
+            # Priming Ratio
+            tax_lev_max_ms_three_end = binding.process_analysis_per_taxon(
+                primer_pbs[primer],
+                operation='max',
+                analysis_name='three_end_mismatch_sum'
+            )
+            primer_metrics['priming_ratio'] = binding.get_priming_ratio(
+                tax_lev_max_ms_full_len,
+                tax_lev_max_ms_three_end
+            )
+
+            # GC Match Analysis
+            binding.get_total_gc_matches(primer_pbs[primer])
+            tax_lev_gc = binding.process_analysis_per_taxon(
+                primer_pbs[primer],
+                operation='min',
+                analysis_name='gc_matches_score'
+            )
+            primer_metrics['gc_matches_across_taxon'] = binding.process_analysis_across_taxon(
+                tax_lev_gc,
+                operation='sum'
+            )
+
+            # Temperature Melting (Tm) Analysis
+            tax_lev_min_tm = binding.process_analysis_per_taxon(
+                primer_pbs[primer],
+                operation='min',
+                analysis_name='min_tm'
+            )
+            primer_metrics['tm_coefficient_var'] = binding.process_analysis_across_taxon(
+                tax_lev_min_tm,
+                operation='coef_var'
+            )
+
+            # Tm Score
+            primer_metrics['tm_score'] = binding.tm_score(primer_pbs[primer])
+
+            # Amplification Success (if applicable)
+            try:
+                amp_succ = binding.calculate_amplification_success_score(output_folder)
+
+                amp_succ_value = amp_succ.loc[primer, 'amplification_sucess_percent'] if primer in amp_succ.index else None
+                primer_metrics['amplification_success_percent'] = amp_succ_value
+
+            except Exception as e:
+                print(f"mozaico WARNING: Amplification success calculation failed for {primer}: {e}")
+                primer_metrics['amplification_success_percent'] = None
+
+            # Store results for this primer
+            primer_results[primer] = primer_metrics
+
+        binding_df = pd.DataFrame.from_dict(primer_results, orient='index')
+
+        if ref_qual is not None:
+            binding_df = ref_qual.join(binding_df)
+
+        binding_df.rename(index=lambda x: x.replace('-', '_'), inplace=True)
+        binding_df.index.name = 'primer'
+
+        binding_df = binding_df
+
+        return binding_df
+
+    def get_traits_and_resolution(self):
+        """
+        Combine taxonomic resolution and genetic divergence analyses
+
+        Returns:
+        --------
+        pd.DataFrame
+            Combined analysis results with taxonomic resolution and divergence metrics
+        """
+        trait = TraitsAndResolution(results_folder=self.results_folder)
+
+        trait.multibarcode_output_folder = os.path.join(self.results_folder, 'multibarcode')
+
+        # Run Multibarcode Pipeline
+        output_str = trait.run_multibarcode_pipeline()
+        trait.parse_multibarcode_output(output_str)
+
+        # # Get Taxonomic Resolution Percentage
+        # taxonomic_resolution = trait.get_taxonomic_resolution(
+        #     total_otl_taxa_count=int(self.total_otl_taxa_count)
+        # )
+
+        # Get Divergence Score
+        divergence_score = trait.get_divergence_score(
+            total_otl_taxa_count=int(self.total_otl_taxa_count)
+        )
+
+        # Combine Results
+        # First, convert divergence score to DataFrame
+        if not isinstance(divergence_score, pd.DataFrame):
+            divergence_score = pd.DataFrame(
+                {'divergence_score': [divergence_score]},
+                index=['Overall']
+            )
+
+        # taxonomic_resolution = taxonomic_resolution.set_index('primer')
+        divergence_score = divergence_score.set_index('primer')
+
+        combined_div_score_and_tax_res_results = pd.DataFrame({
+            'divergence_score': divergence_score['divergence_score']
+        })
+
+        traits_res_df = combined_div_score_and_tax_res_results
+
+        return traits_res_df
+
+    def join_analysis_results(self):
+        binding_dataframe = self.comprehensive_primer_analysis(self.results_folder)
+        traits_dataframe = self.get_traits_and_resolution()
+
+        analysis_results = binding_dataframe.join(traits_dataframe, on='primer')
+
+        return analysis_results
+
+    def rank_primers(self, save_results: bool = True, output_path = None):
+        """
+        """
+        ranking_order = {
+            'barcoded_taxa_one_plus': 'desc',
+            'ratio_barcoded_taxa': 'desc',
+            'max_mismatch_across_taxon': 'asc',
+            'priming_ratio': 'asc',
+            'gc_matches_across_taxon': 'desc',
+            'tm_coefficient_var': 'asc',
+            'tm_score': 'desc',
+            'amplification_success_percent': 'desc',
+            'taxonomic_resolution_percentage': 'asc',
+            'divergence_score': 'asc'
+        }
+
+        metrics_df = self.join_analysis_results()
+
+        for column, order in ranking_order.items():
+            if order == 'desc':
+                metrics_df[f'rank_{column}'] = metrics_df[column].rank(ascending=False)
+            elif order == 'asc':
+                metrics_df[f'rank_{column}'] = metrics_df[column].rank(ascending=True)
+
+        metrics_df['final_rank'] = metrics_df[[f'rank_{col}' for col in ranking_order]].sum(axis=1)
+        metrics_df_sorted = metrics_df.sort_values(by='final_rank', ascending=True).reset_index(drop=False)
+
+        if save_results == True:
+            if output_path == None:
+                output_path = self.results_folder / "ranked_primers.tsv"
+                metrics_df_sorted.to_csv(output_path, sep='\t', index=True)
+                print(f"mozaico INFO: Primer Ranking results saved to {output_path}")
+            else:
+                metrics_df_sorted.to_csv(output_path, sep='\t', index=True)
+                print(f"mozaico INFO: Primer Ranking results saved to {output_path}")
+
+        return metrics_df_sorted
