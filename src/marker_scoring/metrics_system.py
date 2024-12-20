@@ -1503,16 +1503,8 @@ class MetricsSystemExecutor:
             total_otl_taxa_count=int(self.total_otl_taxa_count)
         )
 
-        # Combine Results
-        # First, convert divergence score to DataFrame
-        if not isinstance(divergence_score, pd.DataFrame):
-            divergence_score = pd.DataFrame(
-                {'divergence_score': [divergence_score]},
-                index=['Overall']
-            )
-
-        # taxonomic_resolution = taxonomic_resolution.set_index('primer')
-        divergence_score = divergence_score.set_index('primer')
+        if 'primer' in divergence_score.columns:
+            divergence_score = divergence_score.set_index('primer')
 
         combined_div_score_and_tax_res_results = pd.DataFrame({
             'divergence_score': divergence_score['divergence_score']

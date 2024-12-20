@@ -10,7 +10,7 @@ from pathlib import Path
 import os
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, call, mock_open, patch
+from unittest.mock import MagicMock, call, mock_open, patch, Mock
 
 from Bio.SeqRecord import SeqRecord
 from pandas._testing import assert_frame_equal
@@ -1339,8 +1339,212 @@ class TestTraitsAndResolution(unittest.TestCase):
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
-        self.all_inserts_folder = "data/test_data/test-folder-metrics"
-        self.otl = "data/test_data/test_otl.tsv"
-        self.primer_table = "data/test_data/test_primer_table.tsv"
-        os.makedirs(os.path.join(self.all_inserts_folder, "insert/filtered"), exist_ok=True)
-        self.metric_sys_ex = MetricsSystemExecutor(self.all_inserts_folder, self.otl, self.primer_table)
+        """
+        Set up test fixtures before each test method.
+        """
+        self.results_folder = "/fake/path/results"
+        self.otl = "/fake/path/otl.tsv"
+        self.primer_table = "/fake/path/primer_table.tsv"
+
+        # Mock OTLHandler
+        self.mock_otl_handler = Mock()
+        self.mock_otl_handler.total_taxa = 100
+        self.mock_otl_handler.otl_taxa_set = set(['species1', 'species2'])
+
+        # Set up path patches
+        self.mock_paths = {
+            'insert': '/fake/path/results/insert/filtered',
+            'amplicon': '/fake/path/results/amplicon/filtered',
+            'incomplete_pbs': '/fake/path/results/incomplete_pbs/filtered/filtered_intersection'
+        }
+
+    @patch('os.path.join')
+    @patch('src.marker_scoring.metrics_system.OtlHandler')
+    def test_initialization(self, mock_otl_handler_class, mock_join):
+        """
+        Test the initialization of MetricsSystemExecutor.
+        """
+        mock_otl_handler_instance = Mock()
+        mock_otl_handler_class.return_value = mock_otl_handler_instance
+        mock_join.side_effect = lambda *args: '/'.join(args)
+
+        executor = MetricsSystemExecutor(
+            results_folder=self.results_folder,
+            otl=self.otl,
+            primer_table=self.primer_table
+        )
+
+        self.assertEqual(executor.results_folder, self.results_folder)
+        self.assertEqual(executor.otl, self.otl)
+        self.assertEqual(executor.primer_table, self.primer_table)
+        mock_otl_handler_instance.import_otl.assert_called_once()
+
+    @patch('src.marker_scoring.metrics_system.ReferenceDatabaseQuality')
+    @patch('os.path.exists')
+    @patch('os.path.join')
+    @patch('src.marker_scoring.metrics_system.OtlHandler')
+    def test_get_reference_database_quality(self, mock_otl_handler_class, mock_join, mock_exists, mock_ref_db_class):
+        """
+        Test reference database quality calculation.
+        """
+        mock_exists.return_value = True
+        mock_join.side_effect = lambda *args: '/'.join(args)
+
+        # Mock OtlHandler
+        mock_otl_instance = Mock()
+        mock_otl_instance.total_taxa = 100
+        mock_otl_instance.otl_taxa_set = set(['species1', 'species2'])
+        mock_otl_handler_class.return_value = mock_otl_instance
+
+        # set ReferenceDatabaseQuality mock
+        mock_ref_db_instance = Mock()
+        mock_ref_db_class.return_value = mock_ref_db_instance
+        expected_result = pd.DataFrame({
+            'barcoded_taxa_one_plus': [80.0],
+            'ratio_barcoded_taxa': [0.8]
+        })
+        mock_ref_db_instance.barcoded_taxa_ratio.return_value = expected_result
+
+        with patch('builtins.open', create=True):
+            executor = MetricsSystemExecutor(
+                results_folder=self.results_folder,
+                otl=self.otl,
+                primer_table=self.primer_table
+            )
+
+        result = executor.get_reference_database_quality()
+
+        # Verify results
+        pd.testing.assert_frame_equal(result, expected_result)
+        expected_calls = [
+            call(),  # First call in __init__
+            call(executor.insert_folder_path, executor.otl)  # Second call in get_reference_database_quality
+        ]
+        mock_ref_db_class.assert_has_calls(expected_calls)
+
+        # Verify ReferenceDatabaseQuality was initialized correctly
+        mock_ref_db_instance.barcoded_taxa_ratio.assert_called_once_with(
+            total_taxa_count=executor.total_otl_taxa_count
+        )
+
+    @patch('src.marker_scoring.metrics_system.Binding')
+    @patch('src.marker_scoring.metrics_system.OtlHandler')
+    @patch('os.path.exists')
+    @patch('os.path.join')
+    def test_get_primer_pbs_analysis(self, mock_join, mock_exists, mock_otl_handler_class, mock_binding_class):
+        """
+        Test primer PBS analysis.
+        """
+        # Configure mock
+        mock_binding_instance = Mock()
+        mock_binding_class.return_value = mock_binding_instance
+
+        expected_primer_pbs = {
+            'primer1': {'data': 'value1'},
+            'primer2': {'data': 'value2'}
+        }
+        expected_gc_df = pd.DataFrame({
+            'gc_content': [0.5, 0.6]
+        }, index=['primer1', 'primer2'])
+
+        mock_binding_instance.primer_pbs_analysis.return_value = (
+            expected_primer_pbs,
+            expected_gc_df
+        )
+
+        executor = MetricsSystemExecutor(
+            results_folder=self.results_folder,
+            otl=self.otl,
+            primer_table=self.primer_table
+        )
+
+        primer_pbs_dict, gc_df = executor.get_primer_pbs_analysis()
+
+        self.assertEqual(primer_pbs_dict, expected_primer_pbs)
+        pd.testing.assert_frame_equal(gc_df, expected_gc_df)
+        mock_binding_instance.primer_pbs_analysis.assert_called_once_with(
+            insert_folder=executor.insert_folder_path,
+            amplicon_folder=executor.amplicon_folder_path,
+            primer_table=executor.primer_table
+        )
+
+    @patch('src.marker_scoring.metrics_system.TraitsAndResolution')
+    @patch('src.marker_scoring.metrics_system.OtlHandler')
+    @patch('os.path.exists')
+    @patch('os.path.join')
+    def test_get_traits_and_resolution(self,  mock_join, mock_exists, mock_otl_handler_class, mock_traits_class):
+        """
+        Test traits and resolution calculation.
+        """
+        mock_exists.return_value = True
+        mock_join.side_effect = lambda *args: '/'.join(args)
+
+        # Configure mock
+        mock_otl_handler_instance = Mock()
+        mock_otl_handler_instance.get_taxa_count.return_value = 100
+        mock_otl_handler_class.return_value = mock_otl_handler_instance
+
+        mock_traits_instance = Mock()
+        mock_traits_class.return_value = mock_traits_instance
+
+        # Mock expected DataFrame with 'primer' index
+        expected_result = pd.DataFrame({
+            'primer': ['primer1'],
+            'divergence_score': [0.75]
+        }).set_index('primer')
+        mock_traits_instance.get_divergence_score.return_value = expected_result
+
+        # Create instance with mocked dependencies
+        executor = MetricsSystemExecutor(
+            results_folder=self.results_folder,
+            otl=self.otl,
+            primer_table=self.primer_table
+        )
+        executor.total_otl_taxa_count = 100
+
+        # Run test
+        result = executor.get_traits_and_resolution()
+
+        # Verify results
+        pd.testing.assert_frame_equal(result, expected_result)
+        mock_traits_instance.get_divergence_score.assert_called_once_with(
+            total_otl_taxa_count=100
+        )
+
+
+    @patch('src.marker_scoring.metrics_system.OtlHandler')
+    @patch('os.path.exists')
+    @patch('os.path.join')
+    def test_rank_primers(self, mock_join, mock_exists, mock_otl_handler_class):
+        """
+        Test primer ranking functionality.
+        """
+        mock_analysis_results = pd.DataFrame({
+            'barcoded_taxa_one_plus': [90, 80],
+            'ratio_barcoded_taxa': [0.9, 0.8],
+            'max_mismatch_across_taxon': [2, 3],
+            'priming_ratio': [0.8, 0.7],
+            'gc_matches_across_taxon': [15, 12],
+            'tm_coefficient_var': [0.1, 0.2],
+            'tm_score': [0.9, 0.8],
+            'amplification_success_percent': [95, 85],
+            'divergence_score': [0.2, 0.3]
+        }, index=['primer1', 'primer2'])
+
+        executor = MetricsSystemExecutor(
+            results_folder=self.results_folder,
+            otl=self.otl,
+            primer_table=self.primer_table
+        )
+        executor.join_analysis_results = Mock(return_value=mock_analysis_results)
+
+        result = executor.rank_primers(save_results=False)
+        result = result.set_index('index')
+        print(result)
+
+        self.assertTrue('final_rank' in result.columns)
+        self.assertEqual(len(result), 2)
+        primer1_rank = result.loc['primer1', 'final_rank']
+        primer2_rank = result.loc['primer2', 'final_rank']
+        self.assertLess(primer1_rank, primer2_rank)
+
