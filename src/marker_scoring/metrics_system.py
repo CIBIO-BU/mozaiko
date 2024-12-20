@@ -103,9 +103,7 @@ class OtlHandler:
         if overwrite:
             output_file = fasta_file
         else:
-            filtered_folder = os.path.join(
-                input_folder, f"{os.path.basename(input_folder)}_otl_filtered"
-            )
+            filtered_folder = os.path.join(input_folder, "otl_filtered")
             os.makedirs(filtered_folder, exist_ok=True)
             output_file = os.path.join(filtered_folder, file_name)
 
@@ -139,7 +137,8 @@ class OtlHandler:
                             continue
 
                         header_parts = line.strip().split("|")
-                        if len(header_parts) < 2:
+                        print(f"DEBUG: header_parts = {header_parts}")
+                        if len(header_parts) < 2 or not header_parts[1].strip():
                             print(f"mozaiko WARNING: Taxonomy not present for - {line}")
                             continue
 
@@ -159,8 +158,7 @@ class OtlHandler:
                 output_f.write(f"{current_header}\n")
                 output_f.write("".join(current_sequence) + "\n")
 
-        if overwrite:
-            os.replace(temp_file, output_file)
+        os.replace(temp_file, output_file)
 
         return total_seq_count, kept_seq_count, output_file
 
@@ -941,11 +939,11 @@ class Binding:
             Total number of taxa that were successfuly amplified
         """
         # Input A
-        in_silico_amplified_inserts = results_folder / "insert/filtered"
+        in_silico_amplified_inserts = os.path.join(results_folder, "insert/filtered")
         # Input B
-        all_inserts_with_pbs = results_folder / "all_complete_pbs/filtered/filtered_intersection"
+        all_inserts_with_pbs = os.path.join(results_folder, "all_complete_pbs/filtered/filtered_intersection")
         # Input C
-        inserts_with_incomplete_pbs = results_folder / "incomplete_pbs/filtered/filtered_intersection"
+        inserts_with_incomplete_pbs = os.path.join(results_folder, "incomplete_pbs/filtered/filtered_intersection")
 
         folder_list = [
             ("taxa_in_silico_amplified", in_silico_amplified_inserts),
@@ -1544,7 +1542,6 @@ class MetricsSystemExecutor:
             'tm_coefficient_var': 'asc',
             'tm_score': 'desc',
             'amplification_success_percent': 'desc',
-            'taxonomic_resolution_percentage': 'asc',
             'divergence_score': 'asc'
         }
 

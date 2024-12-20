@@ -111,9 +111,9 @@ class TestOtlHandler(unittest.TestCase):
     @patch("os.replace")
     def test_filter_fasta_no_taxa(self, mock_replace, mock_print):
         """
-        Method to test handling of a header without a pipe character.
+        Method to test handling of a header without taxa.
         """
-        test_fasta_content = """>notax | \nATGCATGCATGC"""
+        test_fasta_content = """>notax|\nATGCATGCATGC"""
 
         otl_taxa_ex = set()
 
@@ -128,7 +128,7 @@ class TestOtlHandler(unittest.TestCase):
                 temp_file_path, otl_taxa_ex
             )
             mock_print.assert_any_call(
-                "mozaiko WARNING: Taxonomy seems to not be present for - >notax |"
+                "mozaiko WARNING: Taxonomy not present for - >notax|"
             )
 
         finally:
@@ -180,6 +180,9 @@ class TestOtlHandler(unittest.TestCase):
         with open(input_file_path, "w") as f:
             f.write(test_fasta_content)
 
+        expected_output_dir = os.path.join(test_dir, "otl_filtered")
+        expected_output_file = os.path.join(expected_output_dir, "test_input.fasta")
+
         try:
             total_count, kept_count, output_file = (
                 self.handler.filter_fasta_for_species_not_in_otl(
@@ -189,22 +192,21 @@ class TestOtlHandler(unittest.TestCase):
             self.assertEqual(total_count, 1)
             self.assertEqual(kept_count, 1)
 
-            assert os.path.exists(output_file)
-            assert output_file.endswith("test_input.fasta")
-            assert "_otl_filtered" in output_file
-
+            print(output_file)
+            print(expected_output_file)
+            assert os.path.exists(expected_output_file)
+            assert output_file == expected_output_file
             with open(output_file, "r") as f:
                 content = f.read().strip()
             assert content == test_fasta_content
-            assert os.path.dirname(output_file) != os.path.dirname(
-                input_file_path
-            ), "Output file should be in a different directory"
 
         finally:
             if os.path.exists(input_file_path):
                 os.remove(input_file_path)
-            if "output_file" in locals() and os.path.exists(output_file):
-                os.remove(output_file)
+            if os.path.exists(expected_output_file):
+                os.remove(expected_output_file)
+            if os.path.exists(expected_output_dir) and not os.listdir(expected_output_dir):
+                os.rmdir(expected_output_dir)
             if os.path.exists(test_dir) and not os.listdir(test_dir):
                 os.rmdir(test_dir)
 
@@ -281,14 +283,15 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         rbt_rounded = self.ref_bd_cls.barcoded_taxa_ratio(self.total_otl_taxa_count)
         print(rbt_rounded)
 
-        expected_output = {
-            "test_amplicon_reffb": {
-                "barcoded_taxa_five_plus": 16.67,
-                "ratio_barcoded_taxa": 0.33,
-            }
-        }
+        expected_output = pd.DataFrame({
+            "barcoded_taxa_one_plus": [50.0],
+            "ratio_barcoded_taxa": [0.33],
+        }, index=["test_amplicon_reffb"])
 
-        self.assertEqual(rbt_rounded, expected_output)
+        print(rbt_rounded)
+
+
+        pd.testing.assert_frame_equal(rbt_rounded, expected_output)
 
 
 class TestBinding(unittest.TestCase):
@@ -745,8 +748,8 @@ class TestBinding(unittest.TestCase):
         self.assertIsInstance(primer_pbs_df, dict)
         self.assertIsInstance(primer_gc_df, pd.DataFrame)
 
-        self.assertEqual(primer_gc_df.iloc[0]["barcode_region"], "COI")
-        self.assertEqual(primer_gc_df.iloc[0]["assay_name"], "TestAssay")
+        self.assertEqual(primer_gc_df.index.name, "primer_name")
+        self.assertEqual(primer_gc_df.index[0], "COI_TestAssay")
 
     @patch(
         "src.in_silico_analysis.amplification.InSilicoAmplification.validate_primer_table"
