@@ -1481,7 +1481,6 @@ class MetricsSystemExecutor:
         Combine taxonomic resolution and genetic divergence analyses
 
         Returns:
-        --------
         pd.DataFrame
             Combined analysis results with taxonomic resolution and divergence metrics
         """
@@ -1515,6 +1514,9 @@ class MetricsSystemExecutor:
         return traits_res_df
 
     def join_analysis_results(self):
+        """
+        This method joins the results from the primer analysis and the traits and resolution analysis.
+        """
         binding_dataframe = self.comprehensive_primer_analysis(self.results_folder)
         traits_dataframe = self.get_traits_and_resolution()
 
@@ -1524,6 +1526,18 @@ class MetricsSystemExecutor:
 
     def rank_primers(self, save_results: bool = True, output_path = None):
         """
+        This method ranks the primers performance based on the results of the Metruc System.
+
+        It assigns a ranking order for each relevant metric and sets the ranking order after
+        joining all the results. The final rank is the sum of the ranks for each metric. This
+        allows for a comprehensive ranking of the primers by setting the metric with the highest
+        rank as the one with the lowest value (is first in most of the ranking metrics).
+
+        Parameters:
+        - save_results: bool
+            If True, the results will be saved to a TSV file. Default is True.
+        - output_path: str
+            Path to save the results. If None, the results will be saved to the results folder.
         """
         ranking_order = {
             'barcoded_taxa_one_plus': 'desc',
