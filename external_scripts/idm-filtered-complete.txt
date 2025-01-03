@@ -1,0 +1,717 @@
+nan
+BOLD ID Engine: top hits
+Morphology
+Image based identification
+Data release validation protocol (Mar 2024)
+Specimen examination
+Tree-based identification
+Specimen examinationp
+BOLD ID Engine: classification
+Smithsonian Tropical Research Institute
+Tree-base method Nov. 2024
+dissection
+BIN based identification
+Digital Morphology (Nov 2024)
+Taxonomic key
+BOLD Engine Taxonomy Match
+BIN Taxonomy Match (Feb 2022)
+Tree Based Identification (Nov 2024)
+Morphological
+Inclusion in type series
+morpological
+BIN Taxonomy Match (Mar 2023)
+BIN Taxonomy Match (Oct 2024)
+Taxonomic ID
+life history
+Unspecified
+Tree based identification
+original description
+BLAST
+BIN Taxonomy Match (Oct 2019)
+Adult
+Adult/Larvae
+barcoding
+morphological, phylogenetic analysis
+Habitus
+Xylota naknek or X. annulifera
+Mrpholgy
+Cheilosia hunteri or C. bigelowi
+literature
+Specimen Observation
+Integrative Taxonomy
+taxonomic revision
+Taxonomy
+Taxonomic revision
+Identifier: Hina Saeed Baig
+Classical Taxonomy
+Book: Indian shells (2nd edition) (Deepak Apte)
+Updated combination
+observation
+Kathman, R.D. and Brinkhurst, R.O., 1998. Guide to the freshwater oligochaetes of North America. Aquatic Resources Center.
+Klemm, D.J. ed., 1985. A guide to the freshwater Annelida (Polychaeta, Naidid and tubificid Oligochaeta, and Hirudinea) of North America. Kendall Hunt Publishing Company.
+Smith, D.G. and Pennak, R.W., 2001. Pennak's freshwater invertebrates of the United States: Porifera to Crustacea. John Wiley & Sons.
+Clarke, A.H., 1981. The freshwater molluscs of Canada. Canada Communication Group Pub. AND Jokinen, E.H., 1992. The freshwater snails (mollusca: gastropoda) of New York State. Uof the State of NY, State Education Dept., NY State Museum, Biological Survey.
+Clarke, A.H., 1981.??The freshwater molluscs of Canada. Canada Communication Group Pub. AND Jokinen, E.H., 1992. The freshwater snails (mollusca: gastropoda) of New York State. Uof the State of NY, State Education Dept., NY State Museum, Biological Survey.
+Kathman, R.D. and Brinkhurst, R.O., 1998.??Guide to the freshwater oligochaetes of North America. Aquatic Resources Center.
+Knowledge
+Topotypic material
+was Xysticus gulosus, D. Copley
+Morphology (Oct, 2024)
+PCR
+Comparaison with type specimen
+Orignially identified as Platybunus triangularis, changed due to synonymy
+Literature
+Blast, Genebank
+Morphology and BOLD ID Engine
+Personal communication of John Brown, Tortricid expert
+Digital Morphology of BIN representative (Oct 2024)
+Examination of specimen
+Physical examination
+Digital Morphology (Oct, 2024)
+is Rhysipolis
+French Guyana KM997512 IS Stiropius (specimen)
+genetics
+000
+Rehn & Hebard 1927 + Rehn 1906
+National Museum of Nature and Science
+BOLD Sequence Classifier
+Matched with authoritatively identified S. typicus in library.
+habitat
+Known geographic distribution
+Collection site (Feb 2018)
+Collection site
+BOLD engine
+Collection site (Jan 2018)
+BIN Taxonomy Match (May 2017)
+temporary name
+VC: cf. S. hemipterus (thomsoni)
+Specimen examination to genus level
+sp2
+New species
+BIN Taxonomy Match (May 2019)
+Geography
+Habitus & Geography
+BOLF taxonomy match
+Digital Morphology + BOLD ID Engine (Oct 2024)
+Description 
+Pauly&Eardley
+PAULY&Eardley
+species description
+Species description and diagnosis 
+Whole body
+BOLD ID Engine (Oct 2024)
+Own ID for family level
+Comparison with type specimen
+Name usually attributed to this species in French Guiana
+GenBank: LC128580.1
+field guide
+blastn & blastp match
+Stewart, K.W., and Oswood, M.W. (2006). The Soneflies (Plecoptera) of Alaska and Western Canada.
+Merritt, R.W., Cummins, K.W., and M.B. Berg (2008). An Introduction to the Aquatic insects of North America
+Wiggins, G.B. (1996). Larvae of the North American Caddisfly Genera (Trichoptera), Second Edition.
+genetic and pheromones
+Barcoding
+Eardley 2004
+Diagnostic base pairs
+BIN match to identified material
+taxonomic key
+chromosomes
+Iterative
+Gonzalez&Griswold
+NCBI BLAST
+Bohart & Menke 1976
+larva
+blasting
+dissected
+rozen 1997
+Gonzalez&Griswold 2013
+cuticle
+Polytene chromosomes
+Polytene chromosomes (Martin, J.  A review of the genus Chironomus  (Diptera, Chironomidae).  IV. The karyosystematics of the australis group in Australia.  Chromosoma 35: 418-430 (1971).
+Combined image and sequence based identification
+Cytology
+book and Museum reference
+Sanger sequencing
+Rio Nabueno/Jama
+Bosque/Jama
+Casa/Jama
+v 3 pescado
+v 14 fruta
+v 15 pescado
+v 13 pescado
+v 5 pescado
+Rio Nabueno
+Bosque
+Bosque/ Jama
+v10 fruta
+v 8 fruta
+Quebrada/Jama
+Cocal/Jama
+v 2 pescado
+Quebrada
+v 19 pescado
+v 1 pescado
+Pedipalp examination
+DNA match
+Comparing epigyne with published illustrations
+Examination of habitus and pedipalp
+Pedipalp examination and comparison with holotype
+Molecule
+GenBank Blast
+Barcoding 
+Genetics
+ITS phylogeny
+ITS and Cox1 phylogenies
+Cox1 phylogeny
+cox1 and ITS phylogeny
+cox1 phylogeny
+Universidad Distrital Francisco Jose de Caldas
+BIN Taxonomy Match (Sept 2017)
+Digital morphology/tree based ID (Sept 2017)
+BIN Taxonomy Match
+Morphology and BOLD
+BOLD
+match with male
+morphology
+Subspecies: Temenis laothoe laothoe
+Subspecies: Temenis laothoe meridionalis
+Subspecies: Pyrrhogyra amphiro juani
+Subspecies: Pyrrhogyra amphiro amphiro
+Subspecies: Pyrrhogyra neaerea kheili
+Subspecies: Pyrrhogyra crameri nautaca
+Subspecies: Pyrrhogyra crameri undine
+Subspecies: Pyrrhogyra crameri hagnodorus
+Subspecies: Pyrrhogyra edocla cuparina
+Subspecies: Pyrrhogyra edocla lysanias
+Subspecies: Pyrrhogyra neaerea arge
+Subspecies: Pyrrhogyra neaerea argina
+Subspecies: Pyrrhogyra neaerea hypsenor
+Subspecies: Pyrrhogyra neaerea ophni
+Subspecies: Pyrrhogyra otolais olivenca
+iterative taxonomy
+Image examination
+Sequence comparison
+Morphology (Oct 2024)
+High Conffidence| Previous ID Xanthorhoe ramaria by Christian Schmidt
+RESL OTU Taxonomy Match (Nov 2017)
+BOLD ID Engine Manual
+Phylogenetic evidence
+Peter Schuchert
+Dasydorylas occidualis or Dasysyrphus nigricornis
+Morphology (Aug 2024)
+Collection site (Jul 2018)
+Morhphology (May 2018)
+All identified By Massimo Olmi
+BOLD id engine
+ 
+Quentin & Villiers 1975 revision
+Quentin & Villiers 1975
+Blast
+by original designation
+polytene chromosomes
+BIN Taxonomy Match (Nov 2024)
+Morphology: comparison with type series
+Image based identification (Nov 2024)
+taxonomy
+Slovenian Museum of Natural History
+World Spider Catalog
+Museum collection SAMC, SANC, BMNH
+Borovec & Oberprieler 2013
+Schoeman 1983
+Oberprieler 1988
+Eady&Quinland
+PCR using ITS2 species-specific primers
+comparison with collection @ BMNH, London via http://sphingidae.myspecies.info/
+comparison with material @ BMNH, London
+taxonomic update
+COX
+genetic
+Snakeheads (Pisces, Channidae): A biological synopsis and risk assessment 2004, Courtenay, Walter R., Jr.; Williams, James D. USGS Circular: 1251
+Original description
+barcoding matching
+Barcoding matching
+Genetic analysis
+genetic analysis
+Genetic dissection
+Genetid analysis
+Geetic analysis
+Finnish Museum of Natural History
+Individual misidentified as Rajella caudaspinosa
+sp. nov.
+Lundblad, 1941
+Cook, 1980
+BMNH drawer 35-311 (2024)
+Lithosini
+Field observation
+Batch ID
+Bold ID Engine
+99,65% L. 7ES, shallow humeral pit with two long humerals lanceolate setae, few prescutellars long lanceolate setae, two preepisternals in a row.
+Bin-match
+TRADITIONAL
+Traditional
+traditional
+tradiitional 
+traditional 
+rearing from Pulsatilla
+BIN Taxonomy Match (Mar 2020)
+phylogenetic (NJ)
+NUCLEOTIDE BLAST
+physical charachteristics
+specimen examined
+Specimen re-examined
+Allen, A.A. (1986) Platypalpus articulatoides (Frey)(Dipt., Empididae) new to Britain. Entomologists Record and Journal of Variation 98, 177-179. Available from: http://biodiversitylibrary.org/page/30000597 (January 15, 2013).
+Rognes (1991) book, comp. with specimens
+Ozerov, A. L. (2017). A review of the genus Microprosopa Becker, 1894 (Diptera: Scathophagidae) of Russia. Russian Entomological Journal, 25(1), 71-99.
+paratype
+holotype
+Taxonomy and Genetics
+External morphology
+CO1 DNA Barcoding
+Iziko Museums
+University of Cape town
+Reared from stem galls
+Identifier: Paul Marek
+Identifier: Tsutomu Tanabe
+BOLD ID Engine (Sept 2019)
+synonym
+Identifier: Regis Vivien
+Identifier: Dr.Meng-Ping Tu
+Identifier: Regis Vivien, Michel Lafont
+Identifier: Michel Lafont
+tblastx
+tblastx 99%
+Taxonomic analysis
+Identifier: G.S. Blackburn
+Identifier: W.P. Maddison
+Identifier: Barbara Agabiti
+Identifier: Dr. Jainder Singh Chhillar
+GB_ori:Abia sericea
+Identifier: A. Roques
+Identifier: Sebastian C. D.
+Identifier: Triet Truong
+Identifier: Takafumi Nakano
+Identifier: C.T. Tseng
+Identifier: Tomioka,S.
+Identifier: T.Ya. Sitnikova
+Identifier: Vasily I. Radashevsky
+Identifier: Paloma Lima
+Identifier: Roberto Ibanez
+Identifier: Pablo Venegas
+Identifier: Brian Kubicki
+l
+Identifier: Di Tracey
+Identifier: Atoosa Noori Koupaei
+Identifier: F. Sinniger
+Identifier: Thais Pires Miranda
+Identifier: P.E.Stueben
+Identifier: P.Stueben
+Identifier: Krsl
+Identifier: L.Diotti
+Identifier: J.Kratky
+Identifier: P. E. Stueben
+Identifier: Tom Weir
+Identifier: Wang. S
+Identifier: Dr. Meng-Ping Tu
+Identifier: Michal Grabowski
+Identifier: C.Hurry
+Identifier: A.Borsboom
+Identifier: C.Hurry, R.McCormack & P.Van Der Werf
+Identifier: R.McCormack & P.Van Der Werf
+Identifier: Gatreddi Srinu
+Identifier: PKL Ng
+Identifier: Shih HT
+Identifier: P Shiv Shekhar Seshendra
+Identifier: HT Shih
+Identifier: P. Greenslade
+Identifier: O. Barrera-Moreno
+GB_mined:Jassidophaga villosa
+Identifier: Gregory Dahlem
+Identifier: Gunilla Stahls
+Identifier: Elvira Rattel
+Identifier: T. Pape
+Identifier: M. Pimsler
+Identifier: Laporta, GZ & Sallum, MAM
+GB_mined:Cephalops perspicuus
+GB_mined:Cephalops ultimus
+Identifier: E.P. Nartshuk
+Identifier: N Pradeep Kumar
+Identifier: N. Pradeep Kumar
+Identifier: E.A. Makarchenko
+Identifier: H. Takaoka
+Identifier: D. Whitmore
+Identifier: Hiroyuki Takaoka
+Identifier: Dhriti Banerjee
+GB_mined:Jassidophaga pilosa
+GB_mined:Jassidophaga beatricis
+GB_mined:Jassidophaga fasciata
+GB_mined:Jassidophaga sp. CK265
+GB_mined:Cephalops penultimus
+Haplotype network analysis
+Identifier: N. Stern
+Identifier: C.Sebastian Raju
+Identifier: Dhaval C. Bamaniya
+Identifier: James Orr
+Identifier: Glebov, I.I.
+Identifier: Ahmad,F.A. and Sharifi,M.
+Identifier: Christos Gkenas, Joao Gago, Natacha Mesquita, M. Judite Alves, Filipe Ribeiro
+Identifier: Nian-Hong Jang-Liaw
+Identifier: C.Sebastian rajau
+Identifier: C.sebastian raju
+Identifier: J.Freyhof
+Identifier: 65.13 N 57.07 W
+Identifier: 65.11 N 57.35 W
+Identifier: 61.39 N 50.76 W
+Identifier: Anjaneyappa H.N.
+Identifier: Zhizhi Liu
+Identifier: Rafael Banon
+Identifier: P. Balistreri
+Identifier: Adil Shehzad
+Identifier: H. B. Usmani
+Identifier: C.Sebastian raju
+Identifier: S.Rahman
+Identifier: Gunther Koehler
+Identifier: G. Vejar-Cota
+Identifier: Rebeccah Anne Waterworth
+Identifier: Zhiliang Zhang
+Identifier: Parmod Kumar
+Identifier: Lu Qian
+Identifikation uber Sequenz
+Identifier: Tu FY, Liu SY
+Identifier: Tinglei Jiang
+Identifier: N.Dorchin
+Identifier: Yongqin Tu
+Identifier: Ciocco
+Identifier: J. McHugh
+Identifier: T. Wesener
+Identifier: P. Lee
+Identifier: Kristine Pinkney, Daniel Doucet, Fayuan Wen
+Identifier: A. Warwick
+Identifier: A. Kostadinova
+Identifier: A. Bick
+Identifier: Martin
+Identifier: I. Kharrat
+Identifier: Dr. Sunil Joshi
+Identifier: Amalendu Ghosh
+Identifier: Tong-Xian Liu
+Identifier: T Shantibala
+Identifier: H. V. Ghate
+Identifier: I. Macharia
+Identifier: Kaomud Tyagi
+GB_ori:Scolioneura vicina
+GB_ori:Empria plana
+Identifier: A. Geoffroy
+Identifier: S.-M. Lin
+Identifier: M. Hammann
+Identifier: A. Velasco-Castrillon
+Identifier: S. McInnes, A. Velasco-Castrillon
+Identifier: Francesca Leasi, Diego Fontaneto
+Identifier: SJ McInnes
+GB_mined:Clistoabdominalis ruralis
+GB_mined:Cephalops lusitanicus
+Macridiscus aequilatera (nomen nudum)
+Chaetoderma majusculum
+Chaetoderma japonicum
+Vesicomyidae sp. HH-2015
+Bentharca cf. asperula NHMUK 20170061
+Bentharca cf. asperula NHMUK 20170064
+Viana regina
+Anodontoides ferussacianus complex sp. denigrata CS-2017
+Dreissenidae sp. 29VIII16_2_12_Hap_28
+Dreissenidae sp. 26VIII16_1_21_Hap_21
+Dreissenidae sp. 26VIII16_1_12_Hap_28
+Dreissenidae sp. 29VIII16_2_4_Hap_27
+Trapezidae sp. PNG-0083
+Semelidae sp. STW-2017
+Trapezidae sp. PNG-0034g
+Trapezidae sp. PNG-0034b
+Identifier: Z. Marzouk
+Type series in new species description
+Mitochondrion Whole Genome Sequencing 
+Comparison with type material
+Gallard 2017 - Les Riodinidae de Guyane
+Mor
+library
+Digital Morphology (Oct 2024)
+Via iNaturalist (Mar 2023)
+Via iNaturalist
+CollectionsID
+Re-identified based on the authority of Lapo Ragioneri
+BOLD ID Engine Manual (Oct 2024)
+Morphology (2018)
+sp 31?
+Tentative genus/species ID by Jeremy Holloway
+BOLD ID Engine Manual (Sep 2024)
+Morphology (Jul 2020)
+BOLD ID Engine
+DNA
+palps ckecked
+check of gonopods
+Identifikation ueber Sequenz
+revers
+Prep genit AC: 13104
+Prep genit AC: 13107
+Prep genit AC: 13108
+Identified from photos on iNaturalist, corroborated by barcode results
+Phylogenetic (NJ)
+contamination!
+Was ID as AH01Gg by AH
+SNSB, Zoologische Staatssammlung Muenchen
+GU female
+GU male
+id by Scott Miller
+direct observation
+Direct observation
+habitus
+personal knowledge and collector info
+Personal Knowledge & Collector Info
+Personal knowledge and collector information.
+Personal knowledge and collector information. 
+personal knowledge of collector info
+2018-053-A5.2
+2018-048-C8.1
+2018-048-C8.2
+2018-048-D6.1
+2018-048-D7.1
+2018-048-D9.1
+2018-048-E1.1
+124.45 TV
+124.46
+124.48
+124.49
+12.45.50
+124.51
+124.52
+2018-055-F4.1
+2018-061-D1.1
+2017-006-A2.1
+2017-006-A7.1
+2017-070-C8.1
+2017-070-H2.1
+2017-070-D3.1
+2017-070-I1.1
+2017-006-D5.1
+2013-017-G3.1
+2018-048-G3.1
+2018-048-G2.1
+2018-048-G4.1
+2018-048-H1.1
+2018-048-H3.1
+2018-048-I1.1
+Hainan University
+dissecting scope
+guess
+Morphology (Mar 2022)
+personal communication
+nematocysts
+Based on gall
+TAXONOMY
+Research Center in Biodiversity and Genetic Resources
+Morpology
+Australian Journal of  Zoology #117
+NCBI Blast
+Traditional taxonomy
+Ankita Gupta. 2013. Revision of the Indian Microplitis Foerster (Hymenoptera: Braconidae: Microgastrinae), with description of one new species. Zootaxa 3620 (3): 429-452
+coelognathus helena
+External morpohology
+Taxonomical
+Moprphology
+BOLD ID Engine + Tree-Based Identification (Oct 2024)
+cleared genialia
+Biogeography (May 2023)
+student
+DNA Barcode match
+BIN Taxonomy Match (Oct 2022)
+BIN Taxonomy Match (Jan 2023)
+mophological
+Kiev Taras Shevchenko National University
+Dissected by Peter Buchner and confirmed to be D. radiella.
+different BIN, but close enough
+Genus comparison to database
+Identified to the species level based on plant is was swept.
+captured, identified in hand
+identified at sight
+BOD match
+Voucher
+mrophology
+see original description
+Examination
+Sala's revision 1963
+Collection site (Apr 2018)
+NHM Collection
+ssp lautus?
+Naturwissensch. Museums
+Museum national d'Histoire naturelle, Paris
+TOUROULT Julien
+BOUYON Herve
+HORELLOU Arnaud
+Specimen
++
+D
+Comparison with a reference collection
+Cod
+Superstore
+.
+Robert, T.J. (2001) Butterflies of Pakistan. Oxford University Press, Karachi
+Roberts, T.J. (2001) Butterflies of Pakistan, Oxford University Press, Karachi
+Integrative taxonomy
+carcass
+Field guide
+MO
+morphology & DNA matcch
+morphology & DNA match
+with support of Yareli Cota
+University of Mons
+Morphology Nov. 2024
+Haplotype Network Analysis
+associated with reared series
+specimen examination
+spe
+specimen in hand
+Specimen in hand
+Metabarcoding
+BIN Taxonomy Match + BOLD ID Engine (Oct 2024)
+Siphonaria funiculata
+https://www.discoverlife.org/mp/20p?see=I_JSM354&res=640
+Clasic taxonomy
+Phenotypic
+By ITS2
+BIN Taxonomy Match (Oct 2017)
+Tree Based ID
+Tree Based ID (Sept 2017)
+External characteristics
+FAO
+GenBank BLAST
+BIN Taxonomy Match (Feb 2019)
+Dissecting, compound, and Scanning Electron Microscopes
+Dissecting and Scanning Electron Microscopes
+morhpological
+using taxonomic description by Oliver 2000
+Reverse taxonomy
+cox1
+Type material
+Comparative genomics 
+Comparative genomics
+commercial rearing
+pyhlogenetic neighbour joining
+laboratory rearing
+beekeeping
+Tromso University Museum
+Full DB search match
+orange
+Identified based on host
+BN association
+DM + BOLD ID Engine (Oct 2024)
+eidonomically
+michener 2007
+FBA Guide to British Freshwater Macroinvertebrates 2011
+Examined
+Exanination
+Molesular
+Examined material
+Image Examination
+guide
+martin.libra@entu.cas.cz
+LM
+Physical Characters
+integrative ID
+Mist net
+(Santos Ferreira 1980)
+Ilia State University
+morhology
+by definition, for the neotype
+by definition, for the holotype
+Morphological and molecular 
+phenotype
+Rearing
+Larval id based on mine form and adjacent vacated mine
+Larval mine and hostplant
+Larval case and hostplant
+Furcula placida is a synonym of Furcula cinerea
+Genetic barcoding
+MARPHOLOGICAL
+Morphometric method
+Morphometric Method
+DNA Barcoding, COI-5p
+chinchipensis = syn. yourii?
+voucher
+bin
+voucher verification
+Kensley (1978), Schultz & Johnson (1984), Brown & Odendaal (1994)
+Barnard(1914), Kensley (1978)
+OD Brechlin 2023
+Genetic analyses
+ADN & habitus
+morpological ID
+mophological id
+Genetic Similarity
+Haplotype-SMB
+COI
+GenBank
+GenBank 2 March 2015
+morhphology
+GenBank 27 Feb 2015
+morthology
+Morophology
+pitfall trap
+Sebastes chlorostictus
+Pitfall trap
+Sequencing
+Kozloff
+Original Bestimmung des Experten verwenden
+Identifikation uber Sequenz, Auftrennung larval nicht moglich
+revers bestimmt
+Listed in OD
+IJK: Could be M. cabnal? (TL: Jalapa, MX, Veracruz)
+Geography & Habitus
+Was ID as ssp macromera
+New species description
+Leg portion
+immature, identified after barcoding and geography.
+From Melichar & Rezac, 2018
+Sequence Classification
+Melangyna compositarum or M. sexguttata
+BIN Taxonomy Match and specimen image
+phylogenetical June 2023
+DNA Barcodes
+BIN Taxonomy Match (May 2018)
+Parataxonomy
+Pet trade species ID
+this Barcoding
+literature reference
+cf.
+species complex
+genetical
+Genetical
+CYT B sequencing
+Classic taxonomy
+Morhpological
+phylogeny
+Bold Engine - 100% match, solid
+Host Plant
+Dissection by Dr. Anthony W. Thomas idendifyed by Jim Vargo
+Dissections by Dr. Anthony W. Thomas
+Dissection by Dr. Anthony W. Thomas
+Identified to genus by sight.
+Identified to species by sight.
+Study of specimen
+Expert
+Examinatiob
+Gordon & Skelley 2007
+Collection site (May 2018)
+Arnett 1951
+Shawn Clark
+& Joyce Cook
+iNaturalist
+Univ Montpellier
+Curated
+Revised
+description
+verified in all life stages
+pupal exuviae
+verified from pupa
+Identified as pupa
+Traditional Taxanomy
+From DNA barcode 99%
+From distribution data in OD Efetov & Tarmann, 2014
+Australian Museum, Sydney
+Australian Museum

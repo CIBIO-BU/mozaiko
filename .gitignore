@@ -12,6 +12,7 @@ data/test_data/test_assign_tax.fasta
 external_scripts/pga_tests
 mozaiko.egg-info
 external_scripts/bold-selected.tsv
+external_scripts/bold-selected-missing-idm-filter.tsv
 external_scripts/idm.txt
 external_scripts/mc.txt
 external_scripts/res.tsv
