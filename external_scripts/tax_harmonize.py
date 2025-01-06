@@ -30,28 +30,23 @@ def parse_database(database: object) -> list:
 
 
 def query_api(taxa_names: list) -> dict:
-    """Function to query the GBIF API.
-
-    Args:
-        taxa_names (list): List of taxa names to query.
-
-    Returns:
-        dict: Dict in the form of {taxa_name: (scientificName, rank)}
     """
-
-    # gather the results here
+    Query GBIF API for unique taxa only.
+    """
     scientific_names_dict = {}
+    taxonomic_fields = ['scientificName', 'rank', 'kingdom', 'phylum',
+                       'class', 'order', 'family', 'genus']
 
-    for name in tqdm(taxa_names):
-        r = species.name_backbone(name)
-
-        if r["matchType"] == "NONE":
-            scientific_names_dict[name] = ("-", "-")
-        else:
-            scientific_names_dict[name] = (r["scientificName"], r["rank"])
+    for name in tqdm(taxa_names, desc="Querying GBIF API"):
+        if name not in scientific_names_dict:
+            r = species.name_backbone(name, strict=False)
+            if r["matchType"] == "NONE":
+                scientific_names_dict[name] = tuple(["-"] * len(taxonomic_fields))
+            else:
+                scientific_names_dict[name] = tuple(r.get(field, "-")
+                                                  for field in taxonomic_fields)
 
     return scientific_names_dict
-
 
 def update_fasta(
     scientific_names: dict, database: str, database_name: str, database_dir: str
@@ -64,66 +59,38 @@ def update_fasta(
         database_name (str): Name ofthe database
         database_dir (str): Directory of the database
     """
-    # generate the output name
-    output_name = database_dir.joinpath("{}_harmonized.fasta".format(database_name))
-
+    output_name = database_dir.joinpath(f"{database_name}_harmonized.fasta")
     with open(Path(database), "r", encoding="utf-8") as in_handle:
         with open(output_name, "a", encoding="utf-8") as out_handle:
             for header, seq in SimpleFastaParser(in_handle):
                 header = header.split(" | ")
-                header_start = header[0]
-                header_species = header[1]
-                scientificName = scientific_names[header_species][0]
-                rank = scientific_names[header_species][1]
-                out_handle.write(
-                    ">{}|{}|{}|{}\n{}\n".format(
-                        header_start, header_species, scientificName, rank, seq
-                    )
-                )
+                header_start, header_species = header[0], header[1]
+                tax_info = scientific_names[header_species]
+                header_str = f">{header_start}|{header_species}|" + "|".join(tax_info)
+                out_handle.write(f"{header_str}\n{seq}\n")
 
 
-def parse_otl(otl: object) -> list:
-    """Function to parse the otl file.
-
-    Args:
-        otl (object): Path to the otl file.
-
-    Returns:
-        list: List of taxa names
+def parse_otl(otl: object) -> tuple:
     """
-    otl = pd.read_csv(Path(otl), sep="\t")
-    otl = list(set([taxa_name for taxa_name in otl["taxa"]]))
-
-    return otl
-
-
-def update_otl(
-    otl_scientific_names: dict, otl: object, otl_name: object, otl_dir: object
-):
-    """Function to save a new otl with scientific names and ranks
-
-    Args:
-        otl_scientific_names (dict): Dict that holds the original names and theAPI responses.
-        otl (object): Path to the otl
-        otl_name (object): Name of the otl
-        otl_dir (object): Directory of the otl
+    Return unique taxa and original dataframe.
     """
-    # generate the output name
-    output_name = otl_dir.joinpath("{}_harmonized.tsv".format(otl_name))
+    otl_df = pd.read_csv(Path(otl), sep="\t")
+    unique_taxa = list(otl_df['taxa'].unique())
+    return unique_taxa, otl_df
 
-    # read the input
-    otl = pd.read_csv(Path(otl), sep="\t")
+def update_otl(otl_scientific_names: dict, otl_df: pd.DataFrame, otl_name: str, otl_dir: object):
+    """
+    Update OTL using vectorized operations.
+    """
+    output_name = otl_dir.joinpath(f"{otl_name}_harmonized.tsv")
+    fields = ['scientificName', 'rank', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus']
 
-    # update the otl
-    scientific_names = {key: value[0] for key, value in otl_scientific_names.items()}
-    ranks = {key: value[1] for key, value in otl_scientific_names.items()}
+    # Create a mapping DataFrame
+    mapping_data = pd.DataFrame.from_dict(otl_scientific_names, orient='index', columns=fields)
 
-    # update the otl
-    otl["scientific_name"] = otl["taxa"].map(scientific_names)
-    otl["rank"] = otl["taxa"].map(ranks)
-
-    # save the updated otl
-    otl.to_csv(output_name, sep="\t", index=False)
+    # Merge with original dataframe
+    result = otl_df.merge(mapping_data, left_on='taxa', right_index=True, how='left')
+    result.to_csv(output_name, sep="\t", index=False)
 
 def harmonize_database(database):
     fasta_path = Path(database)
@@ -133,9 +100,11 @@ def harmonize_database(database):
 
 def harmonize_otl(otl):
     otl_path = Path(otl)
-    otl_taxa_names = parse_otl(otl)
-    otl_scientific_names = query_api(otl_taxa_names)
-    update_otl(otl_scientific_names, otl, otl_path.stem, otl_path.parent)
+    unique_taxa, otl_df = parse_otl(otl)
+    print(f"Found {len(unique_taxa)} unique taxa out of {len(otl_df)} total entries")
+
+    otl_scientific_names = query_api(unique_taxa)
+    update_otl(otl_scientific_names, otl_df, otl_path.stem, otl_path.parent)
 
 def main():
     parser = argparse.ArgumentParser(description="Harmonize taxonomy of database and/or OTL")
