@@ -97,7 +97,7 @@ class Testmozaiko(unittest.TestCase):
         mock_fasta_instance.get_number_of_sequences.assert_called_once()
 
     @patch("argparse.ArgumentParser.parse_args")
-    @patch("mozaiko.handle_taxonomic_assignment")
+    @patch("src.mozaiko.handle_taxonomic_assignment")
     def test_main_assign_tax_without_json(
         self, mock_taxonomic_assignment, mock_parse_args
     ):
@@ -120,7 +120,7 @@ class Testmozaiko(unittest.TestCase):
         self.assertIn("Exiting...", log.output[1])
 
     @patch("argparse.ArgumentParser.parse_args")
-    @patch("mozaiko.handle_dereplication")
+    @patch("src.mozaiko.handle_dereplication")
     def test_main_dereplicate_without_json(self, mock_dereplication, mock_parse_args):
         mock_parse_args.return_value = MagicMock(
             load_custom_fasta=False,

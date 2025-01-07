@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ENV_NAME="mozaiko"
-REPO_URL="git@github.com:CIBIO-BU/DNAquaIMG.git"
-PACKAGE_DIR="DNAquaIMG"
+REPO_URL="git@github.com:CIBIO-BU/mozaico.git"
+PACKAGE_DIR="mozaico"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
 EXTERNAL_SCRIPTS_DIR="external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
