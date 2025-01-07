@@ -2,10 +2,10 @@
 # mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Conda Build](https://github.com/CIBIO-BU/mozaiko/actions/workflows/test-conda-setup.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/test-conda-setup.yml)
-[![Lint Status](https://github.com/CIBIO-BU/mozaiko/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/super-linter.yml)
-[![Packge Tests](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/DNAquaIMG/actions/workflows/python-test-check.yml)
-[![codecov](https://codecov.io/gh/CIBIO-BU/mozaiko/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/DNAquaIMG)
+[![Conda Build](https://github.com/CIBIO-BU/mozaiko/actions/workflows/test-conda-setup.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/test-conda-setup.yml)
+[![Lint Status](https://github.com/CIBIO-BU/mozaiko/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/super-linter.yml)
+[![Packge Tests](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/python-test-check.yml)
+[![codecov](https://codecov.io/gh/CIBIO-BU/mozaiko/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/mozaico)
 
 ![alt text](data/images/mosaiko-logo.png)
 
@@ -22,10 +22,10 @@
 1. Clone the repository:
 
    ```bash
-   git clone git@github.com:CIBIO-BU/DNAquaIMG.git
+   git clone git@github.com:CIBIO-BU/mozaico.git
    ```
       ```bash
-   cd DNAquaIMG
+   cd mozaico
    ```
 
 2. Run the installation script:
@@ -48,7 +48,7 @@ Th installation script will:
 - Check if Conda is installed;
 - Create a new Conda environment named "mozaiko", if it does not yet exist;
 - Activate the Conda environment;
-- Clone the DNAquaIMG repository, if not already cloned;
+- Clone the mozaico repository, if not already cloned;
 - Install the mozaiko package;
 - Install required dependencies and tools.
 
@@ -68,7 +68,7 @@ To assign taxonomic information to sequences:
 The best practice is to include a JSON file that
 specifies all the correct parameters.
 A template for the JSON file can be found in
-[here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/assign_tax_parameters.json). This command contemplates eight parameters, five are required ('input', 'output', 'acc2tax', 'taxid' and 'name') and three are optional ('web', 'ranks' and 'missing'). 'axx2tax', 'taxid' and 'name' are related to necessary taxonomic information to complete the task, Despite being required, these fields are already filled in and are available when the taxonomic files are downloaded upon calling the command (no user action required). The 'input' related to the input FASTA file and the 'output' to the output TSV file. For the optional ones, 'web' allows for a web-search to query NCBI's EFetch for missing taxonomic information; 'ranks' allows the user to choose which ranks should represent the organism lineage; 'missing' allows the user to provide a file path to write sequences where taxonomic information was not possible to be retrieved.
+[here](https://github.com/CIBIO-BU/mozaico/blob/main/src/reference_database/assign_tax_parameters.json). This command contemplates eight parameters, five are required ('input', 'output', 'acc2tax', 'taxid' and 'name') and three are optional ('web', 'ranks' and 'missing'). 'axx2tax', 'taxid' and 'name' are related to necessary taxonomic information to complete the task, Despite being required, these fields are already filled in and are available when the taxonomic files are downloaded upon calling the command (no user action required). The 'input' related to the input FASTA file and the 'output' to the output TSV file. For the optional ones, 'web' allows for a web-search to query NCBI's EFetch for missing taxonomic information; 'ranks' allows the user to choose which ranks should represent the organism lineage; 'missing' allows the user to provide a file path to write sequences where taxonomic information was not possible to be retrieved.
 
 
 To dereplicate sequences in the reference database, the --dereplicate command can be used.
@@ -77,7 +77,7 @@ To dereplicate sequences in the reference database, the --dereplicate command ca
    mosaiko --dereplicate --json_file path/to/json/file
  ```
 
-Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the correct parameters. A template for the dereplication JSON file can be found in [here](https://github.com/CIBIO-BU/DNAquaIMG/blob/main/src/reference_database/dereplicate_parameters.json). This command contemplates four parameters, two being required ('input' and 'output') and two being optional ('method', 'ranks'). Both the 'input' and 'output' should be a TSV file. For the optional ones, 'ranks' allows the user to choose which ranks should represent the organism lineage and 'method' allows the user to choose which method should be used for the dereplication. Please refer to [CRABS' original documentation](https://github.com/gjeunen/reference_database_creator/tree/main?tab=readme-ov-file#6-dereplicate) for further details.
+Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the correct parameters. A template for the dereplication JSON file can be found in [here](https://github.com/CIBIO-BU/mozaico/blob/main/src/reference_database/dereplicate_parameters.json). This command contemplates four parameters, two being required ('input' and 'output') and two being optional ('method', 'ranks'). Both the 'input' and 'output' should be a TSV file. For the optional ones, 'ranks' allows the user to choose which ranks should represent the organism lineage and 'method' allows the user to choose which method should be used for the dereplication. Please refer to [CRABS' original documentation](https://github.com/gjeunen/reference_database_creator/tree/main?tab=readme-ov-file#6-dereplicate) for further details.
 
 To run the in-silico amplification analysis, the --in_silico_analysis command can be used.
 
