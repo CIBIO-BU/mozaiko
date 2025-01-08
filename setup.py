@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     author="Camila Babo",
     author_email="camila.babo@cibio.up.pt",
-    url="https://github.com/CIBIO-BU/DNAquaIMG",
+    url="https://github.com/CIBIO-BU/mozaiko",
     packages=find_packages(),
     package_data={"": ["*"]},
     include_package_data=True,

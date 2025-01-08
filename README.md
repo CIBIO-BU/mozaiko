@@ -9,6 +9,10 @@
 
 ![alt text](data/images/mosaiko-logo.png)
 
+mozaiko is a bioinformatics tool designed to help researchers select optimized sets of primers for complete coverage in biomonitoring studies. Taking inspiration from mosaic art—where small pieces fit together to form a whole—mozaiko supports comprehensive genetic marker analysis by suggesting a fitting combination of primers.
+
+The name comes from the Esperanto word 'Mozaiko', reflecting the idea of bringing different elements together. With mozaiko, researchers can efficiently select primer sets for a range of applications, making biomonitoring and ecological studies more reliable and comparable.
+
 ## Installation instructions
 
 ### Prerequisites

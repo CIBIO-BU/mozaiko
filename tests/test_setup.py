@@ -27,7 +27,7 @@ class TestSetup(unittest.TestCase):
             metadata = file.read()
         self.assertIn('name="mozaiko"', metadata)
         self.assertIn('version="0.1.0"', metadata)
-        self.assertIn('url="https://github.com/CIBIO-BU/DNAquaIMG"', metadata)
+        self.assertIn('url="https://github.com/CIBIO-BU/mozaiko"', metadata)
 
     def test_find_packages_presence(self):
         """
