@@ -21,4 +21,4 @@ tests/conftest.py
 external_scripts/bold-selected-highest_tax_harmonized.tsv
 external_scripts/bold-selected-init-preprocess.tsv
 external_scripts/tax_harmonize.py
-
+external_scripts/bold-selected-merged.tsv
