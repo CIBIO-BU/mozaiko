@@ -35,7 +35,7 @@ class InSilicoAmplification:
         number_of_mismatches: int = 3,
     ):
         self.data: Optional[Path] = data
-        self.base_output_dir = Path("../data/output_data")
+        self.base_output_dir = Path("./data/output_data")
         self.primer_table = primer_table
         self.primer_table_columns = [
             "target_group",

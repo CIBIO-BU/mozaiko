@@ -13,7 +13,7 @@ setup(
         "numpy==2.0.0",
         "pandas==2.2.2",
         "matplotlib==3.9.1.post1",
-        "biopython==1.78",
+        "biopython==1.84",
         "tqdm",
     ],
     entry_points={

@@ -137,7 +137,6 @@ class OtlHandler:
                             continue
 
                         header_parts = line.strip().split("|")
-                        print(f"DEBUG: header_parts = {header_parts}")
                         if len(header_parts) < 2 or not header_parts[1].strip():
                             print(f"mozaiko WARNING: Taxonomy not present for - {line}")
                             continue
@@ -1524,9 +1523,9 @@ class MetricsSystemExecutor:
 
         return analysis_results
 
-    def rank_primers(self, save_results: bool = True, output_path = None):
+    def rank_primers(self, save_intermediate_ranks: bool = False, output_path = None):
         """
-        This method ranks the primers performance based on the results of the Metruc System.
+        This method ranks the primers performance based on the results of the Metric System.
 
         It assigns a ranking order for each relevant metric and sets the ranking order after
         joining all the results. The final rank is the sum of the ranks for each metric. This
@@ -1534,8 +1533,8 @@ class MetricsSystemExecutor:
         rank as the one with the lowest value (is first in most of the ranking metrics).
 
         Parameters:
-        - save_results: bool
-            If True, the results will be saved to a TSV file. Default is True.
+        - save_intermediate_ranks: bool
+            If True, the intermediate ranks will be saved to a TSV file. Default is False.
         - output_path: str
             Path to save the results. If None, the results will be saved to the results folder.
         """
@@ -1562,13 +1561,18 @@ class MetricsSystemExecutor:
         metrics_df['final_rank'] = metrics_df[[f'rank_{col}' for col in ranking_order]].sum(axis=1)
         metrics_df_sorted = metrics_df.sort_values(by='final_rank', ascending=True).reset_index(drop=False)
 
-        if save_results == True:
-            if output_path == None:
-                output_path = Path(self.results_folder) / "ranked_primers.tsv"
-                metrics_df_sorted.to_csv(output_path, sep='\t', index=True)
-                print(f"mozaico INFO: Primer Ranking results saved to {output_path}")
-            else:
-                metrics_df_sorted.to_csv(output_path, sep='\t', index=True)
-                print(f"mozaico INFO: Primer Ranking results saved to {output_path}")
+        # Save the metrics and final rank
+        metrics_df_final = metrics_df_sorted[['primer'] + list(ranking_order.keys()) + ['final_rank']]
+        if output_path is None:
+            output_path = Path(self.results_folder) / "ranked_primers.tsv"
+        metrics_df_final.to_csv(output_path, sep='\t', index=False)
+        print(f"mozaiko INFO: Primer Ranking results saved to {output_path}.")
 
-        return metrics_df_sorted
+        # Save intermediate ranks if requested
+        if save_intermediate_ranks:
+            intermediate_ranks_path = Path(self.results_folder) / "intermediate_ranks.tsv"
+            metrics_df_intermediate = metrics_df_sorted[['primer'] + [f'rank_{col}' for col in ranking_order]]
+            metrics_df_intermediate.to_csv(intermediate_ranks_path, sep='\t', index=False)
+            print(f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}.")
+
+        return metrics_df_final
