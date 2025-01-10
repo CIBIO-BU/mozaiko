@@ -22,6 +22,6 @@ external_scripts/bold-selected-highest_tax_harmonized.tsv
 external_scripts/bold-selected-init-preprocess.tsv
 external_scripts/tax_harmonize.py
 external_scripts/bold-selected-merged.tsv
-external_scripts/bold-final.tsv
+external_scripts/bold-pre-processed.tsv
 external_scripts/bold-selected-merged-clean.tsv
 external_scripts/final-unique-idm.tsv
