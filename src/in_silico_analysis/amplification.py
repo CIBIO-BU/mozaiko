@@ -274,7 +274,9 @@ class InSilicoAmplification:
         is_input_dir = input_path.is_dir()
 
         # Create filtered output directory
-        filtered_output_dir = (input_path.parent if not is_input_dir else input_path) / "filtered_intersection"
+        filtered_output_dir = (
+            input_path.parent if not is_input_dir else input_path
+        ) / "filtered_intersection"
         filtered_output_dir.mkdir(parents=True, exist_ok=True)
 
         if input_path.is_file():
@@ -346,7 +348,9 @@ class InSilicoAmplification:
                 f"    For {input_file.stem}: {results[input_file]['retained_sequences']} sequences were retained."
             )
 
-    def add_taxonomy_to_pga_outputs(self, input_folders):
+    def add_taxonomy_to_pga_outputs(
+        self, input_folders, taxa_column_start, taxa_column_end
+    ):
         """
         This method adds taxonomy information to FASTA file headers where it's missing (PGA outputs).
 
@@ -356,21 +360,31 @@ class InSilicoAmplification:
         """
         # Load mapping between taxonomy and seq-id
         self.custom_fasta_import = CustomFastaImport(self.data)
-        self.custom_fasta_import.read_fasta(self.data)
-        seq_id_taxonomy_dict = self.custom_fasta_import.get_mapping_between_seq_id_taxonomy()
+        self.custom_fasta_import.read_fasta(
+            self.data,
+            taxa_column_start=taxa_column_start,
+            taxa_column_end=taxa_column_end,
+        )
+        seq_id_taxonomy_dict = (
+            self.custom_fasta_import.get_mapping_between_seq_id_taxonomy()
+        )
 
         for folder_path in input_folders:
             folder_path = Path(folder_path)
-            fasta_files = list(folder_path.glob("*.fasta"))
+            fasta_files = list(folder_path.rglob("*.fasta"))
 
             for fasta_file in fasta_files:
                 records = list(SeqIO.parse(fasta_file, "fasta"))
-
                 modified = False
+
                 for record in records:
-                    if "|" not in record.description:
-                        if record.id in seq_id_taxonomy_dict:
-                            new_description = f"{record.description} | {seq_id_taxonomy_dict[record.id]}"
+                    if record.description.count("|") < 9:
+                        # Extract just the accession number for dictionary lookup
+                        accession = record.id.split("|")[0]
+                        if accession in seq_id_taxonomy_dict:
+                            new_description = (
+                                f"{accession}|{seq_id_taxonomy_dict[accession]}"
+                            )
                             record.description = new_description
                             record.id = new_description.split()[0]
                             modified = True
@@ -383,7 +397,11 @@ class InSilicoAmplification:
                             )
 
     def run_in_silico_analysis(
-        self, primer_table=None, max_len_according_to_ilumina: bool = True
+        self,
+        primer_table=None,
+        max_len_according_to_ilumina: bool = True,
+        taxa_column_start=None,
+        taxa_column_end=None,
     ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
@@ -391,6 +409,13 @@ class InSilicoAmplification:
         containing a list of primers to be evaluated and to provide a name for the folder where
         the results of the run will be stored. At last it processes the inputed primer table to
         iterate over each provided primer (row) and process the needed commands.
+
+        Parameters:
+        - primer_table: Path to the primer table
+        - max_len_according_to_ilumina: Boolean to determine if the max read length should be
+        calculated according to Illumina's formula
+        - taxa_column_number: Number of the column in the fasta file that contains the information
+        for the taxa-level we want the analysis to be performed. The count starts from 0.
         """
 
         self._check_if_cutadapt_installed()
@@ -428,9 +453,15 @@ class InSilicoAmplification:
 
         pga_directories = [
             self.output_dirs["all_complete_pbs"],
+            self.run_dir / "all_complete_pbs" / "filtered",
+            self.run_dir / "all_complete_pbs" / "filtered" / "filtered_intersection",
             self.output_dirs["incomplete_pbs"],
+            self.run_dir / "incomplete_pbs" / "filtered",
+            self.run_dir / "incomplete_pbs" / "filtered" / "filtered_intersection",
         ]
-        self.add_taxonomy_to_pga_outputs(pga_directories)
+        self.add_taxonomy_to_pga_outputs(
+            pga_directories, taxa_column_start, taxa_column_end
+        )
 
         directories_to_filter = ["amplicon", "all_complete_pbs", "incomplete_pbs"]
         for dir_name in directories_to_filter:
@@ -702,9 +733,9 @@ class InSilicoAmplification:
             sys.exit(1)
 
 
-# if __name__ == "__main__":
-#     data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-taxa.fasta"
-#     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/DNAquaIMG/data/input_data/diat-barcode-primers.tsv"
-#     run_name = "diat-barcode-test-checkalters"
-#     cutadapt = InSilicoAmplification(data, run_name=run_name)
-#     cutadapt.run_in_silico_analysis(primer_table=primer_table)
+if __name__ == "__main__":
+    data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-taxa_harmonized.fasta"
+    primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-primers.tsv"
+    run_name = "diat-barcode-test-check-headers"
+    cutadapt = InSilicoAmplification(data, run_name=run_name)
+    cutadapt.run_in_silico_analysis(primer_table=primer_table)

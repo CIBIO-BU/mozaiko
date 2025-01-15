@@ -1558,11 +1558,12 @@ class MetricsSystemExecutor:
             elif order == 'asc':
                 metrics_df[f'rank_{column}'] = metrics_df[column].rank(ascending=True)
 
-        metrics_df['final_rank'] = metrics_df[[f'rank_{col}' for col in ranking_order]].sum(axis=1)
+        # get rank rum and convert to final rank
+        rank_sum = metrics_df[[f'rank_{col}' for col in ranking_order]].sum(axis=1)
+        metrics_df['final_rank'] = rank_sum.rank(ascending=True).astype(int)
         metrics_df_sorted = metrics_df.sort_values(by='final_rank', ascending=True).reset_index(drop=False)
-
-        # Save the metrics and final rank
         metrics_df_final = metrics_df_sorted[['primer'] + list(ranking_order.keys()) + ['final_rank']]
+
         if output_path is None:
             output_path = Path(self.results_folder) / "ranked_primers.tsv"
         metrics_df_final.to_csv(output_path, sep='\t', index=False)
@@ -1570,7 +1571,8 @@ class MetricsSystemExecutor:
 
         # Save intermediate ranks if requested
         if save_intermediate_ranks:
-            intermediate_ranks_path = Path(self.results_folder) / "intermediate_ranks.tsv"
+            otl_name = Path(self.otl).stem
+            intermediate_ranks_path = Path(self.results_folder) / f"{otl_name}_intermediate_ranks.tsv"
             metrics_df_intermediate = metrics_df_sorted[['primer'] + [f'rank_{col}' for col in ranking_order]]
             metrics_df_intermediate.to_csv(intermediate_ranks_path, sep='\t', index=False)
             print(f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}.")

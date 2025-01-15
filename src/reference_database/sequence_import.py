@@ -98,7 +98,14 @@ class CustomFastaImport:
                 )
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
-    def read_fasta(self, input_file, sep="|", check_taxid=False, harmonized: bool = False):
+    def read_fasta(
+        self,
+        input_file,
+        sep="|",
+        check_taxid=False,
+        taxa_column_start: int = 1,
+        taxa_column_end: int = 10,
+    ):
         """
         Reads a fasta file.
 
@@ -108,8 +115,18 @@ class CustomFastaImport:
         Returns
         pd.DataFrame
         """
-
         self._validate_input(input_file)
+
+        # Set defaults if parameters are None
+        taxa_column_start = taxa_column_start or 1
+        taxa_column_end = taxa_column_end or 10
+        print(
+            f"Retrieving taxonomy in header, from column {taxa_column_start} to"
+            + f" column {taxa_column_end}, considering the separator: '{sep}'. \n" +
+            "If this is not the case, please provide the correct columns using" +
+            " 'taxa_column_start' and 'taxa_column_end' within 'read_fasta'.\n" +
+            "The count must start at 0."
+        )
 
         with open(input_file, "r", encoding="UTF-8") as fasta_file:
             records = SeqIO.parse(fasta_file, "fasta")
@@ -128,18 +145,12 @@ class CustomFastaImport:
 
                 if not check_taxid:
                     description_parts = description.split(sep)
-                    if harmonized == True:
-                        taxa_info = (
-                            description_parts[2].strip()
-                            if len(description_parts) > 1
-                            else ""
+                    if len(description_parts) > taxa_column_end - 1:
+                        taxa_info = sep.join(
+                            description_parts[taxa_column_start:taxa_column_end]
                         )
                     else:
-                        taxa_info = (
-                            description_parts[1].strip()
-                            if len(description_parts) > 1
-                            else ""
-                        )
+                        taxa_info = ""
                     data_dict["taxa_info"].append(taxa_info)
 
             self.data = pd.DataFrame(data_dict)
@@ -148,6 +159,46 @@ class CustomFastaImport:
             self.check_for_taxids(input_file)
 
         return self.data
+
+    def pre_process_harmonized_fasta(self, scientific_name_column: int = 2, rank_column: int = 3):
+        """
+        Pre-processes the harmonized fasta file to:
+        1) Remove entries where no taxonomy harmonization was retrieved.
+        2) Remove entries with taxonomy information below family, genus and species-level.
+        2) Create a taxa column for species, populated with information in 'scientificName' that is
+        at 'SPECIES', 'FORM', 'VARIETY' and 'SUBSPECIES' level.
+        3) Keep only first two strings for species column.
+
+        Columns are considered as 'pipe' separated values (|).
+
+        Parameters:
+        scientific_name_column (int): Column index for the scientific name in the lineage file.
+        rank_column (int): Column index for the rank in the lineage file.
+        """
+        # Create columns in self.data for every entry that is '|' separated
+        self.data = pd.concat(
+            [self.data, self.data["taxa_info"].str.split("|", expand=True)], axis=1
+        )
+        # Name columns
+        self.data.columns = [
+            "seq_id",
+            "sequence",
+            "length",
+            "all_taxa_info",
+            "original_taxa_info",
+            "scientific_name",
+            "rank",
+            "kingdom",
+            "phylum",
+            "class",
+            "order",
+            "family",
+            "genus"
+        ]
+
+
+
+
 
     def get_taxids(self):
         """
