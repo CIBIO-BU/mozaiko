@@ -731,10 +731,9 @@ class InSilicoAmplification:
             print(f"mozaiko ERROR: CRABS PGA command failed: {e}")
             sys.exit(1)
 
-
-if __name__ == "__main__":
-    data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-taxa_harmonized.fasta"
-    primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-primers.tsv"
-    run_name = "diat-barcode-test-check-headers"
-    cutadapt = InSilicoAmplification(data, run_name=run_name)
-    cutadapt.run_in_silico_analysis(primer_table=primer_table)
+# if __name__ == "__main__":
+#     data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-taxa_harmonized.fasta"
+#     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-primers.tsv"
+#     run_name = "diat-barcode-test-check-headers"
+#     cutadapt = InSilicoAmplification(data, run_name=run_name)
+#     cutadapt.run_in_silico_analysis(primer_table=primer_table)

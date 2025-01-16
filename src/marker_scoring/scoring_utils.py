@@ -366,13 +366,14 @@ def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_
     - output_file: Path to the output TSV file
     """
     try:
-        fasta_files = (
-            glob.glob(os.path.join(insert_folder, "*.fasta")) +
-            glob.glob(os.path.join(pbs_incomplete_folder, "*.fasta"))
+        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
+            os.path.join(pbs_incomplete_folder, "*.fasta")
         )
 
         if not fasta_files:
-            raise FileNotFoundError("mozaiko ERROR: No FASTA files found in the specified folders.")
+            raise FileNotFoundError(
+                "mozaiko ERROR: No FASTA files found in the specified folders."
+            )
 
         with open(output_file, "w") as tsv_file:
 
@@ -390,7 +391,10 @@ def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_
                         if line.startswith(">"):
                             if current_header and current_sequence:
                                 process_sequence(
-                                    current_header, current_sequence, primer_name, tsv_file
+                                    current_header,
+                                    current_sequence,
+                                    primer_name,
+                                    tsv_file,
                                 )
 
                             current_header = line[1:]

@@ -1,6 +1,6 @@
 import json
-import subprocess
 import os
+import subprocess
 import sys
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
@@ -148,7 +148,9 @@ class OtlHandler:
                             kept_seq_count += 1
 
                     except Exception as e:
-                        print(f"mozaiko WARNING: Header parsing error - {line}: {str(e)}")
+                        print(
+                            f"mozaiko WARNING: Header parsing error - {line}: {str(e)}"
+                        )
 
                 elif line and keep_sequence:
                     current_sequence.append(line)
@@ -199,6 +201,7 @@ class OtlHandler:
                     )
 
         return results
+
 
 class ReferenceDatabaseQuality:
     def __init__(self, all_inserts_path=None, otl=None):
@@ -321,7 +324,6 @@ class ReferenceDatabaseQuality:
                 "ratio_barcoded_taxa": round(ratio_barcoded_taxa, 2),
             }
 
-
         barcoded_taxa_ratio_df = pd.DataFrame(barcoded_taxa_ratio)
 
         return barcoded_taxa_ratio_df.T
@@ -332,6 +334,7 @@ class Binding:
     This class implements the method related to evaluating the binding efficency and performance
     between the primer-sets and the PBS.
     """
+
     def __init__(self, number_of_mismatches=None):
         self.amplification_instance = InSilicoAmplification()
         if number_of_mismatches is None:
@@ -462,7 +465,7 @@ class Binding:
         for _primer_ind, primer_row in self.primer_table.iterrows():
             barcode_region = primer_row["barcode_region"]
             assay_name = primer_row["assay_name"]
-            primer_name = barcode_region + '_' + assay_name
+            primer_name = barcode_region + "_" + assay_name
             pbs_filename = f"{barcode_region}_{assay_name}"
             primer_seq_fwd = primer_row["fwd_seq"]
             primer_seq_rev = primer_row["rev_seq"]
@@ -628,7 +631,7 @@ class Binding:
                     )
 
         primer_gc_df = pd.DataFrame(primer_gc_fractions)
-        primer_gc_df.set_index('primer_name', inplace=True)
+        primer_gc_df.set_index("primer_name", inplace=True)
 
         if save_results:
             primer_gc_df.to_csv("primer_gc_fractions.csv", index=False)
@@ -940,9 +943,13 @@ class Binding:
         # Input A
         in_silico_amplified_inserts = os.path.join(results_folder, "insert/filtered")
         # Input B
-        all_inserts_with_pbs = os.path.join(results_folder, "all_complete_pbs/filtered/filtered_intersection")
+        all_inserts_with_pbs = os.path.join(
+            results_folder, "all_complete_pbs/filtered/filtered_intersection"
+        )
         # Input C
-        inserts_with_incomplete_pbs = os.path.join(results_folder, "incomplete_pbs/filtered/filtered_intersection")
+        inserts_with_incomplete_pbs = os.path.join(
+            results_folder, "incomplete_pbs/filtered/filtered_intersection"
+        )
 
         folder_list = [
             ("taxa_in_silico_amplified", in_silico_amplified_inserts),
@@ -990,23 +997,41 @@ class Binding:
 
         return insert_taxa_counts_df
 
+
 class TraitsAndResolution:
-    def __init__(self, results_folder: Optional[str] = None,
-                        insert_folder_path: Optional[str] = None,
-                        amplicon_folder_path: Optional[str] = None,
-                        incomplete_pbs_folder_path: Optional[str] = None):
-        print(f"results_folder: {results_folder}, insert_folder_path: {insert_folder_path}, amplicon_folder_path: {amplicon_folder_path}")
+    def __init__(
+        self,
+        results_folder: Optional[str] = None,
+        insert_folder_path: Optional[str] = None,
+        amplicon_folder_path: Optional[str] = None,
+        incomplete_pbs_folder_path: Optional[str] = None,
+    ):
+        print(
+            f"results_folder: {results_folder}, insert_folder_path: {insert_folder_path}, amplicon_folder_path: {amplicon_folder_path}"
+        )
         if results_folder is not None:
             self.results_folder = results_folder
-            self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
-            self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
-            self.incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
-            print(f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}.")
-        elif insert_folder_path is not None and amplicon_folder_path is not None and incomplete_pbs_folder_path is not None:
+            self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
+            self.amplicon_folder_path = os.path.join(
+                results_folder, "amplicon/filtered"
+            )
+            self.incomplete_pbs_path = os.path.join(
+                results_folder, "incomplete_pbs/filtered/filtered_intersection"
+            )
+            print(
+                f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
+            )
+        elif (
+            insert_folder_path is not None
+            and amplicon_folder_path is not None
+            and incomplete_pbs_folder_path is not None
+        ):
             self.insert_folder_path = insert_folder_path
             self.amplicon_folder_path = amplicon_folder_path
             self.incomplete_pbs_path = incomplete_pbs_folder_path
-            print("Using provided insert_folder_path, amplicon_folder_path and incomplete_pbs_folder_path.")
+            print(
+                "Using provided insert_folder_path, amplicon_folder_path and incomplete_pbs_folder_path."
+            )
         else:
             raise ValueError(
                 "mozaiko ERROR: Either provide a path to the in-silico amplification results folder "
@@ -1026,7 +1051,9 @@ class TraitsAndResolution:
             tuple: (min_length, max_length, avg_length)
         """
         try:
-            seq_lengths = [len(record.seq) for record in SeqIO.parse(fasta_file, "fasta")]
+            seq_lengths = [
+                len(record.seq) for record in SeqIO.parse(fasta_file, "fasta")
+            ]
 
             if not seq_lengths:
                 return np.nan, np.nan, np.nan
@@ -1041,9 +1068,9 @@ class TraitsAndResolution:
             print(f"mozaiko ERROR: Error processing {fasta_file}: {e}")
             return np.nan, np.nan, np.nan
 
-    def get_length_stats_for_amplicon_and_insert(self,
-                                                 insert_folder_path=None,
-                                                 amplicon_folder_path=None):
+    def get_length_stats_for_amplicon_and_insert(
+        self, insert_folder_path=None, amplicon_folder_path=None
+    ):
         """
         This method analyzes sequence lengths for insert and amplicon FASTA files.
 
@@ -1062,12 +1089,11 @@ class TraitsAndResolution:
             amplicon_folder_path = self.amplicon_folder_path
 
         if not (insert_folder_path and amplicon_folder_path):
-            raise ValueError("mozaiko ERROR: Insert or amplicon folder paths are not specified.")
+            raise ValueError(
+                "mozaiko ERROR: Insert or amplicon folder paths are not specified."
+            )
 
-        length_data = {
-            'insert': {},
-            'amplicon': {}
-        }
+        length_data = {"insert": {}, "amplicon": {}}
 
         for root, dirs, files in os.walk(insert_folder_path):
             for file in files:
@@ -1075,11 +1101,11 @@ class TraitsAndResolution:
                     primer_name = os.path.splitext(file)[0]
                     file_path = os.path.join(root, file)
 
-                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(file_path)
+                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(
+                        file_path
+                    )
 
-                    length_data['insert'][primer_name] = {
-                        'avg_length': avg
-                    }
+                    length_data["insert"][primer_name] = {"avg_length": avg}
 
         for root, dirs, files in os.walk(amplicon_folder_path):
             for file in files:
@@ -1087,21 +1113,23 @@ class TraitsAndResolution:
                     primer_name = os.path.splitext(file)[0]
                     file_path = os.path.join(root, file)
 
-                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(file_path)
+                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(
+                        file_path
+                    )
 
-                    length_data['amplicon'][primer_name] = {
-                        'min_length': min,
-                        'max_length': max,
-                        'avg_length': avg
+                    length_data["amplicon"][primer_name] = {
+                        "min_length": min,
+                        "max_length": max,
+                        "avg_length": avg,
                     }
 
-        insert_df = pd.DataFrame.from_dict(length_data['insert'], orient='index')
-        amplicon_df = pd.DataFrame.from_dict(length_data['amplicon'], orient='index')
+        insert_df = pd.DataFrame.from_dict(length_data["insert"], orient="index")
+        amplicon_df = pd.DataFrame.from_dict(length_data["amplicon"], orient="index")
 
-        result_df = pd.concat([
-            insert_df.add_prefix('insert_'),
-            amplicon_df.add_prefix('amplicon_')
-        ], axis=1)
+        result_df = pd.concat(
+            [insert_df.add_prefix("insert_"), amplicon_df.add_prefix("amplicon_")],
+            axis=1,
+        )
 
         return result_df.fillna(np.nan)
 
@@ -1113,26 +1141,37 @@ class TraitsAndResolution:
         eDNA multi-metabarcoding. Environmental DNA, 5, 1793-1808. https://doi.org/10.1002/edn3.499
         """
         results_folder_base = os.path.dirname(self.insert_folder_path)
-        multibarcode_output_folder = os.path.join(results_folder_base, 'multibarcode')
+        multibarcode_output_folder = os.path.join(results_folder_base, "multibarcode")
         self.multibarcode_output_folder = multibarcode_output_folder
         os.makedirs(multibarcode_output_folder, exist_ok=True)
 
-        multibarcode_outputdir = os.path.join(multibarcode_output_folder, 'multibarcode_input.tsv')
+        multibarcode_outputdir = os.path.join(
+            multibarcode_output_folder, "multibarcode_input.tsv"
+        )
 
-        multibarcode_file = create_MultiBarcodeTools_input(self.insert_folder_path, self.incomplete_pbs_path, multibarcode_outputdir)
+        multibarcode_file = create_MultiBarcodeTools_input(
+            self.insert_folder_path, self.incomplete_pbs_path, multibarcode_outputdir
+        )
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        multibarcode_script = os.path.join(script_dir, 'multibarcodepipeline.sh')
+        multibarcode_script = os.path.join(script_dir, "multibarcodepipeline.sh")
         os.chmod(multibarcode_script, 0o755)
 
         try:
-            result = subprocess.run([
-                multibarcode_script,
-                self.multibarcode_output_folder,
-                multibarcode_file
-            ], check=True, capture_output=True, text=True)
-            #print(result.stdout)
-            print(f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}")
+            result = subprocess.run(
+                [
+                    multibarcode_script,
+                    self.multibarcode_output_folder,
+                    multibarcode_file,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            # print(result.stdout)
+            print(
+                f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}"
+            )
             return result.stdout
 
         except subprocess.CalledProcessError as e:
@@ -1156,7 +1195,7 @@ class TraitsAndResolution:
         cumulative_counts = []
 
         # Regular expression to extract primer and species count
-        pattern = r'(\d+):\s*([\w-]+),\s*resolve\s*(?:additional\s*)?(\d+)\s*species'
+        pattern = r"(\d+):\s*([\w-]+),\s*resolve\s*(?:additional\s*)?(\d+)\s*species"
 
         cumulative = 0
         for match in re.finditer(pattern, result_stdout):
@@ -1169,11 +1208,13 @@ class TraitsAndResolution:
             cumulative += count
             cumulative_counts.append(cumulative)
 
-        primer_resolv_species = pd.DataFrame({
-                    'primer': primers,
-                    'additional_resolved_species': species_counts,
-                    'cumulative_resolved_species': cumulative_counts
-                })
+        primer_resolv_species = pd.DataFrame(
+            {
+                "primer": primers,
+                "additional_resolved_species": species_counts,
+                "cumulative_resolved_species": cumulative_counts,
+            }
+        )
 
         self.primer_resolv_species = primer_resolv_species
 
@@ -1197,7 +1238,9 @@ class TraitsAndResolution:
         This method loads the nuclotide difference matrix into memory as outputed by MultiBarcode
         pipeline.
         """
-        nuc_dist_matrix_path = os.path.join(self.multibarcode_output_folder, 'matrix.xlsx')
+        nuc_dist_matrix_path = os.path.join(
+            self.multibarcode_output_folder, "matrix.xlsx"
+        )
         nuc_dist_matrix = pd.read_excel(nuc_dist_matrix_path)
 
         return nuc_dist_matrix
@@ -1212,13 +1255,12 @@ class TraitsAndResolution:
         nuc_dist_matrix = self.load_nucleotide_distance()
         self.nuc_dist_matrix = nuc_dist_matrix
         insert_amplicon_len_stats = self.get_length_stats_for_amplicon_and_insert()
-        insert_avg_len_matrix = insert_amplicon_len_stats['insert_avg_length']
+        insert_avg_len_matrix = insert_amplicon_len_stats["insert_avg_length"]
 
         # Create mapping to harmonize primer naming format between MultiBarcode and
         # Insert Length Matrix
         name_mapping = {
-            col.replace('-', '_'): col
-            for col in insert_avg_len_matrix.index
+            col.replace("-", "_"): col for col in insert_avg_len_matrix.index
         }
 
         divergence_percentages = {}
@@ -1228,11 +1270,11 @@ class TraitsAndResolution:
             taxon_divergence = {}
 
             # Include nuc_dist_matrix species as index
-            taxon_divergence['Species'] = taxa_distances_per_primer['Species']
+            taxon_divergence["Species"] = taxa_distances_per_primer["Species"]
 
             for primer_set, nucleotide_distance in taxa_distances_per_primer.items():
 
-                if primer_set == 'Species': # Skip processing for 'Species' column
+                if primer_set == "Species":  # Skip processing for 'Species' column
                     continue
 
                 try:
@@ -1246,7 +1288,9 @@ class TraitsAndResolution:
                         insert_length = float(insert_avg_len_matrix[mapped_primer_set])
 
                         if insert_length > 0:
-                            divergence_percentage = round(((dist_numeric / insert_length) * 100), 1)
+                            divergence_percentage = round(
+                                ((dist_numeric / insert_length) * 100), 1
+                            )
                         else:
                             divergence_percentage = np.nan
                     else:
@@ -1260,10 +1304,12 @@ class TraitsAndResolution:
 
             divergence_percentages[taxon] = taxon_divergence
 
-        divergence_df = pd.DataFrame.from_dict(divergence_percentages, orient='index')
+        divergence_df = pd.DataFrame.from_dict(divergence_percentages, orient="index")
 
         # Reorder to have 'Species' as first col
-        columns = ['Species'] + [col for col in divergence_df.columns if col != 'Species']
+        columns = ["Species"] + [
+            col for col in divergence_df.columns if col != "Species"
+        ]
         divergence_df = divergence_df[columns]
 
         return divergence_df
@@ -1284,29 +1330,36 @@ class TraitsAndResolution:
         Returns:
         """
         if total_otl_taxa_count <= 0:
-            raise ValueError("mozaiko ERROR: The total number of taxa in OTL must be above 0.")
+            raise ValueError(
+                "mozaiko ERROR: The total number of taxa in OTL must be above 0."
+            )
 
         self.divergence_df = self.compute_genetic_divergence_per_taxon()
 
-        primer_cols = self.divergence_df.loc[:, self.divergence_df.columns != 'Species']
+        primer_cols = self.divergence_df.loc[:, self.divergence_df.columns != "Species"]
 
         divergence_score_results = []
 
         for column in primer_cols:
-            taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][column].count()
+            taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][
+                column
+            ].count()
 
             divergence_score = (taxa_above_cutoff / total_otl_taxa_count) * 100
 
-            divergence_score_results.append({
-                'primer': column,
-                'total_taxa': total_otl_taxa_count,
-                'n_taxa_above_cutoff': taxa_above_cutoff,
-                'divergence_score': round(divergence_score, 2)
-            })
+            divergence_score_results.append(
+                {
+                    "primer": column,
+                    "total_taxa": total_otl_taxa_count,
+                    "n_taxa_above_cutoff": taxa_above_cutoff,
+                    "divergence_score": round(divergence_score, 2),
+                }
+            )
 
         divergence_score_df = pd.DataFrame(divergence_score_results)
 
         return divergence_score_df
+
 
 class MetricsSystemExecutor:
     """
@@ -1327,10 +1380,14 @@ class MetricsSystemExecutor:
         self.primer_table = primer_table
         self.results_folder = results_folder
         self.results_folder = results_folder
-        self.insert_folder_path = os.path.join(results_folder, 'insert/filtered')
-        self.amplicon_folder_path = os.path.join(results_folder, 'amplicon/filtered')
-        self.incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
-        print(f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}.")
+        self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
+        self.amplicon_folder_path = os.path.join(results_folder, "amplicon/filtered")
+        self.incomplete_pbs_path = os.path.join(
+            results_folder, "incomplete_pbs/filtered/filtered_intersection"
+        )
+        print(
+            f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
+        )
         # Filter FASTA files per OTL species
         self.otl_handler.apply_fasta_filtering_for_all_fasta_files_in_folder(
             fasta_folder=self.insert_folder_path,
@@ -1364,11 +1421,13 @@ class MetricsSystemExecutor:
         Initializes the primer-pbs analysis and
         """
         binding = Binding()
-        primer_pbs_dict, gc_df = binding.primer_pbs_analysis(insert_folder=self.insert_folder_path,
-                                                    amplicon_folder=self.amplicon_folder_path,
-                                                    primer_table=self.primer_table)
+        primer_pbs_dict, gc_df = binding.primer_pbs_analysis(
+            insert_folder=self.insert_folder_path,
+            amplicon_folder=self.amplicon_folder_path,
+            primer_table=self.primer_table,
+        )
 
-        gc_df.index.name = 'primer'
+        gc_df.index.name = "primer"
 
         return primer_pbs_dict, gc_df
 
@@ -1402,74 +1461,74 @@ class MetricsSystemExecutor:
             # Mismatch Analyses
             tax_lev_max_ms_full_len = binding.process_analysis_per_taxon(
                 primer_pbs[primer],
-                operation='max',
-                analysis_name='full_len_mismatch_sum'
+                operation="max",
+                analysis_name="full_len_mismatch_sum",
             )
-            primer_metrics['max_mismatch_across_taxon'] = int(
+            primer_metrics["max_mismatch_across_taxon"] = int(
                 binding.process_analysis_across_taxon(
-                    tax_lev_max_ms_full_len,
-                    operation='sum'
+                    tax_lev_max_ms_full_len, operation="sum"
                 )
             )
 
             # Priming Ratio
             tax_lev_max_ms_three_end = binding.process_analysis_per_taxon(
                 primer_pbs[primer],
-                operation='max',
-                analysis_name='three_end_mismatch_sum'
+                operation="max",
+                analysis_name="three_end_mismatch_sum",
             )
-            primer_metrics['priming_ratio'] = binding.get_priming_ratio(
-                tax_lev_max_ms_full_len,
-                tax_lev_max_ms_three_end
+            primer_metrics["priming_ratio"] = binding.get_priming_ratio(
+                tax_lev_max_ms_full_len, tax_lev_max_ms_three_end
             )
 
             # GC Match Analysis
             binding.get_total_gc_matches(primer_pbs[primer])
             tax_lev_gc = binding.process_analysis_per_taxon(
-                primer_pbs[primer],
-                operation='min',
-                analysis_name='gc_matches_score'
+                primer_pbs[primer], operation="min", analysis_name="gc_matches_score"
             )
-            primer_metrics['gc_matches_across_taxon'] = binding.process_analysis_across_taxon(
-                tax_lev_gc,
-                operation='sum'
+            primer_metrics["gc_matches_across_taxon"] = (
+                binding.process_analysis_across_taxon(tax_lev_gc, operation="sum")
             )
 
             # Temperature Melting (Tm) Analysis
             tax_lev_min_tm = binding.process_analysis_per_taxon(
-                primer_pbs[primer],
-                operation='min',
-                analysis_name='min_tm'
+                primer_pbs[primer], operation="min", analysis_name="min_tm"
             )
-            primer_metrics['tm_coefficient_var'] = binding.process_analysis_across_taxon(
-                tax_lev_min_tm,
-                operation='coef_var'
+            primer_metrics["tm_coefficient_var"] = (
+                binding.process_analysis_across_taxon(
+                    tax_lev_min_tm, operation="coef_var"
+                )
             )
 
             # Tm Score
-            primer_metrics['tm_score'] = binding.tm_score(primer_pbs[primer])
+            primer_metrics["tm_score"] = binding.tm_score(primer_pbs[primer])
 
             # Amplification Success (if applicable)
             try:
                 amp_succ = binding.calculate_amplification_success_score(output_folder)
 
-                amp_succ_value = amp_succ.loc[primer, 'amplification_sucess_percent'] if primer in amp_succ.index else None
-                primer_metrics['amplification_success_percent'] = amp_succ_value
+                amp_succ_value = (
+                    amp_succ.loc[primer, "amplification_sucess_percent"]
+                    if primer in amp_succ.index
+                    else None
+                )
+                primer_metrics["amplification_success_percent"] = amp_succ_value
 
             except Exception as e:
-                print(f"mozaico WARNING: Amplification success calculation failed for {primer}: {e}")
-                primer_metrics['amplification_success_percent'] = None
+                print(
+                    f"mozaico WARNING: Amplification success calculation failed for {primer}: {e}"
+                )
+                primer_metrics["amplification_success_percent"] = None
 
             # Store results for this primer
             primer_results[primer] = primer_metrics
 
-        binding_df = pd.DataFrame.from_dict(primer_results, orient='index')
+        binding_df = pd.DataFrame.from_dict(primer_results, orient="index")
 
         if ref_qual is not None:
             binding_df = ref_qual.join(binding_df)
 
-        binding_df.rename(index=lambda x: x.replace('-', '_'), inplace=True)
-        binding_df.index.name = 'primer'
+        binding_df.rename(index=lambda x: x.replace("-", "_"), inplace=True)
+        binding_df.index.name = "primer"
 
         binding_df = binding_df
 
@@ -1485,7 +1544,9 @@ class MetricsSystemExecutor:
         """
         trait = TraitsAndResolution(results_folder=self.results_folder)
 
-        trait.multibarcode_output_folder = os.path.join(self.results_folder, 'multibarcode')
+        trait.multibarcode_output_folder = os.path.join(
+            self.results_folder, "multibarcode"
+        )
 
         # Run Multibarcode Pipeline
         output_str = trait.run_multibarcode_pipeline()
@@ -1501,12 +1562,12 @@ class MetricsSystemExecutor:
             total_otl_taxa_count=int(self.total_otl_taxa_count)
         )
 
-        if 'primer' in divergence_score.columns:
-            divergence_score = divergence_score.set_index('primer')
+        if "primer" in divergence_score.columns:
+            divergence_score = divergence_score.set_index("primer")
 
-        combined_div_score_and_tax_res_results = pd.DataFrame({
-            'divergence_score': divergence_score['divergence_score']
-        })
+        combined_div_score_and_tax_res_results = pd.DataFrame(
+            {"divergence_score": divergence_score["divergence_score"]}
+        )
 
         traits_res_df = combined_div_score_and_tax_res_results
 
@@ -1519,11 +1580,11 @@ class MetricsSystemExecutor:
         binding_dataframe = self.comprehensive_primer_analysis(self.results_folder)
         traits_dataframe = self.get_traits_and_resolution()
 
-        analysis_results = binding_dataframe.join(traits_dataframe, on='primer')
+        analysis_results = binding_dataframe.join(traits_dataframe, on="primer")
 
         return analysis_results
 
-    def rank_primers(self, save_intermediate_ranks: bool = False, output_path = None):
+    def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None):
         """
         This method ranks the primers performance based on the results of the Metric System.
 
@@ -1539,42 +1600,54 @@ class MetricsSystemExecutor:
             Path to save the results. If None, the results will be saved to the results folder.
         """
         ranking_order = {
-            'barcoded_taxa_one_plus': 'desc',
-            'ratio_barcoded_taxa': 'desc',
-            'max_mismatch_across_taxon': 'asc',
-            'priming_ratio': 'asc',
-            'gc_matches_across_taxon': 'desc',
-            'tm_coefficient_var': 'asc',
-            'tm_score': 'desc',
-            'amplification_success_percent': 'desc',
-            'divergence_score': 'asc'
+            "barcoded_taxa_one_plus": "desc",
+            "ratio_barcoded_taxa": "desc",
+            "max_mismatch_across_taxon": "asc",
+            "priming_ratio": "asc",
+            "gc_matches_across_taxon": "desc",
+            "tm_coefficient_var": "asc",
+            "tm_score": "desc",
+            "amplification_success_percent": "desc",
+            "divergence_score": "asc",
         }
 
         metrics_df = self.join_analysis_results()
 
         for column, order in ranking_order.items():
-            if order == 'desc':
-                metrics_df[f'rank_{column}'] = metrics_df[column].rank(ascending=False)
-            elif order == 'asc':
-                metrics_df[f'rank_{column}'] = metrics_df[column].rank(ascending=True)
+            if order == "desc":
+                metrics_df[f"rank_{column}"] = metrics_df[column].rank(ascending=False)
+            elif order == "asc":
+                metrics_df[f"rank_{column}"] = metrics_df[column].rank(ascending=True)
 
         # get rank rum and convert to final rank
-        rank_sum = metrics_df[[f'rank_{col}' for col in ranking_order]].sum(axis=1)
-        metrics_df['final_rank'] = rank_sum.rank(ascending=True).astype(int)
-        metrics_df_sorted = metrics_df.sort_values(by='final_rank', ascending=True).reset_index(drop=False)
-        metrics_df_final = metrics_df_sorted[['primer'] + list(ranking_order.keys()) + ['final_rank']]
+        rank_sum = metrics_df[[f"rank_{col}" for col in ranking_order]].sum(axis=1)
+        metrics_df["final_rank"] = rank_sum.rank(ascending=True).astype(int)
+        metrics_df_sorted = metrics_df.sort_values(
+            by="final_rank", ascending=True
+        ).reset_index(drop=False)
+        metrics_df_final = metrics_df_sorted[
+            ["primer"] + list(ranking_order.keys()) + ["final_rank"]
+        ]
 
         if output_path is None:
             output_path = Path(self.results_folder) / "ranked_primers.tsv"
-        metrics_df_final.to_csv(output_path, sep='\t', index=False)
+        metrics_df_final.to_csv(output_path, sep="\t", index=False)
         print(f"mozaiko INFO: Primer Ranking results saved to {output_path}.")
 
         # Save intermediate ranks if requested
         if save_intermediate_ranks:
             otl_name = Path(self.otl).stem
-            intermediate_ranks_path = Path(self.results_folder) / f"{otl_name}_intermediate_ranks.tsv"
-            metrics_df_intermediate = metrics_df_sorted[['primer'] + [f'rank_{col}' for col in ranking_order]]
-            metrics_df_intermediate.to_csv(intermediate_ranks_path, sep='\t', index=False)
-            print(f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}.")
+            intermediate_ranks_path = (
+                Path(self.results_folder) / f"{otl_name}_intermediate_ranks.tsv"
+            )
+            metrics_df_intermediate = metrics_df_sorted[
+                ["primer"] + [f"rank_{col}" for col in ranking_order]
+            ]
+            metrics_df_intermediate.to_csv(
+                intermediate_ranks_path, sep="\t", index=False
+            )
+            print(
+                f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}."
+            )
 
         return metrics_df_final

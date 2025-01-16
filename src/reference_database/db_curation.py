@@ -169,7 +169,9 @@ class CrabsScriptGenerator:
         file_extension = file_extension.lstrip(".")
 
         if file_extension.lower() != "json":
-            raise ValueError(f"mozaiko INFO: Invalid file type: {file_extension}. Expected a .json file.")
+            raise ValueError(
+                f"mozaiko INFO: Invalid file type: {file_extension}. Expected a .json file."
+            )
 
     def _load_parameters(self, json_file):
         """
