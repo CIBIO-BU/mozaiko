@@ -19,9 +19,12 @@ The CustomFastaImport class contains the following methods:
 import argparse
 import os
 import re
+import unicodedata
 
+import numpy as np
 import pandas as pd
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 
 class CustomFastaImport:
@@ -29,14 +32,14 @@ class CustomFastaImport:
     Handles and transforms fasta into desired outputs.
     """
 
-    def __init__(self, data=None):
+    def __init__(self, database_fasta_file=None):
         """
         Initializes the CustomFastaImport class.
         """
-        self.data = data
+        self.data = None
         self.lineage_file_loader = LineageFileLoader()
         self.lineage_file = None
-        self.fasta_file = None
+        self.database_fasta_file = database_fasta_file
 
     def _validate_input(self, input_file):
         """
@@ -45,6 +48,7 @@ class CustomFastaImport:
         Parameters
         input_file (str): Path to fasta file.
         """
+        print(input_file)
 
         if not isinstance(input_file, str):
             raise ValueError("Directory must be a string.")
@@ -100,7 +104,6 @@ class CustomFastaImport:
 
     def read_fasta(
         self,
-        input_file,
         sep="|",
         check_taxid=False,
         taxa_column_start: int = 1,
@@ -115,7 +118,9 @@ class CustomFastaImport:
         Returns
         pd.DataFrame
         """
-        self._validate_input(input_file)
+        self._validate_input(self.database_fasta_file)
+
+        self.clean_fasta_headers(self.database_fasta_file, self.database_fasta_file)
 
         # Set defaults if parameters are None
         taxa_column_start = taxa_column_start or 1
@@ -128,7 +133,7 @@ class CustomFastaImport:
             "The count must start at 0."
         )
 
-        with open(input_file, "r", encoding="UTF-8") as fasta_file:
+        with open(self.database_fasta_file, "r", encoding="UTF-8") as fasta_file:
             records = SeqIO.parse(fasta_file, "fasta")
             data_dict: dict = {"seq_id": [], "sequence": [], "length": []}
             if not check_taxid:
@@ -156,13 +161,72 @@ class CustomFastaImport:
             self.data = pd.DataFrame(data_dict)
 
         if check_taxid:
-            self.check_for_taxids(input_file)
+            self.check_for_taxids(self.database_fasta_file)
 
         return self.data
 
-    def pre_process_harmonized_fasta(self, scientific_name_column: int = 2, rank_column: int = 3):
+    def clean_fasta_headers(self, input_file, output_file, print_modified_headers: bool = False):
+        """
+        Cleans FASTA headers by:
+        1. Removing non-ASCII characters
+        2. Replacing them with ASCII equivalents where possible
+        3. Removing any remaining problematic characters
+
+        Parameters:
+        - input_file (str):
+            Path to input FASTA file
+        - output_file (str):
+            Path to output FASTA file
+
+        Returns:
+        int: Number of processed sequences
+        """
+        print(f"mozaiko INFO: Cleaning FASTA headers in {input_file} and saving to {output_file}")
+
+        def clean_header(header):
+            normalized = unicodedata.normalize('NFKD', header)
+            ascii_text = normalized.encode('ASCII', 'ignore').decode()
+            clean_text = re.sub(r'[^\w\s|.-]', '', ascii_text)
+            return clean_text
+
+        cleaned_records = []
+        problematic_headers = []
+
+        with open(input_file, 'r', encoding='utf-8') as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                original_header = record.description
+                cleaned_header = clean_header(original_header)
+
+                if cleaned_header != original_header:
+                    problematic_headers.append((original_header, cleaned_header))
+
+                new_record = SeqRecord(
+                    record.seq,
+                    id=clean_header(record.id),
+                    description=cleaned_header
+                )
+                cleaned_records.append(new_record)
+
+
+        with open(output_file, 'w', encoding='utf-8') as handle:
+            for record in cleaned_records:
+                handle.write(f">{record.description}\n{record.seq}\n")
+
+        print(f"mozaiko INFO: Processed {len(cleaned_records)} sequence headers.")
+
+        if print_modified_headers:
+            if problematic_headers:
+                print("\nModified Headers:")
+                for orig, clean in problematic_headers:
+                    print(f"Original: {orig}")
+                    print(f"Cleaned: {clean}\n")
+
+    def pre_process_harmonized_fasta(self, overwrite: bool = True):
         """
         Pre-processes the harmonized fasta file to:
+        1) Split taxonomic information into separate columns.
+        2) Rename columns.
+        3) Refactor '-' entries to NaN.
         1) Remove entries where no taxonomy harmonization was retrieved.
         2) Remove entries with taxonomy information below family, genus and species-level.
         2) Create a taxa column for species, populated with information in 'scientificName' that is
@@ -179,6 +243,12 @@ class CustomFastaImport:
         self.data = pd.concat(
             [self.data, self.data["taxa_info"].str.split("|", expand=True)], axis=1
         )
+
+        print("mozaiko INFO: This method assumes that the FASTA header has been harmonized and" +
+              "contains the following pipe-separated information: ")
+        print("sequence id, original taxonomy, harmonized taxonomy, rank, kingdom, phylum, class" +
+              ", order, family, genus.")
+
         # Name columns
         self.data.columns = [
             "seq_id",
@@ -186,7 +256,7 @@ class CustomFastaImport:
             "length",
             "all_taxa_info",
             "original_taxa_info",
-            "scientific_name",
+            "scientificName",
             "rank",
             "kingdom",
             "phylum",
@@ -196,9 +266,33 @@ class CustomFastaImport:
             "genus"
         ]
 
+        # Replace '-' entries with NaN
+        self.data = self.data.replace("-", np.nan)
 
+        # Remove entries where no taxonomy harmonization was retrieved
+        self.data = self.data.dropna(subset=["scientificName"], how="all")
 
+        # Remove entries with taxonomy information below family, genus and species-level
+        self.data['rank'] = self.data['rank'].str.lower()
+        non_interest_ranks = ['kingdom', 'phylum', 'class', 'order']
+        self.data = self.data[~self.data['rank'].isin(non_interest_ranks)]
 
+        # Create column for species and populate with information in 'scientificName' that is at
+        # 'SPECIES', 'FORM', 'VARIETY' and 'SUBSPECIES' level
+        species_variants = ['species', 'form', 'variety', 'subspecies']
+        self.data['species'] = np.where(
+            self.data['rank'].str.lower().isin(species_variants),
+            self.data['scientificName'],  # Assign scientificName if rank is species variant
+            np.nan  # Assign NaN otherwise
+        )
+        # Keep only first two strings for species column
+        self.data['species'] = self.data['species'].str.split(' ').str[0] + ' ' + self.data['species'].str.split(' ').str[1]
+
+        processed_file_name = self.database_fasta_file.replace(".fasta", "_processed.fasta")
+        if overwrite: # Overwrite the original fasta to save the pre-processed data
+            self.df2fasta(output_name=processed_file_name, write_harmonized_headers=True)
+
+        return self.data
 
     def get_taxids(self):
         """
@@ -259,7 +353,7 @@ class CustomFastaImport:
 
         return seq_list
 
-    def df2csv(self, output_name: str = "data/output_data/processed_input_fasta.csv"):
+    def df2csv(self, output_name: str = "data/input_data/processed_input_fasta.csv"):
         """
         Write the data frame to a csv file.
         """
@@ -267,7 +361,7 @@ class CustomFastaImport:
         self.data.to_csv(output_name, index=False)
 
     def df2fasta(
-        self, output_name: str = "data/output_data/processed_input_fasta.fasta"
+        self, output_name: str = "data/input_data/processed_input_fasta.fasta", write_harmonized_headers: bool = False
     ):
         """
         Write the data frame to a fasta file.
@@ -285,11 +379,14 @@ class CustomFastaImport:
 
         with open(output_name, "w") as file:
             for index, row in self.data.iterrows():
-                file.write(f">{row['seq_id']}\n{row['sequence']}\n")
+                if write_harmonized_headers:
+                    file.write(f">{row['seq_id']}|{row['original_taxa_info']}|{row['scientificName']}|{row['rank']}|{row['kingdom']}|{row['phylum']}|{row['class']}|{row['order']}|{row['family']}|{row['genus']}|{row['species']}\n{row['sequence']}\n")
+                else:
+                    file.write(f">{row['seq_id']}\n{row['sequence']}\n")
 
-        self.fasta_file = output_name
+        self.database_fasta_file = output_name
 
-        return self.fasta_file
+        return self.database_fasta_file
 
     def get_mapping_between_seq_id_taxonomy(self):
         """

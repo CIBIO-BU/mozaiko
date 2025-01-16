@@ -29,12 +29,12 @@ class InSilicoAmplification:
 
     def __init__(
         self,
-        data: Optional[Path] = None,
+        database_fasta_file: Optional[Path] = None,
         primer_table: Optional[DataFrame] = None,
         run_name: Optional[str] = None,
         number_of_mismatches: int = 3,
     ):
-        self.data: Optional[Path] = data
+        self.database_fasta_file: Optional[Path] = database_fasta_file
         self.base_output_dir = Path("./data/output_data")
         self.primer_table = primer_table
         self.primer_table_columns = [
@@ -239,11 +239,11 @@ class InSilicoAmplification:
         This method validates the input fasta.
         """
 
-        if not os.path.exists(self.data):
+        if not os.path.exists(self.database_fasta_file):
             print("mozaiko INFO: The input file does not exist. Exiting...")
             sys.exit(1)
 
-        _, file_extension = os.path.splitext(self.data)
+        _, file_extension = os.path.splitext(self.database_fasta_file)
 
         file_extension = file_extension.lstrip(".")
 
@@ -359,9 +359,8 @@ class InSilicoAmplification:
         List of folder paths containing FASTA files to process
         """
         # Load mapping between taxonomy and seq-id
-        self.custom_fasta_import = CustomFastaImport(self.data)
+        self.custom_fasta_import = CustomFastaImport(self.database_fasta_file)
         self.custom_fasta_import.read_fasta(
-            self.data,
             taxa_column_start=taxa_column_start,
             taxa_column_end=taxa_column_end,
         )
@@ -443,8 +442,8 @@ class InSilicoAmplification:
         print("mozaiko INFO: All set. Running in-silico amplification...")
 
         for index, row in self.primer_table.iterrows():
-            if self.data:
-                self.process_commands(row, self.data)
+            if self.database_fasta_file:
+                self.process_commands(row, self.database_fasta_file)
             else:
                 raise ValueError("mozaiko ERROR: No input data was found.")
             print(
