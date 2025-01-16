@@ -165,6 +165,14 @@ class CustomFastaImport:
 
         return self.data
 
+    def clean_header(self, header):
+        if pd.isna(header):
+            return header
+        normalized = unicodedata.normalize("NFKD", header)
+        ascii_text = normalized.encode("ASCII", "ignore").decode()
+        clean_text = re.sub(r"[^\w\s|.-]", "", ascii_text)
+        return clean_text
+
     def clean_fasta_headers(
         self, input_file, output_file, print_modified_headers: bool = False
     ):
@@ -187,25 +195,19 @@ class CustomFastaImport:
             f"mozaiko INFO: Cleaning FASTA headers in {input_file} and saving to {output_file}"
         )
 
-        def clean_header(header):
-            normalized = unicodedata.normalize("NFKD", header)
-            ascii_text = normalized.encode("ASCII", "ignore").decode()
-            clean_text = re.sub(r"[^\w\s|.-]", "", ascii_text)
-            return clean_text
-
         cleaned_records = []
         problematic_headers = []
 
         with open(input_file, "r", encoding="utf-8") as handle:
             for record in SeqIO.parse(handle, "fasta"):
                 original_header = record.description
-                cleaned_header = clean_header(original_header)
+                cleaned_header = self.clean_header(original_header)
 
                 if cleaned_header != original_header:
                     problematic_headers.append((original_header, cleaned_header))
 
                 new_record = SeqRecord(
-                    record.seq, id=clean_header(record.id), description=cleaned_header
+                    record.seq, id=self.clean_header(record.id), description=cleaned_header
                 )
                 cleaned_records.append(new_record)
 

@@ -19,6 +19,7 @@ class OtlHandler:
     def __init__(self, otl=None, fasta=None):
         self.otl = otl
         self.fasta = fasta
+        self.fasta_handler = CustomFastaImport()
 
     def validate_otl(self, otl=None):
         """
@@ -47,9 +48,51 @@ class OtlHandler:
             print(f"mozaiko ERROR: The OTL must contain a column labeled 'taxa'.")
             sys.exit(1)
 
-        otl_table = otl_table.dropna(subset=["taxa"])
-
         self.otl = otl_table
+
+    def pre_process_otl(self):
+        """
+        Pre-processed OTL to:
+        1) Transform entries with '-' to NA.
+        2) Tranform entries to lower case.
+        3) Remove entries with with 'kingdom', 'phylum', 'class', 'order' in 'ranks'.
+        5) Clean ASCII characters from the 'scientificName' column.
+        4) Create 'species' column populated from 'scientificName' column where 'rank' is 'species',
+        'form', 'variety', 'subspecies'
+
+        Returns:
+        - otl: DataFrame
+            The pre-processed OTL.
+        """
+
+        # 1) Transform entries with '-' to NA.
+        self.otl.replace("-", np.nan, inplace=True)
+
+        # 2) Tranform entries to lower case.
+        self.otl["rank"] = self.otl["rank"].str.lower()
+
+        # 3) Remove entries with 'kingdom', 'phylum', 'class', 'order' in 'ranks'.
+        ranks = ["kingdom", "phylum", "class", "order"]
+        self.otl = self.otl[~self.otl["rank"].isin(ranks)]
+        for rank in ranks:
+            self.otl = self.otl.dropna(subset=[rank])
+
+        # 4) Remove entries where 'scientificName' is NA.
+        self.otl = self.otl.dropna(subset=["scientificName"])
+
+        # 4) Clean ASCII characters from the 'scientificName' column.
+        self.otl["scientificName"] = self.otl["scientificName"].apply(
+        lambda x: self.fasta_handler.clean_header(x) if pd.notnull(x) else x
+        )
+
+        # 5) Create 'species' column populated from 'scientificName' column where 'rank' is
+        # 'species',  'form', 'variety', 'subspecies'
+        species_ranks = ["species", "form", "variety", "subspecies"]
+        self.otl["species"] = np.where(
+            self.otl["rank"].isin(species_ranks), self.otl["scientificName"], np.nan
+        )
+        # 6) Extract the first two strings from the 'species' column
+        self.otl["species"] = self.otl["species"].str.split().str[:2].str.join(" ")
 
     def import_otl(self):
         """
@@ -64,19 +107,22 @@ class OtlHandler:
             self.otl = input("Please enter the path to the OTL: ")
 
         self.validate_otl()
+        self.pre_process_otl()
 
-        otl = self.otl
-        unique_otl_taxa = set()
+        return self.otl
 
-        for entry in otl["taxa"]:
-            unique_otl_taxa.add(entry)
+        # otl = self.otl
+        # unique_otl_taxa = set()
 
-        total_taxa_count = len(unique_otl_taxa)
+        # for entry in otl["taxa"]:
+        #     unique_otl_taxa.add(entry)
 
-        self.total_taxa = total_taxa_count
-        self.otl_taxa_set = unique_otl_taxa
+        # total_taxa_count = len(unique_otl_taxa)
 
-        return total_taxa_count, unique_otl_taxa
+        # self.total_taxa = total_taxa_count
+        # self.otl_taxa_set = unique_otl_taxa
+
+        # return total_taxa_count, unique_otl_taxa
 
     def filter_fasta_for_species_not_in_otl(
         self, fasta_file, otl_taxa_set: set, overwrite: bool = True
