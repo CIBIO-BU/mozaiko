@@ -64,9 +64,8 @@ class OtlHandler:
         - otl: DataFrame
             The pre-processed OTL.
         """
-
         # 1) Transform entries with '-' to NA.
-        self.otl.replace("-", np.nan, inplace=True)
+        self.otl = self.otl.replace("-", np.nan)
 
         # 2) Tranform entries to lower case.
         self.otl["rank"] = self.otl["rank"].str.lower()
@@ -87,10 +86,10 @@ class OtlHandler:
 
         # 5) Create 'species' column populated from 'scientificName' column where 'rank' is
         # 'species',  'form', 'variety', 'subspecies'
-        species_ranks = ["species", "form", "variety", "subspecies"]
+        self.otl["rank"] = self.otl["rank"].replace({"form": "species", "variety": "species", "subspecies": "species"})
         self.otl["species"] = np.where(
-            self.otl["rank"].isin(species_ranks), self.otl["scientificName"], np.nan
-        )
+            self.otl["rank"] == "species", self.otl["scientificName"], np.nan
+)
         # 6) Extract the first two strings from the 'species' column
         self.otl["species"] = self.otl["species"].str.split().str[:2].str.join(" ")
 
@@ -109,150 +108,55 @@ class OtlHandler:
         self.validate_otl()
         self.pre_process_otl()
 
-        return self.otl
+        otl = self.otl
+        unique_otl_taxa = set()
 
-        # otl = self.otl
-        # unique_otl_taxa = set()
+        for entry in otl["taxa"]:
+            unique_otl_taxa.add(entry)
 
-        # for entry in otl["taxa"]:
-        #     unique_otl_taxa.add(entry)
+        total_taxa_count = len(unique_otl_taxa)
 
-        # total_taxa_count = len(unique_otl_taxa)
+        self.total_taxa = total_taxa_count
+        self.otl_taxa_set = unique_otl_taxa
 
-        # self.total_taxa = total_taxa_count
-        # self.otl_taxa_set = unique_otl_taxa
+        return total_taxa_count, unique_otl_taxa
 
-        # return total_taxa_count, unique_otl_taxa
-
-    def filter_fasta_for_species_not_in_otl(
-        self, fasta_file, otl_taxa_set: set, overwrite: bool = True
-    ):
+    def create_taxonomic_hierarchy(self):
         """
-        This method filter a FASTA based on the set of unique taxa retrieved from the OTL. Entries
-        whose taxon is not present in the OTL are removed.
-
-        Parameters:
-        input_file: Path to input FASTA file
-        taxa_set: set
-            Set of taxa names to keep
-        overwrite: bool, default=True
-            If True, overwrites the input file.
-            If False, creates new file with '_filtered' suffix
-
-        Returns:
-        tuple
-            (number of sequences kept, path to output file)
+        Creates a nested dictionary representing the taxonomic hierarchy from the OTL.
         """
-        input_folder = os.path.dirname(fasta_file)
-        file_name = os.path.basename(fasta_file)
+        hierarchy = {}
 
-        if overwrite:
-            output_file = fasta_file
-        else:
-            filtered_folder = os.path.join(input_folder, "otl_filtered")
-            os.makedirs(filtered_folder, exist_ok=True)
-            output_file = os.path.join(filtered_folder, file_name)
+        otl = self.otl
 
-        total_seq_count = 0
-        kept_seq_count = 0
+        # ensure we have the minimum-required columns for taxonomy
+        required_cols = ['family', 'genus', 'species']
+        if not all(col in otl.columns for col in required_cols):
+            raise ValueError("mozaico INFO: OTL must contain family, genus, and species columns.")
 
-        # Use temporary file for safe writing
-        temp_file = output_file + ".temp"
-        os.makedirs(os.path.dirname(temp_file), exist_ok=True)
+        # group by family and genus to create the hierarchy
+        for _, row in otl.iterrows():
+            family = row['family'] if pd.notna(row['family']) else None
+            genus = row['genus'] if pd.notna(row['genus']) else None
+            species = row['species'] if pd.notna(row['species']) else None
 
-        with open(fasta_file, "r") as input_f, open(temp_file, "w") as output_f:
-            current_header = ""
-            current_sequence: list = []
-            keep_sequence = False
+            if family not in hierarchy:
+                hierarchy[family] = {'genera': {}, 'count': 0}
 
-            for line in input_f:
-                line = line.strip()
+            if genus:
+                if genus not in hierarchy[family]['genera']:
+                    hierarchy[family]['genera'][genus] = {'species': {}, 'count': 0}
 
-                if line.startswith(">"):
-                    if current_header and keep_sequence:
-                        output_f.write(f"{current_header}\n")
-                        output_f.write("".join(current_sequence) + "\n")
-                    current_header = line
-                    current_sequence = []
-                    total_seq_count += 1
-                    keep_sequence = False
+                if species:
+                    hierarchy[family]['genera'][genus]['species'][species] = {'count': 0}
 
-                    try:
-                        if "|" not in line:
-                            print(f"mozaiko WARNING: No '|' found in header - {line}")
-                            continue
-
-                        header_parts = line.strip().split("|")
-                        if len(header_parts) < 2 or not header_parts[1].strip():
-                            print(f"mozaiko WARNING: Taxonomy not present for - {line}")
-                            continue
-
-                        taxa = header_parts[1].strip()
-                        keep_sequence = taxa in otl_taxa_set
-
-                        if keep_sequence:
-                            kept_seq_count += 1
-
-                    except Exception as e:
-                        print(
-                            f"mozaiko WARNING: Header parsing error - {line}: {str(e)}"
-                        )
-
-                elif line and keep_sequence:
-                    current_sequence.append(line)
-
-            if current_header and keep_sequence:
-                output_f.write(f"{current_header}\n")
-                output_f.write("".join(current_sequence) + "\n")
-
-        os.replace(temp_file, output_file)
-
-        return total_seq_count, kept_seq_count, output_file
-
-    def apply_fasta_filtering_for_all_fasta_files_in_folder(
-        self, fasta_folder, otl_taxa_set, overwrite: bool = False
-    ):
-        """
-        Applies the "filter_fasta_for_species_not_in_otl" method to all FASTA files in a folder.
-
-        Parameters:
-        fasta_folder: str
-            Path to the folder containing FASTA files.
-        otl_taxa_set: set
-            Set of taxa names to keep.
-        overwrite: bool, default=True
-            If True, overwrites the input files.
-            If False, creates new files with '_filtered' suffix.
-
-        Returns:
-        List[Tuple[str, int, int]]
-            A list of tuples containing the file name, number of sequences processed, and number of sequences kept.
-        """
-        results = []
-
-        for file_name in os.listdir(fasta_folder):
-            if file_name.endswith(".fasta"):
-                file_path = os.path.join(fasta_folder, file_name)
-
-                try:
-                    result = self.filter_fasta_for_species_not_in_otl(
-                        fasta_file=file_path,
-                        otl_taxa_set=otl_taxa_set,
-                        overwrite=overwrite,
-                    )
-                    results.append(result)
-                except Exception as e:
-                    print(
-                        f"mozaico ERROR: Failed to process {file_name} due to {str(e)}"
-                    )
-
-        return results
-
+        return hierarchy
 
 class ReferenceDatabaseQuality:
     def __init__(self, all_inserts_path=None, otl=None):
         self.custom_fasta_import = CustomFastaImport()
         self.all_inserts_path = all_inserts_path
+        self.otl_handler = OtlHandler()
 
     def parse_fasta_files(self):
         """
@@ -272,64 +176,182 @@ class ReferenceDatabaseQuality:
 
         return fasta_files
 
-    def calculate_number_of_barcodes_per_taxon(self):
+    def calculate_number_of_barcodes_per_fasta_entry(self):
         """
-        This method calculates the total number of barcodes that exists per taxon.
+        This method calculates the total number of barcodes per unique taxonomy entry.
 
         Parameters:
         - all_inserts_file: File containing all inserts present in the reference database, either
         successfully amplified or not.
 
         Ouput:
-        - barcodes_per_species: Dictionary containing information on how many barcodes (values)
-        exists per species (keys).
+        - barcodes_per_entry: Dictionary containing information on how many barcodes (values)
+        exists per taxonomy entry (keys).
         """
         fasta_files = self.parse_fasta_files()
-        barcodes_per_species = {}
+        barcodes_per_entry = {}
 
         for primer_pair, file_path in fasta_files.items():
             fasta_data = self.custom_fasta_import.read_fasta(
                 file_path, check_taxid=False
             )
+            # fasta_data.to_csv('data-fasta.csv', sep='\t')
 
-            barcodes_per_species[primer_pair] = {}
+            barcodes_per_entry[primer_pair] = {}
 
             for taxa in fasta_data["taxa_info"].unique():
                 unique_sequences = fasta_data[fasta_data["taxa_info"] == taxa][
                     "sequence"
                 ].unique()
 
-                barcodes_per_species[primer_pair][taxa.strip()] = len(unique_sequences)
+                barcodes_per_entry[primer_pair][taxa.strip()] = len(unique_sequences)
 
-        return barcodes_per_species
+        return barcodes_per_entry
+
+    def calculate_number_of_barcodes_per_otl_taxonomy(
+        self,
+        barcodes_per_entry: dict,
+        otl_hierarchical_taxonomy: dict,
+        save_hierarchical_counts: bool = False):
+        """
+        Calculate barcode counts per taxonomic level, handling missing species/genus data.
+
+        Parameters:
+        - barcodes_per_entry: Dictionary of primers with their taxonomic counts
+        - otl_hierarchical_taxonomy: Hierarchical taxonomy structure
+        - save_hierarchical_counts: Whether to save results to JSON files
+
+        Returns:
+            Dictionary with updated counts per taxonomic level
+        """
+        primer_taxa_data = {}
+        for primer in barcodes_per_entry.keys():
+            primer_taxa_data[primer] = json.loads(json.dumps(otl_hierarchical_taxonomy))
+
+        # Create mapping of taxonomy entries to their counts
+        counts_mapping = {}
+        for primer, taxa_counts in barcodes_per_entry.items():
+            for taxa, count in taxa_counts.items():
+                taxa_parts = taxa.split("|")
+                if len(taxa_parts) >= 8:  # Check if harmonized structure is in place
+                    family = taxa_parts[7]
+                    genus = taxa_parts[8] if len(taxa_parts) > 8 else None
+                    species = taxa_parts[9] if len(taxa_parts) > 9 else None
+
+                    # Create a key that includes the primer and available taxonomy
+                    mapping_key = (primer, family, genus, species)
+                    counts_mapping[mapping_key] = count
+
+        def update_counts(data, counts_mapping, primer):
+            for family, family_data in data.items():
+                family_total = 0
+
+                # Handle family-level counts (when genus and species are missing)
+                family_only_count = sum(
+                    count
+                    for (primer, family, genus, species), count in counts_mapping.items()
+                    if primer == primer and family == family and genus is None and species is None
+                )
+
+                if "genera" in family_data:
+                    for genus, genus_data in family_data["genera"].items():
+                        genus_total = 0
+
+                        # Handle genus-level counts (when species is missing)
+                        genus_only_count = sum(
+                            count
+                            for (primer, family, genus, species), count in counts_mapping.items()
+                            if primer == primer and family == family and genus == genus and species is None
+                        )
+
+                        if "species" in genus_data:
+                            for species_name, species_data in genus_data["species"].items():
+                                # Count species-level data
+                                species_total = sum(
+                                    count
+                                    for (primer, family, genus, species), count in counts_mapping.items()
+                                    if primer == primer and family == family and genus == genus and species and species_name.startswith(species)
+                                )
+                                species_data["count"] = species_total if species_total > 0 else 0
+                                genus_total += species_total
+
+                        # Add genus-only counts to genus total
+                        genus_total += genus_only_count
+                        genus_data["count"] = genus_total if genus_total > 0 else 0
+                        family_total += genus_total
+
+                # Add family-only counts to family total
+                family_total += family_only_count
+                family_data["count"] = family_total if family_total > 0 else 0
+
+        # Update counts for each primer
+        for primer in barcodes_per_entry.keys():
+            update_counts(primer_taxa_data[primer], counts_mapping, primer)
+
+        if save_hierarchical_counts:
+            for primer, data in primer_taxa_data.items():
+                output_filename = f"updated_file2_{primer}.json"
+                with open(output_filename, "w") as updated_file:
+                    json.dump(data, updated_file, indent=4)
+
+        return primer_taxa_data
 
     def calculate_percentage_of_taxa_w_x_barcodes(
         self,
         total_taxa_count: int,
-        barcode_threshold=1,
+        barcode_threshold: int = 1,
     ):
         """
-        This method calculates the percentage of taxa with more than X barcodes.
+        Calculates the percentage of taxa with more than X barcodes, considering hierarchical taxonomy.
+        If species data is available, uses species counts. If not, falls back to genus, then family level.
 
         Parameters:
-        - otl: Operational Taxonomy List. List of taxons considered in a country for biomonitoring
-        purposes.
-        - barcode_threshold: Number of barcodes to consider as a threshold. Only taxons with more
-        than this value will be considered.
+            total_taxa_count (int): Total number of taxa to calculate percentage against
+            barcode_threshold (int): Minimum number of barcodes required for a taxon to be counted
 
-        Output:
-        - percentage_of_taxa: float
-            Decimal percentage of taxa with more than X barcodes
+        Returns:
+            dict: Dictionary with primer pairs as keys and their respective percentages as values
         """
-        barcodes_per_species = self.calculate_number_of_barcodes_per_taxon()
+        barcodes_per_entry = self.calculate_number_of_barcodes_per_fasta_entry()
+        otl_hierarchical_taxonomy = self.otl_handler.create_taxonomic_hierarchy()
+        barcodes_per_species = self.calculate_number_of_barcodes_per_otl_taxonomy(barcodes_per_entry, otl_hierarchical_taxonomy)
+
         results = {}
 
-        for primer_pair, taxa_data in barcodes_per_species.items():
-            taxa_meeting_threshold = sum(
-                1 for count in taxa_data.values() if count > barcode_threshold
-            )
+        def count_qualifying_taxa(taxa_data):
+            qualifying_taxa = 0
 
-            percentage = (taxa_meeting_threshold * 100) / total_taxa_count
+            # Start by processing each family
+            for family_data in taxa_data.values():
+                if "genera" in family_data:
+                    # Check genera
+                    for genus_data in family_data["genera"].values():
+                        if "species" in genus_data:
+                            # Check species: if species exist, count species meeting threshold
+                            species_exist = False
+                            for species_data in genus_data["species"].values():
+                                if species_data.get("count", 0) > barcode_threshold:
+                                    qualifying_taxa += 1
+                                    species_exist = True
+
+                            # If no species met threshold, check genus count
+                            if not species_exist and genus_data.get("count", 0) > barcode_threshold:
+                                qualifying_taxa += 1
+                        else:
+                            # No species data, use genus count
+                            if genus_data.get("count", 0) > barcode_threshold:
+                                qualifying_taxa += 1
+                else:
+                    # No genera data, use family count
+                    if family_data.get("count", 0) > barcode_threshold:
+                        qualifying_taxa += 1
+
+            return qualifying_taxa
+
+        # Calculate percentages for each primer pair
+        for primer_pair, taxa_data in barcodes_per_species.items():
+            taxa_meeting_threshold = count_qualifying_taxa(taxa_data)
+            percentage = (taxa_meeting_threshold / total_taxa_count) * 100
             results[primer_pair] = round(percentage, 2)
 
         return results
@@ -1434,12 +1456,12 @@ class MetricsSystemExecutor:
         print(
             f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
         )
-        # Filter FASTA files per OTL species
-        self.otl_handler.apply_fasta_filtering_for_all_fasta_files_in_folder(
-            fasta_folder=self.insert_folder_path,
-            otl_taxa_set=self.otl_unique_taxa_set,
-            overwrite=False,
-        )
+        # # Filter FASTA files per OTL species
+        # self.otl_handler.apply_fasta_filtering_for_all_fasta_files_in_folder(
+        #     fasta_folder=self.insert_folder_path,
+        #     otl_taxa_set=self.otl_unique_taxa_set,
+        #     overwrite=False,
+        # )
         self.filtered_inserts_folder = os.path.join(
             self.insert_folder_path,
             os.path.basename(self.insert_folder_path) + "_otl_filtered",

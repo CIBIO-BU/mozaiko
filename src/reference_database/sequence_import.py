@@ -48,7 +48,6 @@ class CustomFastaImport:
         Parameters
         input_file (str): Path to fasta file.
         """
-        print(input_file)
 
         if not isinstance(input_file, str):
             raise ValueError("Directory must be a string.")
@@ -104,10 +103,11 @@ class CustomFastaImport:
 
     def read_fasta(
         self,
+        fasta_file: str,
         sep="|",
         check_taxid=False,
         taxa_column_start: int = 1,
-        taxa_column_end: int = 10,
+        taxa_column_end: int = 11,
     ):
         """
         Reads a fasta file.
@@ -118,9 +118,13 @@ class CustomFastaImport:
         Returns
         pd.DataFrame
         """
-        self._validate_input(self.database_fasta_file)
+        if fasta_file == None:
+            print(f"mozaico INFO: No FASTA file attributed to read_fasta. Reading {self.database_fasta_file}.")
+            fasta_file = self.database_fasta_file
 
-        self.clean_fasta_headers(self.database_fasta_file, self.database_fasta_file)
+        self._validate_input(fasta_file)
+
+        self.clean_fasta_headers(fasta_file, fasta_file)
 
         # Set defaults if parameters are None
         taxa_column_start = taxa_column_start or 1
@@ -133,7 +137,7 @@ class CustomFastaImport:
             + "The count must start at 0."
         )
 
-        with open(self.database_fasta_file, "r", encoding="UTF-8") as fasta_file:
+        with open(fasta_file, "r", encoding="UTF-8") as fasta_file:
             records = SeqIO.parse(fasta_file, "fasta")
             data_dict: dict = {"seq_id": [], "sequence": [], "length": []}
             if not check_taxid:
@@ -161,7 +165,7 @@ class CustomFastaImport:
             self.data = pd.DataFrame(data_dict)
 
         if check_taxid:
-            self.check_for_taxids(self.database_fasta_file)
+            self.check_for_taxids(fasta_file)
 
         return self.data
 
@@ -174,7 +178,7 @@ class CustomFastaImport:
         return clean_text
 
     def clean_fasta_headers(
-        self, input_file, output_file, print_modified_headers: bool = False
+        self, input_file, output_file, verbose: bool = False
     ):
         """
         Cleans FASTA headers by:
@@ -191,9 +195,10 @@ class CustomFastaImport:
         Returns:
         int: Number of processed sequences
         """
-        print(
-            f"mozaiko INFO: Cleaning FASTA headers in {input_file} and saving to {output_file}"
-        )
+        if verbose == True:
+            print(
+                f"mozaiko INFO: Cleaning FASTA headers in {input_file} and saving to {output_file}"
+            )
 
         cleaned_records = []
         problematic_headers = []
@@ -215,16 +220,17 @@ class CustomFastaImport:
             for record in cleaned_records:
                 handle.write(f">{record.description}\n{record.seq}\n")
 
-        print(f"mozaiko INFO: Processed {len(cleaned_records)} sequence headers.")
+        if verbose == True:
+            print(f"mozaiko INFO: Processed {len(cleaned_records)} sequence headers.")
 
-        if print_modified_headers:
+        if verbose == True:
             if problematic_headers:
                 print("\nModified Headers:")
                 for orig, clean in problematic_headers:
                     print(f"Original: {orig}")
                     print(f"Cleaned: {clean}\n")
 
-    def pre_process_harmonized_fasta(self, overwrite: bool = True):
+    def pre_process_harmonized_fasta_database(self, overwrite: bool = True):
         """
         Pre-processes the harmonized fasta file to:
         1) Split taxonomic information into separate columns.
@@ -286,13 +292,13 @@ class CustomFastaImport:
 
         # Create column for species and populate with information in 'scientificName' that is at
         # 'SPECIES', 'FORM', 'VARIETY' and 'SUBSPECIES' level
-        species_variants = ["species", "form", "variety", "subspecies"]
+        self.data["rank"] = self.data["rank"].replace({"form": "species", "variety": "species", "subspecies": "species"})
         self.data["species"] = np.where(
-            self.data["rank"].str.lower().isin(species_variants),
+            self.data["rank"] == 'species',
             self.data[
                 "scientificName"
-            ],  # Assign scientificName if rank is species variant
-            np.nan,  # Assign NaN otherwise
+            ],
+            np.nan
         )
         # Keep only first two strings for species column
         self.data["species"] = (
