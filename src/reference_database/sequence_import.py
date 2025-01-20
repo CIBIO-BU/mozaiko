@@ -154,7 +154,7 @@ class CustomFastaImport:
 
                 if not check_taxid:
                     description_parts = description.split(sep)
-                    if len(description_parts) > taxa_column_end - 1:
+                    if len(description_parts) >= taxa_column_end:
                         taxa_info = sep.join(
                             description_parts[taxa_column_start:taxa_column_end]
                         )

@@ -19,6 +19,7 @@ class OtlHandler:
     def __init__(self, otl=None, fasta=None):
         self.otl = otl
         self.fasta = fasta
+        self.taxa_hierarchy = {}
         self.fasta_handler = CustomFastaImport()
 
     def validate_otl(self, otl=None):
@@ -107,6 +108,7 @@ class OtlHandler:
 
         self.validate_otl()
         self.pre_process_otl()
+        self.create_taxonomic_hierarchy()
 
         otl = self.otl
         unique_otl_taxa = set()
@@ -125,7 +127,7 @@ class OtlHandler:
         """
         Creates a nested dictionary representing the taxonomic hierarchy from the OTL.
         """
-        hierarchy = {}
+        self.taxa_hierarchy = {}
 
         otl = self.otl
 
@@ -140,23 +142,25 @@ class OtlHandler:
             genus = row['genus'] if pd.notna(row['genus']) else None
             species = row['species'] if pd.notna(row['species']) else None
 
-            if family not in hierarchy:
-                hierarchy[family] = {'genera': {}, 'count': 0}
+            if family not in  self.taxa_hierarchy:
+                 self.taxa_hierarchy[family] = {'genera': {}, 'count': 0}
 
             if genus:
-                if genus not in hierarchy[family]['genera']:
-                    hierarchy[family]['genera'][genus] = {'species': {}, 'count': 0}
+                if genus not in  self.taxa_hierarchy[family]['genera']:
+                     self.taxa_hierarchy[family]['genera'][genus] = {'species': {}, 'count': 0}
 
                 if species:
-                    hierarchy[family]['genera'][genus]['species'][species] = {'count': 0}
+                     self.taxa_hierarchy[family]['genera'][genus]['species'][species] = {'count': 0}
 
-        return hierarchy
+        return  self.taxa_hierarchy
 
 class ReferenceDatabaseQuality:
-    def __init__(self, all_inserts_path=None, otl=None):
+    def __init__(self, otl, all_inserts_path=None):
         self.custom_fasta_import = CustomFastaImport()
         self.all_inserts_path = all_inserts_path
-        self.otl_handler = OtlHandler()
+        self.otl_handler = OtlHandler(otl)
+        self.otl_handler.import_otl()
+        self.taxa_hierarchy = self.otl_handler.taxa_hierarchy
 
     def parse_fasta_files(self):
         """
@@ -196,15 +200,16 @@ class ReferenceDatabaseQuality:
                 file_path, check_taxid=False
             )
             # fasta_data.to_csv('data-fasta.csv', sep='\t')
+            # print(fasta_data.head())
 
             barcodes_per_entry[primer_pair] = {}
 
             for taxa in fasta_data["taxa_info"].unique():
-                unique_sequences = fasta_data[fasta_data["taxa_info"] == taxa][
+                sequences = fasta_data[fasta_data["taxa_info"] == taxa][
                     "sequence"
-                ].unique()
+                ]
 
-                barcodes_per_entry[primer_pair][taxa.strip()] = len(unique_sequences)
+                barcodes_per_entry[primer_pair][taxa.strip()] = len(sequences)
 
         return barcodes_per_entry
 
@@ -215,84 +220,79 @@ class ReferenceDatabaseQuality:
         save_hierarchical_counts: bool = False):
         """
         Calculate barcode counts per taxonomic level, handling missing species/genus data.
-
-        Parameters:
-        - barcodes_per_entry: Dictionary of primers with their taxonomic counts
-        - otl_hierarchical_taxonomy: Hierarchical taxonomy structure
-        - save_hierarchical_counts: Whether to save results to JSON files
-
-        Returns:
-            Dictionary with updated counts per taxonomic level
         """
+        # Replicate OTL taxonomic hierarchy for each primer
+        # Allows us to add barcode counts based on OTL structure
         primer_taxa_data = {}
         for primer in barcodes_per_entry.keys():
             primer_taxa_data[primer] = json.loads(json.dumps(otl_hierarchical_taxonomy))
 
-        # Create mapping of taxonomy entries to their counts
-        counts_mapping = {}
-        for primer, taxa_counts in barcodes_per_entry.items():
-            for taxa, count in taxa_counts.items():
-                taxa_parts = taxa.split("|")
-                if len(taxa_parts) >= 8:  # Check if harmonized structure is in place
-                    family = taxa_parts[7]
-                    genus = taxa_parts[8] if len(taxa_parts) > 8 else None
-                    species = taxa_parts[9] if len(taxa_parts) > 9 else None
+        # Create mapping between parsed taxonomy in headers and their occurences (counts)
+        taxa_counts_mapping = {}
+        for primer, unique_header_counts in barcodes_per_entry.items():
+            for taxa_header, count in unique_header_counts.items():
+                taxa_parts = taxa_header.split("|")
+                family = taxa_parts[7]
+                genus = taxa_parts[8] if len(taxa_parts) > 8 else None
+                species = taxa_parts[9] if len(taxa_parts) > 9 else None
 
-                    # Create a key that includes the primer and available taxonomy
-                    mapping_key = (primer, family, genus, species)
-                    counts_mapping[mapping_key] = count
+                mapping_key = (primer, family, genus, species)
+                taxa_counts_mapping[mapping_key] = count
 
-        def update_counts(data, counts_mapping, primer):
-            for family, family_data in data.items():
+        def update_counts(primer_otl_hierarchy, taxa_counts_mapping, primer):
+            """
+            Updates counts for each taxonomic level in the OTL-based hierarchy according to the
+            number of barcodes.
+            """
+            for family, family_data in primer_otl_hierarchy.items():
                 family_total = 0
 
-                # Handle family-level counts (when genus and species are missing)
+                # count entries that only have family level information
                 family_only_count = sum(
                     count
-                    for (primer, family, genus, species), count in counts_mapping.items()
-                    if primer == primer and family == family and genus is None and species is None
+                    for (p, f, g, s), count in taxa_counts_mapping.items()
+                    if p == primer and f == family and (g == 'nan' or g is None) and (s == 'nan' or s is None)
                 )
 
                 if "genera" in family_data:
                     for genus, genus_data in family_data["genera"].items():
                         genus_total = 0
 
-                        # Handle genus-level counts (when species is missing)
+                        # count entries that only have genus level information
                         genus_only_count = sum(
                             count
-                            for (primer, family, genus, species), count in counts_mapping.items()
-                            if primer == primer and family == family and genus == genus and species is None
+                            for (p, f, g, s), count in taxa_counts_mapping.items()
+                            if p == primer and f == family and g == genus and (s == 'nan' or s is None)
                         )
 
                         if "species" in genus_data:
                             for species_name, species_data in genus_data["species"].items():
-                                # Count species-level data
+                                # count entries with species level information
+                                # excludes 'nan' values from count
                                 species_total = sum(
                                     count
-                                    for (primer, family, genus, species), count in counts_mapping.items()
-                                    if primer == primer and family == family and genus == genus and species and species_name.startswith(species)
+                                    for (p, f, g, s), count in taxa_counts_mapping.items()
+                                    if p == primer and f == family and g == genus and s and s != 'nan' and species_name.startswith(s)
                                 )
-                                species_data["count"] = species_total if species_total > 0 else 0
+
+                                # add species-level counts to genus count
+                                species_data["count"] = species_total
                                 genus_total += species_total
 
-                        # Add genus-only counts to genus total
+                        # add genus-only counts to genus total
                         genus_total += genus_only_count
-                        genus_data["count"] = genus_total if genus_total > 0 else 0
+                        genus_data["count"] = genus_total
+
+                        # add all genus counts (including species) to family total
                         family_total += genus_total
 
                 # Add family-only counts to family total
                 family_total += family_only_count
-                family_data["count"] = family_total if family_total > 0 else 0
+                family_data["count"] = family_total
 
-        # Update counts for each primer
+        # update counts for each primer according to barcode numbers
         for primer in barcodes_per_entry.keys():
-            update_counts(primer_taxa_data[primer], counts_mapping, primer)
-
-        if save_hierarchical_counts:
-            for primer, data in primer_taxa_data.items():
-                output_filename = f"updated_file2_{primer}.json"
-                with open(output_filename, "w") as updated_file:
-                    json.dump(data, updated_file, indent=4)
+            update_counts(primer_taxa_data[primer], taxa_counts_mapping, primer)
 
         return primer_taxa_data
 
@@ -302,55 +302,48 @@ class ReferenceDatabaseQuality:
         barcode_threshold: int = 1,
     ):
         """
-        Calculates the percentage of taxa with more than X barcodes, considering hierarchical taxonomy.
-        If species data is available, uses species counts. If not, falls back to genus, then family level.
-
-        Parameters:
-            total_taxa_count (int): Total number of taxa to calculate percentage against
-            barcode_threshold (int): Minimum number of barcodes required for a taxon to be counted
-
-        Returns:
-            dict: Dictionary with primer pairs as keys and their respective percentages as values
+        Calculates the percentage of taxa with more than X barcodes.
         """
         barcodes_per_entry = self.calculate_number_of_barcodes_per_fasta_entry()
-        otl_hierarchical_taxonomy = self.otl_handler.create_taxonomic_hierarchy()
-        barcodes_per_species = self.calculate_number_of_barcodes_per_otl_taxonomy(barcodes_per_entry, otl_hierarchical_taxonomy)
+        barcodes_per_species = self.calculate_number_of_barcodes_per_otl_taxonomy(
+            barcodes_per_entry, self.taxa_hierarchy
+        )
 
-        results = {}
-
-        def count_qualifying_taxa(taxa_data):
+        def count_qualifying_taxa(taxa_data, threshold):
             qualifying_taxa = 0
 
-            # Start by processing each family
-            for family_data in taxa_data.values():
-                if "genera" in family_data:
-                    # Check genera
-                    for genus_data in family_data["genera"].values():
-                        if "species" in genus_data:
-                            # Check species: if species exist, count species meeting threshold
-                            species_exist = False
-                            for species_data in genus_data["species"].values():
-                                if species_data.get("count", 0) > barcode_threshold:
-                                    qualifying_taxa += 1
-                                    species_exist = True
+            for family, family_data in taxa_data.items():
+                if not isinstance(family_data, dict):
+                    continue
 
-                            # If no species met threshold, check genus count
-                            if not species_exist and genus_data.get("count", 0) > barcode_threshold:
-                                qualifying_taxa += 1
-                        else:
-                            # No species data, use genus count
-                            if genus_data.get("count", 0) > barcode_threshold:
-                                qualifying_taxa += 1
-                else:
-                    # No genera data, use family count
-                    if family_data.get("count", 0) > barcode_threshold:
-                        qualifying_taxa += 1
+                family_has_qualifying_descendant = False
+
+                if "genera" in family_data:
+                    for genus, genus_data in family_data["genera"].items():
+                        if not isinstance(genus_data, dict):
+                            continue
+
+                        genus_has_qualifying_descendant = False
+
+                        if "species" in genus_data:
+                            for species_name, species_data in genus_data["species"].items():
+                                if isinstance(species_data, dict) and species_data.get("count", 0) >= threshold:
+                                    qualifying_taxa += 1
+                                    genus_has_qualifying_descendant = True
+                                    family_has_qualifying_descendant = True
+
+                        if not genus_has_qualifying_descendant and isinstance(genus_data, dict) and genus_data.get("count", 0) >= threshold:
+                            qualifying_taxa += 1
+                            family_has_qualifying_descendant = True
+
+                if not family_has_qualifying_descendant and isinstance(family_data, dict) and family_data.get("count", 0) >= threshold:
+                    qualifying_taxa += 1
 
             return qualifying_taxa
 
-        # Calculate percentages for each primer pair
+        results = {}
         for primer_pair, taxa_data in barcodes_per_species.items():
-            taxa_meeting_threshold = count_qualifying_taxa(taxa_data)
+            taxa_meeting_threshold = count_qualifying_taxa(taxa_data, barcode_threshold)
             percentage = (taxa_meeting_threshold / total_taxa_count) * 100
             results[primer_pair] = round(percentage, 2)
 
@@ -1288,19 +1281,6 @@ class TraitsAndResolution:
 
         return self.primer_resolv_species
 
-    # def get_taxonomic_resolution(self, total_otl_taxa_count: int):
-    #     """
-    #     This method computes the percentage of resolved taxa according to the total taxa count in
-    #     the OTL.
-
-    #     Parameter:
-    #     - total_otl_taxa_count: int
-    #         Total number of taxa considered
-    #     """
-    #     self.primer_resolv_species['taxonomic_resolution_percentage'] = round((self.primer_resolv_species['cumulative_resolved_species'] / total_otl_taxa_count ) * 100, 2)
-
-    #     return self.primer_resolv_species
-
     def load_nucleotide_distance(self):
         """
         This method loads the nuclotide difference matrix into memory as outputed by MultiBarcode
@@ -1437,7 +1417,7 @@ class MetricsSystemExecutor:
 
     def __init__(self, results_folder: str, otl: str, primer_table: str):
         # Initialize Reference Database Quality Category
-        self.ref_db = ReferenceDatabaseQuality()
+        #self.ref_db = ReferenceDatabaseQuality(otl=otl)
         # Initialize OTL and related variables
         self.otl = otl
         self.otl_handler = OtlHandler(self.otl)
@@ -1456,16 +1436,6 @@ class MetricsSystemExecutor:
         print(
             f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
         )
-        # # Filter FASTA files per OTL species
-        # self.otl_handler.apply_fasta_filtering_for_all_fasta_files_in_folder(
-        #     fasta_folder=self.insert_folder_path,
-        #     otl_taxa_set=self.otl_unique_taxa_set,
-        #     overwrite=False,
-        # )
-        self.filtered_inserts_folder = os.path.join(
-            self.insert_folder_path,
-            os.path.basename(self.insert_folder_path) + "_otl_filtered",
-        )
 
     def get_reference_database_quality(self):
         """
@@ -1477,7 +1447,7 @@ class MetricsSystemExecutor:
             A DataFrane containing the percentage of taxa with more than five barcodes and the
             rounded Ratio of Barcoded Taxa for each primer.
         """
-        red_bd_qual = ReferenceDatabaseQuality(self.insert_folder_path, self.otl)
+        red_bd_qual = ReferenceDatabaseQuality(otl=self.otl, all_inserts_path=self.insert_folder_path)
         reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
             total_taxa_count=self.total_otl_taxa_count
         )
