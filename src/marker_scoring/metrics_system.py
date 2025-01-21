@@ -113,13 +113,20 @@ class OtlHandler:
         otl = self.otl
         unique_otl_taxa = set()
 
-        for entry in otl["taxa"]:
+        for entry in otl["scientificName"]:
             unique_otl_taxa.add(entry)
 
         total_taxa_count = len(unique_otl_taxa)
 
         self.total_taxa = total_taxa_count
         self.otl_taxa_set = unique_otl_taxa
+
+        # Mapping between scientificName, family, genus, and species
+        self.otl_taxa_mapping = {
+            taxon: {"family": row["family"], "genus": row["genus"], "species": row["species"], "rank": row["rank"]}
+            for _, row in otl.iterrows()
+            for taxon in [row["scientificName"]]
+        }
 
         return total_taxa_count, unique_otl_taxa
 
@@ -216,8 +223,7 @@ class ReferenceDatabaseQuality:
     def calculate_number_of_barcodes_per_otl_taxonomy(
         self,
         barcodes_per_entry: dict,
-        otl_hierarchical_taxonomy: dict,
-        save_hierarchical_counts: bool = False):
+        otl_hierarchical_taxonomy: dict):
         """
         Calculate barcode counts per taxonomic level, handling missing species/genus data.
         """
@@ -396,7 +402,7 @@ class Binding:
     between the primer-sets and the PBS.
     """
 
-    def __init__(self, number_of_mismatches=None):
+    def __init__(self, otl, number_of_mismatches=None):
         self.amplification_instance = InSilicoAmplification()
         if number_of_mismatches is None:
             number_of_mismatches = (
@@ -404,6 +410,10 @@ class Binding:
             )
         self.number_of_mismatches = number_of_mismatches
         self.processed_primers = {}
+        self.otl_handler = OtlHandler(otl)
+        self.otl_handler.import_otl()
+        self.otl_taxa_mapping = self.otl_handler.otl_taxa_mapping
+        self.otl_unique_taxa = self.otl_handler.otl_taxa_set
 
     def parse_files_with_same_extension_in_folders(self, folder_path_A, folder_path_B):
         """
@@ -559,7 +569,11 @@ class Binding:
                     for _, pbs_row in pbs_table.iterrows():
                         seq_header = pbs_row["header"].replace(">", "")
                         seq_id = seq_header.split("|")[0].replace(" ", "")
-                        taxon = seq_header.split("|")[1]
+                        taxon = seq_header.split("|")[2]
+                        rank = seq_header.split("|")[3]
+                        family = seq_header.split("|")[8]
+                        genus = seq_header.split("|")[9]
+                        species = seq_header.split("|")[10]
                         pbs_fwd_seq = pbs_row["fwd_seq"]
                         pbs_rev_seq = pbs_row["rev_seq"]
 
@@ -581,6 +595,10 @@ class Binding:
                             {
                                 "seq_id": seq_id,
                                 "taxon": taxon,
+                                "family": family,
+                                "genus": genus,
+                                "species": species,
+                                "rank": rank,
                                 "min_tm": min_tm,
                                 "delta_tm": delta_tm,
                             }
@@ -598,6 +616,10 @@ class Binding:
                             {
                                 "seq_id": seq_id,
                                 "taxon": taxon,
+                                "family": family,
+                                "genus": genus,
+                                "species": species,
+                                "rank": rank,
                                 "full_len_mismatch_sum": full_fwd_mismatches
                                 + full_rev_mismatches,
                             }
@@ -620,6 +642,10 @@ class Binding:
                             {
                                 "seq_id": seq_id,
                                 "taxon": taxon,
+                                "family": family,
+                                "genus": genus,
+                                "species": species,
+                                "rank": rank,
                                 "three_end_mismatch_sum": three_end_fwd_mismatches
                                 + three_end_rev_mismatches,
                             }
@@ -641,6 +667,10 @@ class Binding:
                             {
                                 "seq_id": seq_id,
                                 "taxon": taxon,
+                                "family": family,
+                                "genus": genus,
+                                "species": species,
+                                "rank": rank,
                                 "gc_matches_fwd": three_end_fwd_gc_matches,
                                 "gc_matches_rev": three_end_rev_gc_matches,
                             }
@@ -674,6 +704,10 @@ class Binding:
                 column_order = [
                     "seq_id",
                     "taxon",
+                    "family",
+                    "genus",
+                    "species",
+                    "rank",
                     "full_len_mismatch_sum",
                     "three_end_mismatch_sum",
                     "gc_matches_fwd",
@@ -699,7 +733,7 @@ class Binding:
 
         return primer_pbs_df, primer_gc_df
 
-    def add_missing_otl_taxa_to_df_with_values_of_zero(self, primer_df, otl_taxa_set):
+    def add_missing_otl_taxa(self, primer_df):
         """
         This methid adds entries for taxons that are not present in the in-silico analysis
         but need to be present for downstream analysis regarding the OTL.
@@ -717,24 +751,36 @@ class Binding:
             a value of zero for all other analysis.
         """
         taxon_on_df = set(primer_df["taxon"].unique())
-        missing_taxon = otl_taxa_set - taxon_on_df
-        intersection = taxon_on_df & missing_taxon
-        len_intersection = len(intersection)
+        missing_taxon = self.otl_unique_taxa - taxon_on_df
+        # intersection = taxon_on_df & missing_taxon
+        # len_intersection = len(intersection)
 
         if missing_taxon:
-            new_entries = pd.DataFrame(
-                {
-                    "taxon": list(missing_taxon),
-                    "seq_id": ["otl-import"] * len(missing_taxon),
-                    **{
-                        col: 0
-                        for col in primer_df.columns
-                        if col not in ["taxon", "seq_id"]
-                    },
-                }
-            )
+            missing_data = {
+                "taxon": list(missing_taxon),
+                "seq_id": ["otl-import"] * len(missing_taxon),
+            }
 
-        otl_populated_df = pd.concat([primer_df, new_entries], ignore_index=True)
+            # Add nan values for metrics columns
+            metrics_columns = {
+                col: np.nan
+                for col in primer_df.columns
+                if col not in ["taxon", "seq_id", "family", "genus", "species", "rank"]
+            }
+
+            # Add information for taxonomy columns based on the OTL
+            taxonomy_columns = {
+                "family": [self.otl_handler.otl_taxa_mapping[taxon]["family"] for taxon in missing_taxon],
+                "genus": [self.otl_handler.otl_taxa_mapping[taxon]["genus"] for taxon in missing_taxon],
+                "species": [self.otl_handler.otl_taxa_mapping[taxon]["species"] for taxon in missing_taxon],
+                "rank": [self.otl_handler.otl_taxa_mapping[taxon]["rank"] for taxon in missing_taxon],
+            }
+
+            new_entries = pd.DataFrame({**missing_data, **metrics_columns, **taxonomy_columns})
+
+            otl_populated_df = pd.concat([primer_df, new_entries], ignore_index=True)
+        else:
+            otl_populated_df = primer_df
 
         return otl_populated_df
 
@@ -765,7 +811,7 @@ class Binding:
 
         if add_otl_taxa == True:
             otl_populated_dfs = [
-                self.add_missing_otl_taxa_to_df_with_values_of_zero(
+                self.add_missing_otl_taxa(
                     self.processed_primers[primer_df], otl_taxa_set
                 )
                 for primer_df in processed_primers
@@ -818,7 +864,10 @@ class Binding:
                 f"mozaiko ERROR: The specified analysis '{analysis_name}' does not exist in the DataFrame."
             )
 
-        grouped_taxa = primer_df.groupby("taxon")
+        # Add missing taxa to the dataframe with values of Nan
+        # primer_df = self.add_missing_otl_taxa(primer_df)
+
+        grouped_taxa = primer_df.groupby(["family", "genus", "species"])
 
         if operation in {"min", "max", "sum", "mean"}:
             result = getattr(grouped_taxa[analysis_name], operation)().astype(float)
@@ -834,7 +883,18 @@ class Binding:
             )
 
         result = pd.DataFrame(result)
+        result.reset_index(inplace=True)
+        result[['family', 'genus', 'species']] = result[['family', 'genus', 'species']].replace('nan', np.nan)
+        # ref_otl = self.otl_handler.otl[['family', 'genus', 'species']]
+        # ref_otl = ref_otl.drop_duplicates()
 
+        # # Get entries only for the taxa that are in the OTL and add taxa that are missing (left join)
+        # otl_based_result = pd.merge(
+        #     result,
+        #     ref_otl,
+        #     on=["family", "genus", "species"],
+        #     how="right"
+        # )
         return result
 
     def process_analysis_across_taxon(
@@ -1458,7 +1518,7 @@ class MetricsSystemExecutor:
         """
         Initializes the primer-pbs analysis and
         """
-        binding = Binding()
+        binding = Binding(otl=self.otl)
         primer_pbs_dict, gc_df = binding.primer_pbs_analysis(
             insert_folder=self.insert_folder_path,
             amplicon_folder=self.amplicon_folder_path,
@@ -1483,7 +1543,7 @@ class MetricsSystemExecutor:
         - binding_df: pd.DataFrame
             Aggregated results of primer analyses
         """
-        binding = Binding()
+        binding = Binding(otl=self.otl)
 
         primer_pbs, gc_df = self.get_primer_pbs_analysis()
 

@@ -129,13 +129,13 @@ class CustomFastaImport:
         # Set defaults if parameters are None
         taxa_column_start = taxa_column_start or 1
         taxa_column_end = taxa_column_end or 10
-        print(
-            f"Retrieving taxonomy in header, from column {taxa_column_start} to"
-            + f" column {taxa_column_end}, considering the separator: '{sep}'. \n"
-            + "If this is not the case, please provide the correct columns using"
-            + " 'taxa_column_start' and 'taxa_column_end' within 'read_fasta'.\n"
-            + "The count must start at 0."
-        )
+        # print(
+        #     f"Retrieving taxonomy in header, from column {taxa_column_start} to"
+        #     + f" column {taxa_column_end}, considering the separator: '{sep}'. \n"
+        #     + "If this is not the case, please provide the correct columns using"
+        #     + " 'taxa_column_start' and 'taxa_column_end' within 'read_fasta'.\n"
+        #     + "The count must start at 0."
+        # )
 
         with open(fasta_file, "r", encoding="UTF-8") as fasta_file:
             records = SeqIO.parse(fasta_file, "fasta")
