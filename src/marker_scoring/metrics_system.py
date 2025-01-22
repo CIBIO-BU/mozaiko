@@ -865,7 +865,7 @@ class Binding:
             )
 
         # Add missing taxa to the dataframe with values of Nan
-        # primer_df = self.add_missing_otl_taxa(primer_df)
+        primer_df = self.add_missing_otl_taxa(primer_df)
 
         grouped_taxa = primer_df.groupby(["family", "genus", "species"])
 
@@ -874,7 +874,7 @@ class Binding:
         elif operation == "coef_var":
             mean = grouped_taxa[analysis_name].mean()
             std = grouped_taxa[analysis_name].std()
-            result = (std / mean.replace(0, pd.NA)) * 100
+            result = (std / mean) * 100
 
         else:
             raise ValueError(
@@ -885,17 +885,57 @@ class Binding:
         result = pd.DataFrame(result)
         result.reset_index(inplace=True)
         result[['family', 'genus', 'species']] = result[['family', 'genus', 'species']].replace('nan', np.nan)
-        # ref_otl = self.otl_handler.otl[['family', 'genus', 'species']]
-        # ref_otl = ref_otl.drop_duplicates()
+        ref_otl = self.otl_handler.otl[['family', 'genus', 'species']]
+        ref_otl = ref_otl.drop_duplicates()
 
-        # # Get entries only for the taxa that are in the OTL and add taxa that are missing (left join)
-        # otl_based_result = pd.merge(
-        #     result,
-        #     ref_otl,
-        #     on=["family", "genus", "species"],
-        #     how="right"
-        # )
-        return result
+        # Get entries only for the taxa that are in the OTL and add taxa that are missing (left join)
+        otl_based_result = pd.merge(
+            result,
+            ref_otl,
+            on=["family", "genus", "species"],
+            how="right"
+        )
+
+        # Post-processing to reflect hierarchical aggregations
+        def fill_hierarchical_values(df, operation_name):
+            result_df = df.copy()
+
+            # Genus-level aggregations
+            genus_groups = df.groupby(['family', 'genus'])
+            if operation_name in {"min", "max", "sum", "mean"}:
+                genus_values = getattr(genus_groups[analysis_name], operation_name)()
+            elif operation_name == "coef_var":
+                mean = genus_groups[analysis_name].mean()
+                std = genus_groups[analysis_name].std()
+                genus_values = (std / mean) * 100
+
+            # Family-level aggregations
+            family_groups = df.groupby(['family'])
+            if operation_name in {"min", "max", "sum", "mean"}:
+                family_values = getattr(family_groups[analysis_name], operation_name)()
+            elif operation_name == "coef_var":
+                mean = family_groups[analysis_name].mean()
+                std = family_groups[analysis_name].std()
+                family_values = (std / mean) * 100
+
+            # Fill NaN species entries with genus-level values
+            for (family, genus), value in genus_values.items():
+                mask = (result_df['family'] == family) & \
+                    (result_df['genus'] == genus) & \
+                    (result_df['species'].isna())
+                result_df.loc[mask, analysis_name] = value
+
+            # Fill NaN genus entries with family-level values
+            for family, value in family_values.items():
+                mask = (result_df['family'] == family) & \
+                    (result_df['genus'].isna())
+                result_df.loc[mask, analysis_name] = value
+
+            return result_df
+
+        final_result = fill_hierarchical_values(otl_based_result, operation)
+
+        return final_result
 
     def process_analysis_across_taxon(
         self,
@@ -918,12 +958,14 @@ class Binding:
         if tax_grouped_df.empty:
             raise ValueError("mozaiko ERROR: Input DataFrame is empty.")
 
+        numeric_df = tax_grouped_df.select_dtypes(include=["number"])
+
         if operation in {"min", "max", "sum", "mean"}:
-            result = getattr(tax_grouped_df, operation)().astype(float)
+            result = getattr(numeric_df, operation)().astype(float)
         elif operation == "coef_var":
-            mean = tax_grouped_df.mean()
-            std = tax_grouped_df.std()
-            result = (std / mean.replace(0, pd.NA)) * 100
+            mean = numeric_df.mean()
+            std = numeric_df.std()
+            result = (std / mean) * 100
         else:
             raise ValueError(
                 f"mozaiko ERROR: Unrecognized operation: '{operation}'. "
@@ -952,7 +994,12 @@ class Binding:
         - priming_ratio: float
             The value for the priming ratio.
         """
-        merged_df = max_mismatch_three_end.join(max_mismatch_full_len, how="inner")
+        merged_df = pd.merge(
+        max_mismatch_three_end,
+        max_mismatch_full_len,
+        on=['family', 'genus', 'species'],
+        suffixes=('_three_end', '_full_len')
+        )
         merged_df["priming_ratio"] = (
             merged_df["three_end_mismatch_sum"] / merged_df["full_len_mismatch_sum"]
         )
@@ -1562,7 +1609,7 @@ class MetricsSystemExecutor:
                 operation="max",
                 analysis_name="full_len_mismatch_sum",
             )
-            primer_metrics["max_mismatch_across_taxon"] = int(
+            primer_metrics["mismatch_score"] = int(
                 binding.process_analysis_across_taxon(
                     tax_lev_max_ms_full_len, operation="sum"
                 )
@@ -1574,7 +1621,7 @@ class MetricsSystemExecutor:
                 operation="max",
                 analysis_name="three_end_mismatch_sum",
             )
-            primer_metrics["priming_ratio"] = binding.get_priming_ratio(
+            primer_metrics["priming_ratio_sum"] = binding.get_priming_ratio(
                 tax_lev_max_ms_full_len, tax_lev_max_ms_three_end
             )
 
@@ -1591,7 +1638,7 @@ class MetricsSystemExecutor:
             tax_lev_min_tm = binding.process_analysis_per_taxon(
                 primer_pbs[primer], operation="min", analysis_name="min_tm"
             )
-            primer_metrics["tm_coefficient_var"] = (
+            primer_metrics["min_tm_cv"] = (
                 binding.process_analysis_across_taxon(
                     tax_lev_min_tm, operation="coef_var"
                 )
@@ -1648,7 +1695,7 @@ class MetricsSystemExecutor:
 
         # Run Multibarcode Pipeline
         output_str = trait.run_multibarcode_pipeline()
-        trait.parse_multibarcode_output(output_str)
+        # trait.parse_multibarcode_output(output_str)
 
         # # Get Taxonomic Resolution Percentage
         # taxonomic_resolution = trait.get_taxonomic_resolution(
@@ -1700,10 +1747,10 @@ class MetricsSystemExecutor:
         ranking_order = {
             "barcoded_taxa_one_plus": "desc",
             "ratio_barcoded_taxa": "desc",
-            "max_mismatch_across_taxon": "asc",
-            "priming_ratio": "asc",
+            "mismatch_score": "asc",
+            "priming_ratio_sum": "asc",
             "gc_matches_across_taxon": "desc",
-            "tm_coefficient_var": "asc",
+            "min_tm_cv": "asc",
             "tm_score": "desc",
             "amplification_success_percent": "desc",
             "divergence_score": "asc",

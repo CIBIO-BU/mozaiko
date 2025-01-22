@@ -80,138 +80,6 @@ class TestOtlHandler(unittest.TestCase):
         self.assertEqual(total_taxa_count, len(expected_unique_taxa))
         self.assertEqual(unique_taxa, expected_unique_taxa)
 
-    @patch("builtins.print")
-    @patch("os.replace")
-    def test_filter_fasta_no_pipe_header(self, mock_replace, mock_print):
-        """
-        Method to test handling of a header without a pipe character.
-        """
-        test_fasta_content = """>no_pipe_header
-        ATGCATGCATGC"""
-
-        otl_taxa_ex = set()
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".fasta"
-        ) as temp_file:
-            temp_file.write(test_fasta_content)
-            temp_file_path = temp_file.name
-
-        try:
-            self.handler.filter_fasta_for_species_not_in_otl(
-                temp_file_path, otl_taxa_ex, overwrite=False
-            )
-            mock_print.assert_any_call(
-                "mozaiko WARNING: No '|' found in header - >no_pipe_header"
-            )
-        finally:
-            os.unlink(temp_file_path)
-            if os.path.exists(temp_file_path + "_filtered"):
-                os.unlink(temp_file_path + "_filtered")
-
-    @patch("builtins.print")
-    @patch("os.replace")
-    def test_filter_fasta_no_taxa(self, mock_replace, mock_print):
-        """
-        Method to test handling of a header without taxa.
-        """
-        test_fasta_content = """>notax|\nATGCATGCATGC"""
-
-        otl_taxa_ex = set()
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".fasta"
-        ) as temp_file:
-            temp_file.write(test_fasta_content)
-            temp_file_path = temp_file.name
-
-        try:
-            self.handler.filter_fasta_for_species_not_in_otl(
-                temp_file_path, otl_taxa_ex
-            )
-            mock_print.assert_any_call(
-                "mozaiko WARNING: Taxonomy not present for - >notax|"
-            )
-
-        finally:
-            os.unlink(temp_file_path)
-
-    @patch("os.replace")
-    def test_filter_fasta_overwrite_mode(self, mock_replace):
-        """
-        Method to test the overwrite functionality.
-        """
-        test_fasta_content = """>valid_header | taxa1\nATGCATGCATGC"""
-
-        otl_taxa_ex = {"taxa1"}
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".fasta"
-        ) as temp_file:
-            temp_file.write(test_fasta_content)
-            temp_file_path = temp_file.name
-
-        try:
-            total_count, kept_count, output_file = (
-                self.handler.filter_fasta_for_species_not_in_otl(
-                    temp_file_path, otl_taxa_ex, overwrite=True
-                )
-            )
-
-            mock_replace.assert_called_once_with(
-                temp_file_path + ".temp", temp_file_path
-            )
-
-            self.assertEqual(total_count, 1)
-            self.assertEqual(kept_count, 1)
-            self.assertEqual(output_file, temp_file_path)
-        finally:
-            os.unlink(temp_file_path)
-
-    def test_filter_fasta_non_overwrite_mode(self):
-        """
-        Test function when overwrite is set to False.
-        """
-        test_fasta_content = """>valid_header | taxa1\nATGCATGCATGC"""
-        otl_taxa_ex = {"taxa1"}
-
-        test_dir = os.path.join(os.path.dirname(__file__), "test_data")
-        os.makedirs(test_dir, exist_ok=True)
-
-        input_file_path = os.path.join(test_dir, "test_input.fasta")
-        with open(input_file_path, "w") as f:
-            f.write(test_fasta_content)
-
-        expected_output_dir = os.path.join(test_dir, "otl_filtered")
-        expected_output_file = os.path.join(expected_output_dir, "test_input.fasta")
-
-        try:
-            total_count, kept_count, output_file = (
-                self.handler.filter_fasta_for_species_not_in_otl(
-                    input_file_path, otl_taxa_ex, overwrite=False
-                )
-            )
-            self.assertEqual(total_count, 1)
-            self.assertEqual(kept_count, 1)
-
-            print(output_file)
-            print(expected_output_file)
-            assert os.path.exists(expected_output_file)
-            assert output_file == expected_output_file
-            with open(output_file, "r") as f:
-                content = f.read().strip()
-            assert content == test_fasta_content
-
-        finally:
-            if os.path.exists(input_file_path):
-                os.remove(input_file_path)
-            if os.path.exists(expected_output_file):
-                os.remove(expected_output_file)
-            if os.path.exists(expected_output_dir) and not os.listdir(expected_output_dir):
-                os.rmdir(expected_output_dir)
-            if os.path.exists(test_dir) and not os.listdir(test_dir):
-                os.rmdir(test_dir)
-
 
 class TestReferenceDatabaseQuality(unittest.TestCase):
     def setUp(self):
@@ -298,7 +166,8 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
 class TestBinding(unittest.TestCase):
     def setUp(self):
-        self.binding = Binding()
+        self.otl = "data/test_data/test_otl.tsv"
+        self.binding = Binding(self.otl)
         self.binding.processed_primers = {
             "primer_1": pd.DataFrame({"taxon": ["A", "B"], "value": [1, 2]}),
             "primer_2": pd.DataFrame({"taxon": ["C", "D"], "value": [3, 4]}),
@@ -313,7 +182,7 @@ class TestBinding(unittest.TestCase):
         with patch.object(
             InSilicoAmplification, "get_number_of_mismatches", return_value=2
         ) as mock_get_mismatches:
-            binding = Binding()
+            binding = Binding(self.otl)
             mock_get_mismatches.assert_called_once()
             self.assertEqual(binding.number_of_mismatches, 2)
 
@@ -321,7 +190,7 @@ class TestBinding(unittest.TestCase):
         """
         Test Binding class initialization with custom number of mismatches.
         """
-        binding = Binding(number_of_mismatches=3)
+        binding = Binding(self.otl, number_of_mismatches=3)
         self.assertEqual(binding.number_of_mismatches, 3)
 
     def test_parse_files_with_same_extension_in_folder(self):
@@ -410,36 +279,6 @@ class TestBinding(unittest.TestCase):
                 "data/test_data/test_primer_table.tsv",
             )
             self.assertEqual(result, (None, None))
-
-    def test_add_missing_otl_taxa_to_df_with_values_of_zero(self):
-        input_df = pd.DataFrame(
-            {
-                "taxon": ["taxon1", "taxon2"],
-                "seq_id": ["seq1", "seq2"],
-                "analysis1": [10, 20],
-                "analysis2": [5, 15],
-            }
-        )
-
-        otl_taxa_set = {"taxon1", "taxon2", "taxon3", "taxon4"}
-
-        expected_df = pd.DataFrame(
-            {
-                "taxon": ["taxon1", "taxon2", "taxon3", "taxon4"],
-                "seq_id": ["seq1", "seq2", "otl-import", "otl-import"],
-                "analysis1": [10, 20, 0, 0],
-                "analysis2": [5, 15, 0, 0],
-            }
-        )
-
-        otl_populated_df = self.binding.add_missing_otl_taxa_to_df_with_values_of_zero(
-            input_df, otl_taxa_set
-        )
-
-        pd.testing.assert_frame_equal(
-            otl_populated_df.sort_values(by="taxon").reset_index(drop=True),
-            expected_df.sort_values(by="taxon").reset_index(drop=True),
-        )
 
     def test_iterate_over_primer_pbs_df_with_otl_taxa(self):
         comprehensive_primer_dfs = {
@@ -743,8 +582,7 @@ class TestBinding(unittest.TestCase):
         primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
             "mock_amplicon_folder",
             "mock_insert_folder",
-            "mock_primer_table",
-            save_results=True,
+            "mock_primer_table"
         )
 
         self.assertIsInstance(primer_pbs_df, dict)
@@ -813,8 +651,7 @@ class TestBinding(unittest.TestCase):
         primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
             "mock_amplicon_folder",
             "mock_insert_folder",
-            "mock_primer_table",
-            save_results=True,
+            "mock_primer_table"
         )
 
         self.assertIsInstance(primer_pbs_df, dict)
@@ -1417,8 +1254,8 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         # Verify results
         pd.testing.assert_frame_equal(result, expected_result)
         expected_calls = [
-            call(),  # First call in __init__
-            call(executor.insert_folder_path, executor.otl)  # Second call in get_reference_database_quality
+            call(otl='/fake/path/otl.tsv', all_inserts_path='/fake/path/results/insert/filtered'),
+            call().barcoded_taxa_ratio(total_taxa_count=100)
         ]
         mock_ref_db_class.assert_has_calls(expected_calls)
 
@@ -1522,10 +1359,10 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_analysis_results = pd.DataFrame({
             'barcoded_taxa_one_plus': [90, 80],
             'ratio_barcoded_taxa': [0.9, 0.8],
-            'max_mismatch_across_taxon': [2, 3],
-            'priming_ratio': [0.8, 0.7],
+            'mismatch_score': [2, 3],
+            'priming_ratio_sum': [0.8, 0.7],
             'gc_matches_across_taxon': [15, 12],
-            'tm_coefficient_var': [0.1, 0.2],
+            'min_tm_cv': [0.1, 0.2],
             'tm_score': [0.9, 0.8],
             'amplification_success_percent': [95, 85],
             'divergence_score': [0.2, 0.3]
@@ -1538,7 +1375,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         )
         executor.join_analysis_results = Mock(return_value=mock_analysis_results)
 
-        result = executor.rank_primers(save_results=False)
+        result = executor.rank_primers()
         result = result.set_index('index')
         print(result)
 

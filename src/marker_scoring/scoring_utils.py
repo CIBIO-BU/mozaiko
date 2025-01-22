@@ -433,7 +433,7 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
 
         if len(parts) >= 2:
             seq_ID = parts[0].strip()
-            species_name = parts[1].strip()
+            species_name = parts[2].strip()
 
             tsv_file.write(
                 f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
