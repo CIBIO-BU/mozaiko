@@ -113,7 +113,7 @@ class OtlHandler:
         otl = self.otl
         unique_otl_taxa = set()
 
-        for entry in otl["scientificName"]:
+        for entry in otl["taxa"]:
             unique_otl_taxa.add(entry)
 
         total_taxa_count = len(unique_otl_taxa)
