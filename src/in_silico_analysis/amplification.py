@@ -361,6 +361,7 @@ class InSilicoAmplification:
         # Load mapping between taxonomy and seq-id
         self.custom_fasta_import = CustomFastaImport(self.database_fasta_file)
         self.custom_fasta_import.read_fasta(
+            self.database_fasta_file,
             taxa_column_start=taxa_column_start,
             taxa_column_end=taxa_column_end,
         )

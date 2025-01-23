@@ -334,7 +334,7 @@ class TestBinding(unittest.TestCase):
 
         with patch.object(
             self.binding,
-            "add_missing_otl_taxa_to_df_with_values_of_zero",
+            "add_missing_otl_taxa",
             side_effect=side_effect_check,
         ) as mock_add_otl_taxa:
             processed_primers = self.binding.iterate_over_primer_pbs_df(

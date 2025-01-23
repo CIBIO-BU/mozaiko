@@ -107,7 +107,7 @@ class CustomFastaImport:
         sep="|",
         check_taxid=False,
         taxa_column_start: int = 1,
-        taxa_column_end: int = 11,
+        taxa_column_end: int = 10,
     ):
         """
         Reads a fasta file.
@@ -118,7 +118,7 @@ class CustomFastaImport:
         Returns
         pd.DataFrame
         """
-        if fasta_file == None:
+        if fasta_file is None:
             print(f"mozaico INFO: No FASTA file attributed to read_fasta. Reading {self.database_fasta_file}.")
             fasta_file = self.database_fasta_file
 
@@ -159,6 +159,7 @@ class CustomFastaImport:
                             description_parts[taxa_column_start:taxa_column_end]
                         )
                     else:
+                        print("mozaiko WARNING: Taxonomy information not found in header.")
                         taxa_info = ""
                     data_dict["taxa_info"].append(taxa_info)
 

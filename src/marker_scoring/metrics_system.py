@@ -626,10 +626,10 @@ class Binding:
                         )
 
                         # Compute three-end mismatches and GC clamp
-                        three_end_fwd_seq = pbs_fwd_seq[-5:]
-                        three_end_rev_seq = pbs_rev_seq[-5:]
-                        three_end_fwd_primers = primer_seq_fwd[-5:]
-                        three_end_rev_primers = rev_comp_primer_seq_rev[-5:]
+                        three_end_fwd_seq = pbs_fwd_seq[-5:] # last 5 bases
+                        three_end_rev_seq = pbs_rev_seq[:5] # first 5 bases
+                        three_end_fwd_primers = primer_seq_fwd[-5:] # last 5 bases
+                        three_end_rev_primers = rev_comp_primer_seq_rev[:5] # first 5 bases (reverse complement)
 
                         three_end_fwd_mismatches = calculate_iupac_mismatches(
                             three_end_fwd_primers, three_end_fwd_seq

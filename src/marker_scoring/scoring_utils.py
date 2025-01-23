@@ -431,7 +431,7 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
     if "|" in header:
         parts = header.split("|")
 
-        if len(parts) >= 2:
+        if len(parts) >= 10:
             seq_ID = parts[0].strip()
             species_name = parts[2].strip()
 
@@ -439,6 +439,7 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
                 f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
             )
         else:
-            print(f"mozaico WARNING: Incorrect header format: {header}")
+            print(f"mozaico WARNING: Incorrect header format: {header}. Check if the header has" +
+                  "been through harmonization.")
     else:
         print(f"mozaico WARNING: Unexpected header format: {header}")

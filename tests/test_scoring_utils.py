@@ -217,16 +217,16 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         """
         # FASTA with standard header
         with open(os.path.join(self.test_dir, "primer1.fasta"), "w") as f:
-            f.write(">seq1|Species Name 1\n")
+            f.write(">seq1|Species Name 1|harmonized_species|rank|kingdom|phylum|order|family|genus|species\n")
             f.write("ATCGATCGATCG\n")
-            f.write(">seq2|Species Name 2\n")
+            f.write(">seq2|Species Name 2|harmonized_species|rank|kingdom|phylum|order|family|genus|species\n")
             f.write("GCTAGCTAGCTA\n")
 
         # FASTA with multiple sequences
         with open(os.path.join(self.test_dir, "primer2.fasta"), "w") as f:
-            f.write(">seq3|Species Name 3\n")
+            f.write(">seq3|Species Name 3|harmonized_species|rank|kingdom|phylum|order|family|genus|species\n")
             f.write("TAGCTAGCTAGC\n")
-            f.write(">seq4|Species Name 4\n")
+            f.write(">seq4|Species Name 4|harmonized_species|rank|kingdom|phylum|order|family|genus|species\n")
             f.write("CGATCGATCGAT\n")
 
         # FASTA with problematic header
