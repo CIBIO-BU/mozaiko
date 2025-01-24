@@ -113,7 +113,7 @@ class OtlHandler:
         otl = self.otl
         unique_otl_taxa = set()
 
-        for entry in otl["taxa"]:
+        for entry in otl["scientificName"]:
             unique_otl_taxa.add(entry)
 
         total_taxa_count = len(unique_otl_taxa)
@@ -127,6 +127,8 @@ class OtlHandler:
             for _, row in otl.iterrows()
             for taxon in [row["scientificName"]]
         }
+        # Dataframe of self.otl_taxa_mapping
+        self.otl_taxa_mapping_df = pd.DataFrame(self.otl_taxa_mapping).T.reset_index()
 
         return total_taxa_count, unique_otl_taxa
 
@@ -835,6 +837,64 @@ class Binding:
         """
         return self.processed_primers.get(primer_name, None)
 
+    def fill_hierarchical_values(self, df, operation_name, analysis_name=None):
+        """
+        Fill missing values in a hierarchical dataset based on genus-level and family-level
+        aggregations.
+
+        Parameters:
+        - df (pd.DataFrame): The input DataFrame with columns ['family', 'genus', 'species'] and
+            numerical data.
+        - operation_name (str): The operation to perform ('min', 'max', 'sum', 'mean', or
+        'coef_var').
+        - analysis_name (str or None): The specific column to analyze. If None, applies to all
+        numeric columns.
+
+        Returns:
+            pd.DataFrame: A DataFrame with missing values filled hierarchically.
+        """
+        result_df = df.copy()
+
+        # If analysis_name is None, apply the logic to all numeric columns
+        if analysis_name is None:
+            numeric_cols = df.select_dtypes(include='number').columns
+        else:
+            numeric_cols = [analysis_name]
+
+        for col in numeric_cols:
+            # Genus-level aggregations
+            genus_groups = df.groupby(['family', 'genus'])
+            if operation_name in {"min", "max", "sum", "mean"}:
+                genus_values = getattr(genus_groups[col], operation_name)()
+            elif operation_name == "coef_var":
+                mean = genus_groups[col].mean()
+                std = genus_groups[col].std()
+                genus_values = (std / mean) * 100
+
+            # Family-level aggregations
+            family_groups = df.groupby(['family'])
+            if operation_name in {"min", "max", "sum", "mean"}:
+                family_values = getattr(family_groups[col], operation_name)()
+            elif operation_name == "coef_var":
+                mean = family_groups[col].mean()
+                std = family_groups[col].std()
+                family_values = (std / mean) * 100
+
+            # Fill NaN species entries with genus-level values
+            for (family, genus), value in genus_values.items():
+                mask = (result_df['family'] == family) & \
+                    (result_df['genus'] == genus) & \
+                    (result_df['species'].isna())
+                result_df.loc[mask, col] = value
+
+            # Fill NaN genus entries with family-level values
+            for family, value in family_values.items():
+                mask = (result_df['family'] == family) & \
+                    (result_df['genus'].isna())
+                result_df.loc[mask, col] = value
+
+        return result_df
+
     def process_analysis_per_taxon(
         self,
         primer_df: pd.DataFrame,
@@ -896,44 +956,7 @@ class Binding:
             how="right"
         )
 
-        # Post-processing to reflect hierarchical aggregations
-        def fill_hierarchical_values(df, operation_name):
-            result_df = df.copy()
-
-            # Genus-level aggregations
-            genus_groups = df.groupby(['family', 'genus'])
-            if operation_name in {"min", "max", "sum", "mean"}:
-                genus_values = getattr(genus_groups[analysis_name], operation_name)()
-            elif operation_name == "coef_var":
-                mean = genus_groups[analysis_name].mean()
-                std = genus_groups[analysis_name].std()
-                genus_values = (std / mean) * 100
-
-            # Family-level aggregations
-            family_groups = df.groupby(['family'])
-            if operation_name in {"min", "max", "sum", "mean"}:
-                family_values = getattr(family_groups[analysis_name], operation_name)()
-            elif operation_name == "coef_var":
-                mean = family_groups[analysis_name].mean()
-                std = family_groups[analysis_name].std()
-                family_values = (std / mean) * 100
-
-            # Fill NaN species entries with genus-level values
-            for (family, genus), value in genus_values.items():
-                mask = (result_df['family'] == family) & \
-                    (result_df['genus'] == genus) & \
-                    (result_df['species'].isna())
-                result_df.loc[mask, analysis_name] = value
-
-            # Fill NaN genus entries with family-level values
-            for family, value in family_values.items():
-                mask = (result_df['family'] == family) & \
-                    (result_df['genus'].isna())
-                result_df.loc[mask, analysis_name] = value
-
-            return result_df
-
-        final_result = fill_hierarchical_values(otl_based_result, operation)
+        final_result = self.fill_hierarchical_values(otl_based_result, operation)
 
         return final_result
 
@@ -1169,6 +1192,7 @@ class Binding:
 class TraitsAndResolution:
     def __init__(
         self,
+        otl,
         results_folder: Optional[str] = None,
         insert_folder_path: Optional[str] = None,
         amplicon_folder_path: Optional[str] = None,
@@ -1206,6 +1230,9 @@ class TraitsAndResolution:
                 "('results_folder') or paths to the insert ('insert_folder_path'), amplicon "
                 "('amplicon_folder_path') and incomplete PBS ('incomplete_pbs_path') results folders."
             )
+        self.otl_handler = OtlHandler(otl)
+        self.otl_handler.import_otl()
+        self.binding = Binding(otl)
 
     def get_min_max_avg_seq_length_in_a_fasta(self, fasta_file):
         """
@@ -1391,14 +1418,41 @@ class TraitsAndResolution:
     def load_nucleotide_distance(self):
         """
         This method loads the nuclotide difference matrix into memory as outputed by MultiBarcode
-        pipeline.
+        pipeline. It then process it to map the taxonomy against the OTL. This process includes:
+            1) Add all the necessary taxonomy levels (family, genus, species);
+            2) Remove entries for taxonomy that are not considered in the OTL;
+            3) Add entries with NaN values for taxonomy that is considerd in the OTL but not on the
+            input.
         """
+        # Load nucleotide distance matrix
         nuc_dist_matrix_path = os.path.join(
             self.multibarcode_output_folder, "matrix.xlsx"
         )
         nuc_dist_matrix = pd.read_excel(nuc_dist_matrix_path)
+        nuc_dist_matrix['Species'] = nuc_dist_matrix['Species'].str.replace("_", " ")
 
-        return nuc_dist_matrix
+        # Load OTL mapping
+        otl_mapping = self.otl_handler.otl_taxa_mapping
+        otl_mapping = pd.DataFrame(otl_mapping).T.reset_index()
+        otl_mapping = otl_mapping.rename(columns={'index': 'Species'})
+
+        # Merge nuc_dist_matrix with OTL mapping
+        nuc_dist_otl_merged = pd.merge(nuc_dist_matrix, otl_mapping, on='Species', how='right')
+        nuc_dist_otl_merged.rename(columns={'Species': 'input_taxa'}, inplace=True)
+
+        # Re-order columns
+        taxa_columns = ['input_taxa', 'family', 'genus', 'species', 'rank']
+        other_columns = [col for col in nuc_dist_otl_merged if col not in taxa_columns]
+        nuc_dist_matrix_processed = nuc_dist_otl_merged[taxa_columns + other_columns]
+
+        # Transform nucleotide distance cols to numeric to allow for hierarchical filling of values
+        # in entries that are on genus or family level
+        str_columns = ['input_taxa', 'family', 'genus', 'species', 'rank']
+        numeric_columns = [col for col in nuc_dist_matrix_processed.columns if col not in str_columns]
+        nuc_dist_matrix_processed[numeric_columns] = nuc_dist_matrix_processed[numeric_columns].apply(pd.to_numeric, errors='coerce')
+        nuc_dist_matrix_processed = self.binding.fill_hierarchical_values(nuc_dist_matrix_processed, 'min')
+
+        return nuc_dist_matrix_processed
 
     def compute_genetic_divergence_per_taxon(self):
         """
@@ -1418,28 +1472,24 @@ class TraitsAndResolution:
             col.replace("-", "_"): col for col in insert_avg_len_matrix.index
         }
 
-        divergence_percentages = {}
+        # Copy taxonomic columns
+        taxonomic_columns = ['input_taxa', 'family', 'genus', 'species', 'rank']
+        divergence_df = nuc_dist_matrix[taxonomic_columns].copy()
 
-        for taxon in nuc_dist_matrix.index:
-            taxa_distances_per_primer = nuc_dist_matrix.loc[taxon]
-            taxon_divergence = {}
+        # Process numeric columns for divergence
+        numeric_columns = [col for col in nuc_dist_matrix.columns if col not in taxonomic_columns]
 
-            # Include nuc_dist_matrix species as index
-            taxon_divergence["Species"] = taxa_distances_per_primer["Species"]
+        for primer_set in numeric_columns:
+            primer_divergence = []
 
-            for primer_set, nucleotide_distance in taxa_distances_per_primer.items():
-
-                if primer_set == "Species":  # Skip processing for 'Species' column
-                    continue
-
+            for _, row in nuc_dist_matrix.iterrows():
                 try:
-                    dist_numeric = float(nucleotide_distance)
+                    dist_numeric = float(row[primer_set])
 
-                    # Match nuc_dist_matrix primer name with internal dataframe format
+                    # Match primer name with internal dataframe format
                     mapped_primer_set = name_mapping.get(primer_set, primer_set)
 
                     if mapped_primer_set in insert_avg_len_matrix.index:
-                        # Convert insert length to float to handle potential division by zero
                         insert_length = float(insert_avg_len_matrix[mapped_primer_set])
 
                         if insert_length > 0:
@@ -1452,24 +1502,15 @@ class TraitsAndResolution:
                         divergence_percentage = np.nan
 
                 except (ValueError, TypeError):
-                    # If conversion fails or any other error occurs set no Nan
                     divergence_percentage = np.nan
 
-                taxon_divergence[primer_set] = divergence_percentage
+                primer_divergence.append(divergence_percentage)
 
-            divergence_percentages[taxon] = taxon_divergence
-
-        divergence_df = pd.DataFrame.from_dict(divergence_percentages, orient="index")
-
-        # Reorder to have 'Species' as first col
-        columns = ["Species"] + [
-            col for col in divergence_df.columns if col != "Species"
-        ]
-        divergence_df = divergence_df[columns]
+            divergence_df[primer_set] = primer_divergence
 
         return divergence_df
 
-    def get_divergence_score(self, total_otl_taxa_count: int, cutoff: float = 2.0):
+    def get_divergence_score(self, cutoff: float = 2.0):
         """
         This method retrieves the divergence score for each primer set. The divergence score is
         the percentage of taxa with a percentage of divergence bellow a cutoff according to the
@@ -1484,14 +1525,12 @@ class TraitsAndResolution:
 
         Returns:
         """
-        if total_otl_taxa_count <= 0:
-            raise ValueError(
-                "mozaiko ERROR: The total number of taxa in OTL must be above 0."
-            )
+        total_otl_taxa_count = self.otl_handler.total_taxa
 
         self.divergence_df = self.compute_genetic_divergence_per_taxon()
 
-        primer_cols = self.divergence_df.loc[:, self.divergence_df.columns != "Species"]
+        taxonomic_columns = ['input_taxa', 'family', 'genus', 'species', 'rank']
+        primer_cols = [col for col in self.divergence_df.columns if col not in taxonomic_columns]
 
         divergence_score_results = []
 
@@ -1687,7 +1726,7 @@ class MetricsSystemExecutor:
         pd.DataFrame
             Combined analysis results with taxonomic resolution and divergence metrics
         """
-        trait = TraitsAndResolution(results_folder=self.results_folder)
+        trait = TraitsAndResolution(otl=self.otl, results_folder=self.results_folder)
 
         trait.multibarcode_output_folder = os.path.join(
             self.results_folder, "multibarcode"
@@ -1703,9 +1742,7 @@ class MetricsSystemExecutor:
         # )
 
         # Get Divergence Score
-        divergence_score = trait.get_divergence_score(
-            total_otl_taxa_count=int(self.total_otl_taxa_count)
-        )
+        divergence_score = trait.get_divergence_score()
 
         if "primer" in divergence_score.columns:
             divergence_score = divergence_score.set_index("primer")
