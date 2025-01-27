@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import shutil
 from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 
@@ -735,94 +736,94 @@ class Binding:
 
         return primer_pbs_df, primer_gc_df
 
-    def add_missing_otl_taxa(self, primer_df):
-        """
-        This methid adds entries for taxons that are not present in the in-silico analysis
-        but need to be present for downstream analysis regarding the OTL.
+    # def add_missing_otl_taxa(self, primer_df):
+    #     """
+    #     This methid adds entries for taxons that are not present in the in-silico analysis
+    #     but need to be present for downstream analysis regarding the OTL.
 
-        Parameters:
-        - dataframe: Dataframe
-            A dataframe containing the primer-PBS analysis.
-        - otl_taxa_set: set
-            A set containing all unique values of taxa present in the OTL.
+    #     Parameters:
+    #     - dataframe: Dataframe
+    #         A dataframe containing the primer-PBS analysis.
+    #     - otl_taxa_set: set
+    #         A set containing all unique values of taxa present in the OTL.
 
-        Returns:
-        - otl_populated_df: Dataframe
-            A dataframe equal to input but with additional entries of taxa that was in the OTL but
-            not on the in-silico files. These entries will have 'otl-import' for 'seq_id' and
-            a value of zero for all other analysis.
-        """
-        taxon_on_df = set(primer_df["taxon"].unique())
-        missing_taxon = self.otl_unique_taxa - taxon_on_df
-        # intersection = taxon_on_df & missing_taxon
-        # len_intersection = len(intersection)
+    #     Returns:
+    #     - otl_populated_df: Dataframe
+    #         A dataframe equal to input but with additional entries of taxa that was in the OTL but
+    #         not on the in-silico files. These entries will have 'otl-import' for 'seq_id' and
+    #         a value of zero for all other analysis.
+    #     """
+    #     taxon_on_df = set(primer_df["taxon"].unique())
+    #     missing_taxon = self.otl_unique_taxa - taxon_on_df
+    #     # intersection = taxon_on_df & missing_taxon
+    #     # len_intersection = len(intersection)
 
-        if missing_taxon:
-            missing_data = {
-                "taxon": list(missing_taxon),
-                "seq_id": ["otl-import"] * len(missing_taxon),
-            }
+    #     if missing_taxon:
+    #         missing_data = {
+    #             "taxon": list(missing_taxon),
+    #             "seq_id": ["otl-import"] * len(missing_taxon),
+    #         }
 
-            # Add nan values for metrics columns
-            metrics_columns = {
-                col: np.nan
-                for col in primer_df.columns
-                if col not in ["taxon", "seq_id", "family", "genus", "species", "rank"]
-            }
+    #         # Add nan values for metrics columns
+    #         metrics_columns = {
+    #             col: np.nan
+    #             for col in primer_df.columns
+    #             if col not in ["taxon", "seq_id", "family", "genus", "species", "rank"]
+    #         }
 
-            # Add information for taxonomy columns based on the OTL
-            taxonomy_columns = {
-                "family": [self.otl_handler.otl_taxa_mapping[taxon]["family"] for taxon in missing_taxon],
-                "genus": [self.otl_handler.otl_taxa_mapping[taxon]["genus"] for taxon in missing_taxon],
-                "species": [self.otl_handler.otl_taxa_mapping[taxon]["species"] for taxon in missing_taxon],
-                "rank": [self.otl_handler.otl_taxa_mapping[taxon]["rank"] for taxon in missing_taxon],
-            }
+    #         # Add information for taxonomy columns based on the OTL
+    #         taxonomy_columns = {
+    #             "family": [self.otl_handler.otl_taxa_mapping[taxon]["family"] for taxon in missing_taxon],
+    #             "genus": [self.otl_handler.otl_taxa_mapping[taxon]["genus"] for taxon in missing_taxon],
+    #             "species": [self.otl_handler.otl_taxa_mapping[taxon]["species"] for taxon in missing_taxon],
+    #             "rank": [self.otl_handler.otl_taxa_mapping[taxon]["rank"] for taxon in missing_taxon],
+    #         }
 
-            new_entries = pd.DataFrame({**missing_data, **metrics_columns, **taxonomy_columns})
+    #         new_entries = pd.DataFrame({**missing_data, **metrics_columns, **taxonomy_columns})
 
-            otl_populated_df = pd.concat([primer_df, new_entries], ignore_index=True)
-        else:
-            otl_populated_df = primer_df
+    #         otl_populated_df = pd.concat([primer_df, new_entries], ignore_index=True)
+    #     else:
+    #         otl_populated_df = primer_df
 
-        return otl_populated_df
+    #     return otl_populated_df
 
-    def iterate_over_primer_pbs_df(
-        self,
-        primer_pbs_df,
-        add_otl_taxa: bool = True,
-        otl_taxa_set: Optional[set] = None,
-    ):
-        """
-        Method to iterate over the comprehensive primer Dataframe to extract a Dataframe for each
-        primer and attribute it to a variable.
+    # def iterate_over_primer_pbs_df(
+    #     self,
+    #     primer_pbs_df,
+    #     add_otl_taxa: bool = True,
+    #     otl_taxa_set: Optional[set] = None,
+    # ):
+    #     """
+    #     Method to iterate over the comprehensive primer Dataframe to extract a Dataframe for each
+    #     primer and attribute it to a variable.
 
-        Parameter:
-        - primer_pbs_df: Dict
-            A dictionary containing the primers as keys and Dataframes as values.
+    #     Parameter:
+    #     - primer_pbs_df: Dict
+    #         A dictionary containing the primers as keys and Dataframes as values.
 
-        Return:
-        - processed_primers: List
-            A list containing the primer's dataframes.
-        """
-        processed_primers = []
+    #     Return:
+    #     - processed_primers: List
+    #         A list containing the primer's dataframes.
+    #     """
+    #     processed_primers = []
 
-        for key, dataframe in primer_pbs_df.items():
-            variable_name = key.replace("-", "_").replace(" ", "_")
-            self.processed_primers[variable_name] = dataframe
-            processed_primers.append(variable_name)
+    #     for key, dataframe in primer_pbs_df.items():
+    #         variable_name = key.replace("-", "_").replace(" ", "_")
+    #         self.processed_primers[variable_name] = dataframe
+    #         processed_primers.append(variable_name)
 
-        if add_otl_taxa == True:
-            otl_populated_dfs = [
-                self.add_missing_otl_taxa(
-                    self.processed_primers[primer_df], otl_taxa_set
-                )
-                for primer_df in processed_primers
-            ]
-            self.processed_primers = {
-                key: df for key, df in zip(processed_primers, otl_populated_dfs)
-            }
+    #     if add_otl_taxa == True:
+    #         otl_populated_dfs = [
+    #             self.add_missing_otl_taxa(
+    #                 self.processed_primers[primer_df], otl_taxa_set
+    #             )
+    #             for primer_df in processed_primers
+    #         ]
+    #         self.processed_primers = {
+    #             key: df for key, df in zip(processed_primers, otl_populated_dfs)
+    #         }
 
-        return self.processed_primers
+    #     return self.processed_primers
 
     def get_primer_df(self, primer_name):
         """
@@ -903,6 +904,7 @@ class Binding:
     ) -> Union[pd.DataFrame, pd.Series]:
         """
         This method performs user-inputed operations on a groupby of 'taxon'.
+        Modified to handle empty groups consistently across operations.
 
         Parameters:
         - operation: Literal["min", "max", "sum", "mean", "coef_var"]
@@ -924,37 +926,44 @@ class Binding:
                 f"mozaiko ERROR: The specified analysis '{analysis_name}' does not exist in the DataFrame."
             )
 
-        # Add missing taxa to the dataframe with values of Nan
-        primer_df = self.add_missing_otl_taxa(primer_df)
-
         grouped_taxa = primer_df.groupby(["family", "genus", "species"])
 
-        if operation in {"min", "max", "sum", "mean"}:
-            result = getattr(grouped_taxa[analysis_name], operation)().astype(float)
+        if operation == "sum":
+            result = pd.DataFrame({
+                analysis_name: grouped_taxa[analysis_name].sum()
+            })
+        elif operation in {"min", "max", "mean"}:
+            result = pd.DataFrame({
+                analysis_name: getattr(grouped_taxa[analysis_name], operation)()
+            })
         elif operation == "coef_var":
             mean = grouped_taxa[analysis_name].mean()
             std = grouped_taxa[analysis_name].std()
-            result = (std / mean) * 100
-
+            result = pd.DataFrame({analysis_name: (std / mean) * 100})
         else:
             raise ValueError(
                 f"mozaiko ERROR: Unrecognized operation: '{operation}'. "
                 "Please choose from 'min', 'max', 'sum', 'mean', or 'coef_var'."
             )
 
-        result = pd.DataFrame(result)
+        # Reset index to get family, genus, species as columns
         result.reset_index(inplace=True)
-        result[['family', 'genus', 'species']] = result[['family', 'genus', 'species']].replace('nan', np.nan)
+
+        # Get reference taxonomy
         ref_otl = self.otl_handler.otl[['family', 'genus', 'species']]
         ref_otl = ref_otl.drop_duplicates()
 
-        # Get entries only for the taxa that are in the OTL and add taxa that are missing (left join)
+        # Merge with OTL
+        # This step will set NaN for any missing taxa
         otl_based_result = pd.merge(
             result,
             ref_otl,
             on=["family", "genus", "species"],
             how="right"
         )
+
+        # Replace 'nan' strings with np.nan if any exist
+        otl_based_result[['family', 'genus', 'species']] = otl_based_result[['family', 'genus', 'species']].replace('nan', np.nan)
 
         final_result = self.fill_hierarchical_values(otl_based_result, operation)
 
@@ -1454,7 +1463,7 @@ class TraitsAndResolution:
 
         return nuc_dist_matrix_processed
 
-    def compute_genetic_divergence_per_taxon(self):
+    def compute_taxonomic_resolution_per_taxon(self, save_results: bool = False):
         """
         Calculate the percentage of genetic divergence for each taxon.
 
@@ -1508,9 +1517,16 @@ class TraitsAndResolution:
 
             divergence_df[primer_set] = primer_divergence
 
+        if save_results:
+            os.makedirs(os.path.join(self.results_folder, "otl_level_results/"), exist_ok=True)
+            output_path = os.path.join(self.results_folder, "otl_level_results", "taxonomic_resolution_per_taxon.tsv")
+            # Drop 'input_taxa' column
+            divergence_df_to_save = divergence_df.drop(columns='input_taxa')
+            divergence_df_to_save.to_csv(output_path, index=False, sep="\t")
+
         return divergence_df
 
-    def get_divergence_score(self, cutoff: float = 2.0):
+    def get_taxonomic_resolution(self, cutoff: float = 2.0):
         """
         This method retrieves the divergence score for each primer set. The divergence score is
         the percentage of taxa with a percentage of divergence bellow a cutoff according to the
@@ -1527,32 +1543,32 @@ class TraitsAndResolution:
         """
         total_otl_taxa_count = self.otl_handler.total_taxa
 
-        self.divergence_df = self.compute_genetic_divergence_per_taxon()
+        self.divergence_df = self.compute_taxonomic_resolution_per_taxon(save_results=True)
 
         taxonomic_columns = ['input_taxa', 'family', 'genus', 'species', 'rank']
         primer_cols = [col for col in self.divergence_df.columns if col not in taxonomic_columns]
 
-        divergence_score_results = []
+        taxonomic_resolution_results = []
 
         for column in primer_cols:
             taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][
                 column
             ].count()
 
-            divergence_score = (taxa_above_cutoff / total_otl_taxa_count) * 100
+            taxonomic_resolution = (taxa_above_cutoff / total_otl_taxa_count) * 100
 
-            divergence_score_results.append(
+            taxonomic_resolution_results.append(
                 {
                     "primer": column,
                     "total_taxa": total_otl_taxa_count,
                     "n_taxa_above_cutoff": taxa_above_cutoff,
-                    "divergence_score": round(divergence_score, 2),
+                    "taxonomic_resolution": round(taxonomic_resolution, 2),
                 }
             )
 
-        divergence_score_df = pd.DataFrame(divergence_score_results)
+        taxonomic_resolution_df = pd.DataFrame(taxonomic_resolution_results)
 
-        return divergence_score_df
+        return taxonomic_resolution_df
 
 
 class MetricsSystemExecutor:
@@ -1615,7 +1631,7 @@ class MetricsSystemExecutor:
 
         return primer_pbs_dict, gc_df
 
-    def comprehensive_primer_analysis(self, output_folder):
+    def comprehensive_primer_analysis(self, output_folder, save_otl_level_results=True):
         """
         Perform comprehensive primer analysis across multiple metrics.
 
@@ -1638,6 +1654,8 @@ class MetricsSystemExecutor:
         ref_qual = self.get_reference_database_quality()
 
         primers_to_analyze = list(primer_pbs.keys())
+
+        self.otl_level_filenames = []
 
         for primer in primers_to_analyze:
             primer_metrics = {}
@@ -1706,6 +1724,18 @@ class MetricsSystemExecutor:
             # Store results for this primer
             primer_results[primer] = primer_metrics
 
+            # Save OTL-level results
+            if save_otl_level_results:
+                otl_lev_result = pd.merge(tax_lev_max_ms_full_len, tax_lev_max_ms_three_end, on=['family', 'genus', 'species'], how='outer')
+                otl_lev_result = pd.merge(otl_lev_result, tax_lev_gc, on=['family', 'genus', 'species'], how='outer')
+                otl_lev_result = pd.merge(otl_lev_result, tax_lev_min_tm, on=['family', 'genus', 'species'], how='outer')
+
+            # Create directory for OTL-level results
+            os.makedirs(os.path.join(output_folder, "otl_level_results/"), exist_ok=True)
+            output_path_otl_results = os.path.join(output_folder, "otl_level_results" , f"otl_level_results_{primer}.tsv")
+            self.otl_level_filenames.append(output_path_otl_results)
+            otl_lev_result.to_csv(output_path_otl_results, sep="\t", index=False)
+
         binding_df = pd.DataFrame.from_dict(primer_results, orient="index")
 
         if ref_qual is not None:
@@ -1742,13 +1772,13 @@ class MetricsSystemExecutor:
         # )
 
         # Get Divergence Score
-        divergence_score = trait.get_divergence_score()
+        taxonomic_resolution = trait.get_taxonomic_resolution()
 
-        if "primer" in divergence_score.columns:
-            divergence_score = divergence_score.set_index("primer")
+        if "primer" in taxonomic_resolution.columns:
+            taxonomic_resolution = taxonomic_resolution.set_index("primer")
 
         combined_div_score_and_tax_res_results = pd.DataFrame(
-            {"divergence_score": divergence_score["divergence_score"]}
+            {"taxonomic_resolution": taxonomic_resolution["taxonomic_resolution"]}
         )
 
         traits_res_df = combined_div_score_and_tax_res_results
@@ -1759,12 +1789,87 @@ class MetricsSystemExecutor:
         """
         This method joins the results from the primer analysis and the traits and resolution analysis.
         """
-        binding_dataframe = self.comprehensive_primer_analysis(self.results_folder)
+        binding_dataframe = self.comprehensive_primer_analysis(self.results_folder, save_otl_level_results=True)
         traits_dataframe = self.get_traits_and_resolution()
 
         analysis_results = binding_dataframe.join(traits_dataframe, on="primer")
 
         return analysis_results
+
+    def sort_otl_level_results(self, subdirectory_name: str = None):
+        """
+        This method joins the divergence score results with the OTL-level binding results.
+        Files are processed in the base directory, then moved to the specified subdirectory.
+
+        Parameters:
+            subdirectory_name (str, optional): Name of the subdirectory where processed files will be moved.
+        """
+        try:
+            # Set up base directory and create subdirectory if needed
+            base_directory = Path(self.results_folder) / "otl_level_results"
+            base_directory.mkdir(parents=True, exist_ok=True)
+
+            if subdirectory_name:
+                target_directory = base_directory / subdirectory_name
+                target_directory.mkdir(parents=True, exist_ok=True)
+
+            div_score_df_path = base_directory / "taxonomic_resolution_per_taxon.tsv"
+
+            if not div_score_df_path.exists():
+                raise FileNotFoundError(f"mozaiko ERROR: Divergence score file not found: {div_score_df_path}")
+
+            taxonomic_resolution_df = pd.read_csv(div_score_df_path, sep="\t")
+            taxonomic_resolution_df.columns = taxonomic_resolution_df.columns.str.replace("-", "_")
+            required_columns = ['family', 'genus', 'species']
+
+            if not all(col in taxonomic_resolution_df.columns for col in required_columns):
+                raise ValueError(f"mozaiko WARNING: Missing required columns in divergence score file: {required_columns}")
+
+            processed_files = []
+
+            # Process files in base directory
+            for file in os.listdir(base_directory):
+                if file.startswith("otl_level_results_") and file.endswith(".tsv"):
+                    file_path = base_directory / file
+                    primer_name = file.replace("otl_level_results_", "").replace(".tsv", "").replace("-", "_")
+
+                    if primer_name not in taxonomic_resolution_df.columns:
+                        continue
+
+                    try:
+                        binding_df = pd.read_csv(file_path, sep="\t")
+
+                        if not all(col in binding_df.columns for col in required_columns):
+                            continue
+
+                        div_score_subset = taxonomic_resolution_df[required_columns + [primer_name]].rename(
+                            columns={primer_name: 'taxonomic_resolution'}
+                        )
+
+                        merged_df = pd.merge(binding_df, div_score_subset, on=required_columns, how='left')
+
+                        # Save processed file back to base directory
+                        merged_df.to_csv(file_path, sep="\t", index=False)
+                        processed_files.append(file)
+
+                        # Move processed file to subdirectory if specified
+                        if subdirectory_name:
+                            target_path = target_directory / file
+                            shutil.move(str(file_path), str(target_path))
+
+                    except Exception as e:
+                        print(f"mozaiko ERROR: Error processing {file}: {str(e)}")
+
+            if processed_files:
+                # Move the divergence score file to subdirectory if specified
+                if subdirectory_name:
+                    target_div_score_path = target_directory / "taxonomic_resolution_per_taxon.tsv"
+                    shutil.move(str(div_score_df_path), str(target_div_score_path))
+                else:
+                    os.remove(div_score_df_path)
+
+        except Exception as e:
+            raise Exception(f"mozaiko ERROR: Error in sort_otl_level_results: {str(e)}")
 
     def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None):
         """
@@ -1781,6 +1886,7 @@ class MetricsSystemExecutor:
         - output_path: str
             Path to save the results. If None, the results will be saved to the results folder.
         """
+        self.output_path = output_path
         ranking_order = {
             "barcoded_taxa_one_plus": "desc",
             "ratio_barcoded_taxa": "desc",
@@ -1790,7 +1896,7 @@ class MetricsSystemExecutor:
             "min_tm_cv": "asc",
             "tm_score": "desc",
             "amplification_success_percent": "desc",
-            "divergence_score": "asc",
+            "taxonomic_resolution": "asc",
         }
 
         metrics_df = self.join_analysis_results()
