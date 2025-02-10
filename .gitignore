@@ -22,6 +22,12 @@ external_scripts/bold-selected-highest_tax_harmonized.tsv
 external_scripts/bold-selected-init-preprocess.tsv
 external_scripts/tax_harmonize.py
 external_scripts/bold-selected-merged.tsv
-external_scripts/bold-pre-processed.tsv
-external_scripts/bold-selected-merged-clean.tsv
+external_scripts/bold-pre-process/bold-pre-processed.tsv
+external_scripts/bold-pre-process/bold-selected-merged-clean.tsv
 external_scripts/final-unique-idm.tsv
+external_scripts/bold-pre-process/bold_derep.fasta
+external_scripts/bold-pre-process/bold_clustered.fasta.clstr
+data/input_data/BMI/bold_clustered_derep.tsv
+data/input_data/BMI/bmi_database_idm_subset_processed.fasta
+data/input_data/BMI/bmi_database_idm_subset.fasta
+data/input_data/BMI/bmi_database.fasta
