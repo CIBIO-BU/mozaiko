@@ -4,6 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Union
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -173,7 +174,6 @@ def read_fasta(file):
             sequences[header] = sequence
     return sequences
 
-
 def extract_primer_binding_sites(amplicon_file, insert_file):
     """
     This method overlaps the insert sequence with the amplicon sequence to extract the primer
@@ -201,10 +201,21 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
         get_seq_id(header): (header, seq) for header, seq in insert_data.items()
     }
 
+    if not amplicon_dict or not insert_dict:
+        print(f"mozaiko WARNING: Empty data in amplicon or insert file for {amplicon_basename}")
+        return pd.DataFrame(
+            columns=["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
+        )
+
+
     for seq_id in insert_dict:
         if seq_id in amplicon_dict:
             amplicon_header, amplicon_sequence = amplicon_dict[seq_id]
             insert_header, insert_sequence = insert_dict[seq_id]
+
+            if not amplicon_sequence or not insert_sequence:
+                print(f"mozaiko WARNING: Empty sequence found for ID {seq_id}")
+                continue
 
             start_index = amplicon_sequence.find(insert_sequence)
 
@@ -212,13 +223,15 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
                 fwd_seq = amplicon_sequence[:start_index]
                 rev_seq = amplicon_sequence[start_index + len(insert_sequence) :]
 
-                fwd_seq_len = len(fwd_seq)
-                rev_seq_len = len(rev_seq)
-
-                results.append(
-                    [amplicon_header, fwd_seq, rev_seq, fwd_seq_len, rev_seq_len]
-                )
-
+                # append if both sequences are non-empty
+                if fwd_seq and rev_seq:
+                    fwd_seq_len = len(fwd_seq)
+                    rev_seq_len = len(rev_seq)
+                    results.append(
+                        [amplicon_header, fwd_seq, rev_seq, fwd_seq_len, rev_seq_len]
+                    )
+                else:
+                    print(f"mozaiko WARNING: Empty binding site extracted for ID {seq_id}")
             else:
                 print(
                     f"mozaiko WARNING: Insert sequence not found within amplicon for ID {seq_id} in {amplicon_basename}"
@@ -239,7 +252,6 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     primer_dataframe = pd.DataFrame(
         results, columns=["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
     )
-
     return primer_dataframe
 
 
@@ -357,64 +369,161 @@ def sequence_count_tracking(
         return None
 
 
-def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_file):
+# def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_file):
+#     """
+#     Process all FASTA files in a given folder and write extracted information to a TSV file.
+
+#     Parameters:
+#     - folder_path:Path to the folder containing FASTA files
+#     - output_file: Path to the output TSV file
+#     """
+#     try:
+#         fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
+#             os.path.join(pbs_incomplete_folder, "*.fasta")
+#         )
+
+#         if not fasta_files:
+#             raise FileNotFoundError(
+#                 "mozaiko ERROR: No FASTA files found in the specified folders."
+#             )
+
+#         with open(output_file, "w") as tsv_file:
+
+#             for fasta_path in fasta_files:
+#                 primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+
+#                 with open(fasta_path, "r") as fasta:
+
+#                     current_header = None
+#                     current_sequence = []
+
+#                     for line in fasta:
+#                         line = line.strip()
+
+#                         if line.startswith(">"):
+#                             if current_header and current_sequence:
+#                                 process_sequence(
+#                                     current_header,
+#                                     current_sequence,
+#                                     primer_name,
+#                                     tsv_file,
+#                                 )
+
+#                             current_header = line[1:]
+#                             current_sequence = []
+
+#                         elif line:
+#                             current_sequence.append(line)
+
+#                     if current_header and current_sequence:
+#                         process_sequence(
+#                             current_header, current_sequence, primer_name, tsv_file
+#                         )
+
+#         print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
+#         return output_file
+
+#     except Exception as e:
+#         print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")
+#         return None
+
+def split_fasta_by_family(fasta_path, output_dir):
     """
-    Process all FASTA files in a given folder and write extracted information to a TSV file.
+    Split a FASTA file into multiple files based on family information in the header.
 
     Parameters:
-    - folder_path:Path to the folder containing FASTA files
-    - output_file: Path to the output TSV file
+    - fasta_path: Path to input FASTA file
+    - output_dir: Directory to store family-specific FASTA files
+
+    Returns:
+    - dict: Mapping of family names to their output file paths
     """
-    try:
-        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
-            os.path.join(pbs_incomplete_folder, "*.fasta")
-        )
+    family_sequences = defaultdict(list)
+    current_header = None
+    current_sequence = []
 
-        if not fasta_files:
-            raise FileNotFoundError(
-                "mozaiko ERROR: No FASTA files found in the specified folders."
-            )
+    # Read and sort sequences by family
+    with open(fasta_path, 'r') as fasta:
+        for line in fasta:
+            line = line.strip()
+            if line.startswith('>'):
+                if current_header and current_sequence:
+                    family = current_header.split('|')[-3].strip()
+                    family_sequences[family].extend([current_header, ''.join(current_sequence)])
+                current_header = line
+                current_sequence = []
+            elif line:
+                current_sequence.append(line)
 
-        with open(output_file, "w") as tsv_file:
+        # Don't forget the last sequence
+        if current_header and current_sequence:
+            family = current_header.split('|')[-3].strip()
+            family_sequences[family].extend([current_header, ''.join(current_sequence)])
 
+    # Write family-specific FASTA files
+    family_files = {}
+    primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+
+    for family, sequences in family_sequences.items():
+        family_safe_name = family.replace(' ', '_')
+        output_path = os.path.join(output_dir, f"{family_safe_name}_{primer_name}.fasta")
+
+        with open(output_path, 'w') as f:
+            for i in range(0, len(sequences), 2):
+                f.write(f"{sequences[i]}\n{sequences[i+1]}\n")
+
+        family_files[family] = output_path
+
+    return family_files
+
+def create_family_multibarcode_input(family_fasta_files, output_dir):
+    """
+    Create MultiBarcodeTools input files for each family.
+
+    Parameters:
+    - family_fasta_files: Dict mapping families to their FASTA file paths
+    - output_dir: Directory to store the output files
+
+    Returns:
+    - dict: Mapping of family names to their MultiBarcodeTools input files
+    """
+    family_inputs = {}
+
+    for family, fasta_files in family_fasta_files.items():
+        family_safe_name = family.replace(' ', '_')
+        output_file = os.path.join(output_dir, f"multibarcode_input_{family_safe_name}.tsv")
+
+        with open(output_file, 'w') as tsv_file:
             for fasta_path in fasta_files:
                 primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
-
-                with open(fasta_path, "r") as fasta:
-
+                with open(fasta_path, 'r') as fasta:
                     current_header = None
                     current_sequence = []
-
                     for line in fasta:
                         line = line.strip()
-
-                        if line.startswith(">"):
+                        if line.startswith('>'):
                             if current_header and current_sequence:
                                 process_sequence(
                                     current_header,
                                     current_sequence,
                                     primer_name,
-                                    tsv_file,
+                                    tsv_file
                                 )
-
                             current_header = line[1:]
                             current_sequence = []
-
                         elif line:
                             current_sequence.append(line)
-
                     if current_header and current_sequence:
                         process_sequence(
-                            current_header, current_sequence, primer_name, tsv_file
+                            current_header,
+                            current_sequence,
+                            primer_name,
+                            tsv_file
                         )
 
-        print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
-        return output_file
+        family_inputs[family] = output_file
 
-    except Exception as e:
-        print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")
-        return None
-
+    return family_inputs
 
 def process_sequence(header, sequence_lines, primer_name, tsv_file):
     """

@@ -192,34 +192,42 @@ class ReferenceDatabaseQuality:
 
     def calculate_number_of_barcodes_per_fasta_entry(self):
         """
-        This method calculates the total number of barcodes per unique taxonomy entry.
+        Calculates the total number of barcodes per unique taxonomy entry.
+        Uses pandas groupby for faster processing and handles non-string values.
 
-        Parameters:
-        - all_inserts_file: File containing all inserts present in the reference database, either
-        successfully amplified or not.
-
-        Ouput:
-        - barcodes_per_entry: Dictionary containing information on how many barcodes (values)
-        exists per taxonomy entry (keys).
+        Returns:
+            dict: Dictionary containing number of barcodes (values) per taxonomy entry (keys),
+                organized by primer pair.
         """
+        print("mozaiko INFO: Calculating the number of barcodes per FASTA.")
+
+        # Get all FASTA files
         fasta_files = self.parse_fasta_files()
         barcodes_per_entry = {}
 
+        # Process each primer pair and its corresponding file
         for primer_pair, file_path in fasta_files.items():
+            # Read FASTA file with minimal validation for speed
             fasta_data = self.custom_fasta_import.read_fasta(
-                file_path, check_taxid=False
+                file_path,
+                check_taxid=False,
+                overide_validation=True
             )
-            # fasta_data.to_csv('data-fasta.csv', sep='\t')
-            # print(fasta_data.head())
 
-            barcodes_per_entry[primer_pair] = {}
+            # Convert taxa_info to string type and handle NaN values
+            fasta_data['taxa_info'] = fasta_data['taxa_info'].astype(str).replace('nan', '')
 
-            for taxa in fasta_data["taxa_info"].unique():
-                sequences = fasta_data[fasta_data["taxa_info"] == taxa][
-                    "sequence"
-                ]
+            # Remove any leading/trailing whitespace
+            fasta_data['taxa_info'] = fasta_data['taxa_info'].str.strip()
 
-                barcodes_per_entry[primer_pair][taxa.strip()] = len(sequences)
+            # Filter out empty taxa_info entries
+            fasta_data = fasta_data[fasta_data['taxa_info'] != '']
+
+            # Use groupby for counting
+            counts = fasta_data.groupby('taxa_info')['sequence'].size()
+
+            # Convert Series to dictionary
+            barcodes_per_entry[primer_pair] = counts.to_dict()
 
         return barcodes_per_entry
 
@@ -524,6 +532,8 @@ class Binding:
             - `forward_primer_gc_fraction`: GC fraction of the forward primer.
             - `reverse_primer_gc_fraction`: GC fraction of the reverse primer.
         """
+        print("mozaiko INFO: Retrieving primer-PBS statistics.")
+
         self.primer_table = self.get_primer_table(primer_table)
         matching_files = self.parse_files_with_same_extension_in_folders(
             amplicon_folder, insert_folder
@@ -570,6 +580,15 @@ class Binding:
                     pbs_table = self.get_pbs_table(amplicon_file, insert_file)
 
                     for _, pbs_row in pbs_table.iterrows():
+                        pbs_fwd_seq = pbs_row["fwd_seq"]
+                        pbs_rev_seq = pbs_row["rev_seq"]
+
+                        if not pbs_fwd_seq or not pbs_rev_seq:
+                            seq_header = pbs_row["header"].replace(">", "")
+                            seq_id = seq_header.split("|")[0].replace(" ", "")
+                            print(f"mozaiko WARNING: Skipping entry with empty PBS sequence(s): {seq_id}")
+                            continue
+
                         seq_header = pbs_row["header"].replace(">", "")
                         seq_id = seq_header.split("|")[0].replace(" ", "")
                         taxon = seq_header.split("|")[2]
@@ -577,8 +596,6 @@ class Binding:
                         family = seq_header.split("|")[8]
                         genus = seq_header.split("|")[9]
                         species = seq_header.split("|")[10]
-                        pbs_fwd_seq = pbs_row["fwd_seq"]
-                        pbs_rev_seq = pbs_row["rev_seq"]
 
                         # Melting Temperature
                         pbs_fwd_tm = MeltingTemp.Tm_GC(
@@ -680,53 +697,85 @@ class Binding:
                         )
 
             if matching_files_found:
+                if not full_mismatches_data or not three_end_mismatches_data or not pbs_melting_temperature_data or not three_end_gc_matches_data:
+                    print(f"mozaiko WARNING: Missing data for {pbs_filename}, skipping...")
+                    continue
+
+                try:
                 # Start by adding one df
-                comprehensive_df = pd.DataFrame(full_mismatches_data)
-                # Merge all other df's by seq_id & taxon
-                comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(three_end_mismatches_data)[
-                        ["seq_id", "taxon", "three_end_mismatch_sum"]
-                    ],
-                    on=["seq_id", "taxon"],
-                )
+                    comprehensive_df = pd.DataFrame(full_mismatches_data)
 
-                comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(pbs_melting_temperature_data)[
-                        ["seq_id", "taxon", "min_tm", "delta_tm"]
-                    ],
-                    on=["seq_id", "taxon"],
-                )
+                    if comprehensive_df.empty:
+                        print(f"mozaiko WARNING: Empty data for {pbs_filename}, skipping...")
+                        continue
 
-                comprehensive_df = comprehensive_df.merge(
-                    pd.DataFrame(three_end_gc_matches_data)[
-                        ["seq_id", "taxon", "gc_matches_fwd", "gc_matches_rev"]
-                    ],
-                    on=["seq_id", "taxon"],
-                )
+                    # Create and verify other DataFrames before merging
+                    three_end_df = pd.DataFrame(three_end_mismatches_data)
+                    temp_df = pd.DataFrame(pbs_melting_temperature_data)
+                    gc_matches_df = pd.DataFrame(three_end_gc_matches_data)
 
-                column_order = [
-                    "seq_id",
-                    "taxon",
-                    "family",
-                    "genus",
-                    "species",
-                    "rank",
-                    "full_len_mismatch_sum",
-                    "three_end_mismatch_sum",
-                    "gc_matches_fwd",
-                    "gc_matches_rev",
-                    "min_tm",
-                    "delta_tm",
-                ]
+                    required_columns = {
+                    'three_end_df': ['seq_id', 'taxon', 'three_end_mismatch_sum'],
+                    'temp_df': ['seq_id', 'taxon', 'min_tm', 'delta_tm'],
+                    'gc_matches_df': ['seq_id', 'taxon', 'gc_matches_fwd', 'gc_matches_rev']
+                    }
 
-                comprehensive_df = comprehensive_df[column_order]
+                    for df_name, columns in required_columns.items():
+                        df = locals()[df_name]
+                        missing_cols = [col for col in columns if col not in df.columns]
+                        if missing_cols:
+                            print(f"mozaiko WARNING: Missing columns {missing_cols} in {df_name} for {pbs_filename}")
+                            continue
 
-                primer_pbs_df[pbs_filename] = comprehensive_df
-
-                if save_results:
-                    comprehensive_df.to_csv(
-                        f"{pbs_filename}_comprehensive.csv", index=False
+                    #  Merge all other df's by seq_id & taxon
+                    comprehensive_df = comprehensive_df.merge(
+                        pd.DataFrame(three_end_mismatches_data)[
+                            ["seq_id", "taxon", "three_end_mismatch_sum"]
+                        ],
+                        on=["seq_id", "taxon"],
                     )
+
+                    comprehensive_df = comprehensive_df.merge(
+                        pd.DataFrame(pbs_melting_temperature_data)[
+                            ["seq_id", "taxon", "min_tm", "delta_tm"]
+                        ],
+                        on=["seq_id", "taxon"],
+                    )
+
+                    comprehensive_df = comprehensive_df.merge(
+                        pd.DataFrame(three_end_gc_matches_data)[
+                            ["seq_id", "taxon", "gc_matches_fwd", "gc_matches_rev"]
+                        ],
+                        on=["seq_id", "taxon"],
+                    )
+
+                    column_order = [
+                        "seq_id",
+                        "taxon",
+                        "family",
+                        "genus",
+                        "species",
+                        "rank",
+                        "full_len_mismatch_sum",
+                        "three_end_mismatch_sum",
+                        "gc_matches_fwd",
+                        "gc_matches_rev",
+                        "min_tm",
+                        "delta_tm",
+                    ]
+
+                    comprehensive_df = comprehensive_df[column_order]
+
+                    primer_pbs_df[pbs_filename] = comprehensive_df
+
+                    if save_results:
+                        comprehensive_df.to_csv(
+                            f"{pbs_filename}_comprehensive.csv", index=False
+                        )
+
+                except Exception as e:
+                    print(f"mozaiko ERROR: Failed to process {pbs_filename}: {str(e)}")
+                    continue
 
         primer_gc_df = pd.DataFrame(primer_gc_fractions)
         primer_gc_df.set_index("primer_name", inplace=True)
@@ -1214,7 +1263,7 @@ class TraitsAndResolution:
             self.results_folder = results_folder
             self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
             self.amplicon_folder_path = os.path.join(
-                results_folder, "amplicon/filtered"
+                results_folder, "amplicon"
             )
             self.incomplete_pbs_path = os.path.join(
                 results_folder, "incomplete_pbs/filtered/filtered_intersection"
@@ -1372,7 +1421,7 @@ class TraitsAndResolution:
                 capture_output=True,
                 text=True,
             )
-            # print(result.stdout)
+            print(result.stdout)
             print(
                 f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}"
             )
@@ -1591,7 +1640,7 @@ class MetricsSystemExecutor:
         self.results_folder = results_folder
         self.results_folder = results_folder
         self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
-        self.amplicon_folder_path = os.path.join(results_folder, "amplicon/filtered")
+        self.amplicon_folder_path = os.path.join(results_folder, "amplicon")
         self.incomplete_pbs_path = os.path.join(
             results_folder, "incomplete_pbs/filtered/filtered_intersection"
         )
@@ -1609,6 +1658,7 @@ class MetricsSystemExecutor:
             A DataFrane containing the percentage of taxa with more than five barcodes and the
             rounded Ratio of Barcoded Taxa for each primer.
         """
+        print("mozaiko INFO: Retriving information on the Reference Database Quality.")
         red_bd_qual = ReferenceDatabaseQuality(otl=self.otl, all_inserts_path=self.insert_folder_path)
         reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
             total_taxa_count=self.total_otl_taxa_count

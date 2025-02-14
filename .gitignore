@@ -31,3 +31,5 @@ data/input_data/BMI/bold_clustered_derep.tsv
 data/input_data/BMI/bmi_database_idm_subset_processed.fasta
 data/input_data/BMI/bmi_database_idm_subset.fasta
 data/input_data/BMI/bmi_database.fasta
+data/input_data/BMI/bold_idm_filt_processed.fasta
+data/input_data/BMI/bold_idm_filt.fasta

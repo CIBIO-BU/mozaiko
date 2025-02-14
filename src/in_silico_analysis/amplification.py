@@ -463,7 +463,7 @@ class InSilicoAmplification:
             pga_directories, taxa_column_start, taxa_column_end
         )
 
-        directories_to_filter = ["amplicon", "all_complete_pbs", "incomplete_pbs"]
+        directories_to_filter = ["all_complete_pbs", "incomplete_pbs"]
         for dir_name in directories_to_filter:
             try:
                 input_path = self.output_dirs[dir_name]

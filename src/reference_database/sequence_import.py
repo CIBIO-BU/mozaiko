@@ -105,6 +105,7 @@ class CustomFastaImport:
         self,
         fasta_file: str,
         sep="|",
+        overide_validation=False,
         check_taxid=False,
         taxa_column_start: int = 1,
         taxa_column_end: int = 10,
@@ -122,7 +123,8 @@ class CustomFastaImport:
             print(f"mozaico INFO: No FASTA file attributed to read_fasta. Reading {self.database_fasta_file}.")
             fasta_file = self.database_fasta_file
 
-        self._validate_input(fasta_file)
+        if overide_validation is False:
+            self._validate_input(fasta_file)
 
         self.clean_fasta_headers(fasta_file, fasta_file)
 
