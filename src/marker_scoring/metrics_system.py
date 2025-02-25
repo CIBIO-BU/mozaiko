@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 import shutil
+import tempfile
 from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 
@@ -1659,10 +1660,24 @@ class MetricsSystemExecutor:
             rounded Ratio of Barcoded Taxa for each primer.
         """
         print("mozaiko INFO: Retriving information on the Reference Database Quality.")
-        red_bd_qual = ReferenceDatabaseQuality(otl=self.otl, all_inserts_path=self.insert_folder_path)
-        reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
-            total_taxa_count=self.total_otl_taxa_count
-        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            all_inserts_path = os.path.join(temp_dir, "all_inserts")
+            os.makedirs(all_inserts_path, exist_ok=True)
+
+            for folder in [self.insert_folder_path, self.incomplete_pbs_path]:
+                if os.path.exists(folder):
+                    for file in os.listdir(folder):
+                        src = os.path.join(folder, file)
+                        dest = os.path.join(all_inserts_path, file)
+
+                        if os.path.isfile(src):
+                            shutil.copy(src, dest)
+
+            red_bd_qual = ReferenceDatabaseQuality(otl=self.otl, all_inserts_path=all_inserts_path)
+            reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
+                total_taxa_count=self.total_otl_taxa_count
+            )
 
         return reference_db_quality
 

@@ -270,7 +270,6 @@ class InSilicoAmplification:
         """
         input_path = Path(input_path)
         filter_path = Path(filter_path)
-
         is_input_dir = input_path.is_dir()
 
         # Create filtered output directory
@@ -300,7 +299,6 @@ class InSilicoAmplification:
             raise ValueError(f"mozaiko ERROR: No FASTA files found in {filter_path}")
 
         filter_primer_mapping = {f.stem: f for f in filter_files}
-
         results = {}
 
         for input_file in input_files:
@@ -311,97 +309,121 @@ class InSilicoAmplification:
                 continue
 
             matching_primer = filter_primer_mapping[input_file.stem]
-
-            # all_PBS_count = self.count_sequences(input_file)
-            # incomplete_psb_count = self.count_sequences(matching_primer)
-
             output_file = filtered_output_dir / input_file.name
 
             ids_to_filter = set()
             for record in SeqIO.parse(matching_primer, "fasta"):
-                # seq_string_filtered = str(record.seq).upper()
                 id_filtered = record.id
                 ids_to_filter.add(id_filtered)
 
-            with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
-                retained_sequences = set()
-                for record in SeqIO.parse(input_file, "fasta"):
-                    seq_string_retained = str(record.seq).upper()
-                    record_retained = record.description
-                    record_id = record.id
-                    if record_id not in ids_to_filter:
-                        retained_sequences.add((seq_string_retained, record_retained))
+            retained_sequences = set()
+            for record in SeqIO.parse(input_file, "fasta"):
+                seq_string_retained = str(record.seq).upper()
+                record_retained = record.description
+                record_id = record.id
+                if record_id not in ids_to_filter:
+                    retained_sequences.add((seq_string_retained, record_retained))
 
-                with open(output_file, "w") as output_handle:
-                    for seq_string_retained, record_retained in retained_sequences:
-                        output_handle.write(
-                            f">{record_retained}\n{seq_string_retained}\n"
-                        )
+            with open(output_file, "w") as output_handle:
+                for seq_string_retained, record_retained in retained_sequences:
+                    output_handle.write(
+                        f">{record_retained}\n{seq_string_retained}\n"
+                    )
 
-                results[input_file] = {
-                    "retained_sequences": len(retained_sequences),
-                    "filter_file_used": matching_primer,
-                    "output_file": output_file,
-                }
+            results[input_file] = {
+                "retained_sequences": len(retained_sequences),
+                "filter_file_used": matching_primer,
+                "output_file": output_file,
+            }
 
             print(
                 f"    For {input_file.stem}: {results[input_file]['retained_sequences']} sequences were retained."
             )
 
-    def add_taxonomy_to_pga_outputs(
-        self, input_folders, taxa_column_start, taxa_column_end
-    ):
+    def _load_taxonomy_mapping(self):
         """
-        This method adds taxonomy information to FASTA file headers where it's missing (PGA outputs).
-
-        Parameters:
-        - input_folders (list):
-        List of folder paths containing FASTA files to process
+        Load and cache taxonomy mapping from database file.
         """
-        # Load mapping between taxonomy and seq-id
-        self.custom_fasta_import = CustomFastaImport(self.database_fasta_file)
-        self.custom_fasta_import.read_fasta(
-            self.database_fasta_file,
-            taxa_column_start=taxa_column_start,
-            taxa_column_end=taxa_column_end,
-        )
-        seq_id_taxonomy_dict = (
-            self.custom_fasta_import.get_mapping_between_seq_id_taxonomy()
-        )
+        try:
+            with open(self.database_fasta_file) as f:
+                mapping = {}
+                for line in f:
+                    if line.startswith('>'):
+                        parts = line[1:].strip().split('|')
+                        if len(parts) >= 11:
+                            accession = parts[0]
+                            taxonomy = '|'.join(parts[1:11])
+                            mapping[accession] = taxonomy
+                return mapping
+        except Exception as e:
+            print(f"mozaiko ERROR: Failed to load taxonomy mapping: {e}")
+            raise
 
-        for folder_path in input_folders:
-            folder_path = Path(folder_path)
-            fasta_files = list(folder_path.rglob("*.fasta"))
+    def _process_fasta_file(self, fasta_file: Path, taxonomy_dict: Dict[str, str]):
+        """
+        Process a single FASTA file with error handling.
+        """
+        try:
+            records = []
+            modified = False
 
-            for fasta_file in fasta_files:
-                records = list(SeqIO.parse(fasta_file, "fasta"))
-                modified = False
+            # Read all records at once
+            for record in SeqIO.parse(str(fasta_file), "fasta"):
+                accession = record.id.split("|")[0]
+                if accession in taxonomy_dict:
+                    new_description = f"{accession}|{taxonomy_dict[accession]}"
+                    record.description = new_description
+                    record.id = new_description.split()[0]
+                    modified = True
+                records.append(record)
 
-                for record in records:
-                    if record.description.count("|") < 9:
-                        # Extract just the accession number for dictionary lookup
-                        accession = record.id.split("|")[0]
-                        if accession in seq_id_taxonomy_dict:
-                            new_description = (
-                                f"{accession}|{seq_id_taxonomy_dict[accession]}"
-                            )
-                            record.description = new_description
-                            record.id = new_description.split()[0]
-                            modified = True
-
-                if modified:
-                    with open(fasta_file, "w") as output_handle:
+            # Only write if modifications were made
+            if modified:
+                with open(fasta_file, "w") as output_handle:
                         for record in records:
                             output_handle.write(
                                 f">{record.description}\n{str(record.seq)}\n"
                             )
 
+        except Exception as e:
+            print(f"mozaiko ERROR: Error processing {fasta_file}: {e}")
+
+    def add_taxonomy_to_pga_outputs(
+        self,
+        input_folders: list[str]
+    ) -> None:
+        """
+        Add taxonomy information to FASTA file headers where missing.
+
+        Args:
+            input_folders: List of folder paths containing FASTA files
+            taxa_column_start: Starting column index for taxonomy information
+            taxa_column_end: Ending column index for taxonomy information
+
+        Raises:
+            ValueError: If input parameters are invalid
+            FileNotFoundError: If input folders don't exist
+        """
+        if not input_folders:
+            raise ValueError("No input folders provided")
+
+        taxonomy_dict = self._load_taxonomy_mapping()
+
+        for folder_path in input_folders:
+            folder = Path(folder_path)
+            if not folder.exists():
+                print(f"mozaiko ERROR: Folder not found: {folder}")
+                continue
+
+            fasta_files = list(folder.glob("*.fasta"))
+
+            for fasta_file in fasta_files:
+                self._process_fasta_file(fasta_file, taxonomy_dict)
+
     def run_in_silico_analysis(
         self,
         primer_table=None,
-        max_len_according_to_ilumina: bool = True,
-        taxa_column_start=None,
-        taxa_column_end=None,
+        max_len_according_to_ilumina: bool = True
     ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
@@ -460,7 +482,7 @@ class InSilicoAmplification:
             self.run_dir / "incomplete_pbs" / "filtered" / "filtered_intersection",
         ]
         self.add_taxonomy_to_pga_outputs(
-            pga_directories, taxa_column_start, taxa_column_end
+            pga_directories
         )
 
         directories_to_filter = ["all_complete_pbs", "incomplete_pbs"]
@@ -479,10 +501,6 @@ class InSilicoAmplification:
         for file in insert_files:
             number_of_sequences = self.count_sequences(file)
             print(f"    For {file.stem}, {number_of_sequences} were retained.")
-
-        # Make a copy of the inserts file to avoid alterations in downstream tasks (intersections)
-        all_inserts_path = self.run_dir / "all_inserts"
-        shutil.copytree(filter_inserts_path, all_inserts_path)
 
         print(
             "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."

@@ -369,161 +369,63 @@ def sequence_count_tracking(
         return None
 
 
-# def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_file):
-#     """
-#     Process all FASTA files in a given folder and write extracted information to a TSV file.
-
-#     Parameters:
-#     - folder_path:Path to the folder containing FASTA files
-#     - output_file: Path to the output TSV file
-#     """
-#     try:
-#         fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
-#             os.path.join(pbs_incomplete_folder, "*.fasta")
-#         )
-
-#         if not fasta_files:
-#             raise FileNotFoundError(
-#                 "mozaiko ERROR: No FASTA files found in the specified folders."
-#             )
-
-#         with open(output_file, "w") as tsv_file:
-
-#             for fasta_path in fasta_files:
-#                 primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
-
-#                 with open(fasta_path, "r") as fasta:
-
-#                     current_header = None
-#                     current_sequence = []
-
-#                     for line in fasta:
-#                         line = line.strip()
-
-#                         if line.startswith(">"):
-#                             if current_header and current_sequence:
-#                                 process_sequence(
-#                                     current_header,
-#                                     current_sequence,
-#                                     primer_name,
-#                                     tsv_file,
-#                                 )
-
-#                             current_header = line[1:]
-#                             current_sequence = []
-
-#                         elif line:
-#                             current_sequence.append(line)
-
-#                     if current_header and current_sequence:
-#                         process_sequence(
-#                             current_header, current_sequence, primer_name, tsv_file
-#                         )
-
-#         print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
-#         return output_file
-
-#     except Exception as e:
-#         print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")
-#         return None
-
-def split_fasta_by_family(fasta_path, output_dir):
+def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_file):
     """
-    Split a FASTA file into multiple files based on family information in the header.
+    Process all FASTA files in a given folder and write extracted information to a TSV file.
 
     Parameters:
-    - fasta_path: Path to input FASTA file
-    - output_dir: Directory to store family-specific FASTA files
-
-    Returns:
-    - dict: Mapping of family names to their output file paths
+    - folder_path:Path to the folder containing FASTA files
+    - output_file: Path to the output TSV file
     """
-    family_sequences = defaultdict(list)
-    current_header = None
-    current_sequence = []
+    try:
+        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
+            os.path.join(pbs_incomplete_folder, "*.fasta")
+        )
 
-    # Read and sort sequences by family
-    with open(fasta_path, 'r') as fasta:
-        for line in fasta:
-            line = line.strip()
-            if line.startswith('>'):
-                if current_header and current_sequence:
-                    family = current_header.split('|')[-3].strip()
-                    family_sequences[family].extend([current_header, ''.join(current_sequence)])
-                current_header = line
-                current_sequence = []
-            elif line:
-                current_sequence.append(line)
+        if not fasta_files:
+            raise FileNotFoundError(
+                "mozaiko ERROR: No FASTA files found in the specified folders."
+            )
 
-        # Don't forget the last sequence
-        if current_header and current_sequence:
-            family = current_header.split('|')[-3].strip()
-            family_sequences[family].extend([current_header, ''.join(current_sequence)])
+        with open(output_file, "w") as tsv_file:
 
-    # Write family-specific FASTA files
-    family_files = {}
-    primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
-
-    for family, sequences in family_sequences.items():
-        family_safe_name = family.replace(' ', '_')
-        output_path = os.path.join(output_dir, f"{family_safe_name}_{primer_name}.fasta")
-
-        with open(output_path, 'w') as f:
-            for i in range(0, len(sequences), 2):
-                f.write(f"{sequences[i]}\n{sequences[i+1]}\n")
-
-        family_files[family] = output_path
-
-    return family_files
-
-def create_family_multibarcode_input(family_fasta_files, output_dir):
-    """
-    Create MultiBarcodeTools input files for each family.
-
-    Parameters:
-    - family_fasta_files: Dict mapping families to their FASTA file paths
-    - output_dir: Directory to store the output files
-
-    Returns:
-    - dict: Mapping of family names to their MultiBarcodeTools input files
-    """
-    family_inputs = {}
-
-    for family, fasta_files in family_fasta_files.items():
-        family_safe_name = family.replace(' ', '_')
-        output_file = os.path.join(output_dir, f"multibarcode_input_{family_safe_name}.tsv")
-
-        with open(output_file, 'w') as tsv_file:
             for fasta_path in fasta_files:
                 primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
-                with open(fasta_path, 'r') as fasta:
+
+                with open(fasta_path, "r") as fasta:
+
                     current_header = None
                     current_sequence = []
+
                     for line in fasta:
                         line = line.strip()
-                        if line.startswith('>'):
+
+                        if line.startswith(">"):
                             if current_header and current_sequence:
                                 process_sequence(
                                     current_header,
                                     current_sequence,
                                     primer_name,
-                                    tsv_file
+                                    tsv_file,
                                 )
+
                             current_header = line[1:]
                             current_sequence = []
+
                         elif line:
                             current_sequence.append(line)
+
                     if current_header and current_sequence:
                         process_sequence(
-                            current_header,
-                            current_sequence,
-                            primer_name,
-                            tsv_file
+                            current_header, current_sequence, primer_name, tsv_file
                         )
 
-        family_inputs[family] = output_file
+        print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
+        return output_file
 
-    return family_inputs
+    except Exception as e:
+        print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")
+        return None
 
 def process_sequence(header, sequence_lines, primer_name, tsv_file):
     """
@@ -540,7 +442,7 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
     if "|" in header:
         parts = header.split("|")
 
-        if len(parts) >= 10:
+        if len(parts) == 11:
             seq_ID = parts[0].strip()
             species_name = parts[2].strip()
 
@@ -552,3 +454,87 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
                   "been through harmonization.")
     else:
         print(f"mozaico WARNING: Unexpected header format: {header}")
+
+def process_bmi_sequences(header, sequence_lines, primer_name, tsv_file, skipped_counter):
+    """
+    DELETE THIS. test.
+    """
+    full_sequence = "".join(sequence_lines)
+    if "|" in header:
+        parts = header.split("|")
+        original_length = len(parts)
+        if original_length == 11:
+            seq_ID = parts[0].strip()
+            species_name = parts[2].strip()
+            kingdom = parts[4].strip()
+            phylum = parts[5].strip()
+            classt = parts[6].strip()
+            order = parts[7].strip()
+            family = parts[8].strip()
+            genus = parts[9].strip()
+            species = parts[10].strip()
+            tsv_file.write(
+                f"{seq_ID}\t{primer_name}\t{species_name}\t{kingdom}\t{phylum}\t{classt}\t{order}\t{family}\t{genus}\t{species}\t{full_sequence}\n"
+            )
+        else:
+            skipped_counter["insufficient_columns"] += 1
+            print(f"mozaico WARNING: Incorrect header format: {header}. Check if the header has been through harmonization.")
+    else:
+        skipped_counter["unexpected_format"] += 1
+        print(f"mozaico WARNING: Unexpected header format: {header}")
+
+    return skipped_counter
+
+def create_multibarcode_input_for_bmi(results_folder, output_file):
+    insert_folder =  results_folder + "/insert/filtered"
+    pbs_incomplete_folder = results_folder + "/incomplete_pbs/filtered/filtered_intersection"
+
+    try:
+        fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
+            os.path.join(pbs_incomplete_folder, "*.fasta")
+        )
+        if not fasta_files:
+            raise FileNotFoundError(
+                "mozaiko ERROR: No FASTA files found in the specified folders."
+            )
+
+        # Initialize counters
+        skipped_counter = {"insufficient_columns": 0, "unexpected_format": 0}
+        processed_counter = 0
+
+        with open(output_file, "w") as tsv_file:
+            for fasta_path in fasta_files:
+                primer_name = os.path.splitext(os.path.basename(fasta_path))[0]
+                with open(fasta_path, "r") as fasta:
+                    current_header = None
+                    current_sequence = []
+                    for line in fasta:
+                        line = line.strip()
+                        if line.startswith(">"):
+                            if current_header and current_sequence:
+                                skipped_counter = process_bmi_sequences(
+                                    current_header,
+                                    current_sequence,
+                                    primer_name,
+                                    tsv_file,
+                                    skipped_counter
+                                )
+                                processed_counter += 1
+                            current_header = line[1:]
+                            current_sequence = []
+                        elif line:
+                            current_sequence.append(line)
+                    if current_header and current_sequence:
+                        skipped_counter = process_bmi_sequences(
+                            current_header, current_sequence, primer_name, tsv_file, skipped_counter
+                        )
+                        processed_counter += 1
+
+        # Print summary at the end
+        print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
+        print(f"mozaiko INFO: Total entries processed: {processed_counter}")
+        print(f"mozaiko WARNING: {skipped_counter['insufficient_columns']} entries were not written because they did not meet the minimum length of columns. Check if headers have been through harmonization.")
+        print(f"mozaiko WARNING: {skipped_counter['unexpected_format']} entries were not written because of unexpected header format.")
+
+    except Exception as e:
+        print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")

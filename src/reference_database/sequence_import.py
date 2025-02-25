@@ -129,8 +129,10 @@ class CustomFastaImport:
         self.clean_fasta_headers(fasta_file, fasta_file)
 
         # Set defaults if parameters are None
-        taxa_column_start = taxa_column_start or 1
-        taxa_column_end = taxa_column_end or 10
+        if taxa_column_start is None:
+            taxa_column_start = 1
+        if taxa_column_end is None:
+            taxa_column_end = 10
         # print(
         #     f"Retrieving taxonomy in header, from column {taxa_column_start} to"
         #     + f" column {taxa_column_end}, considering the separator: '{sep}'. \n"
@@ -148,6 +150,7 @@ class CustomFastaImport:
             for seq in records:
                 name, sequence, description = seq.id, str(seq.seq), seq.description
                 seq_len = len(sequence)
+                sequence = sequence.upper()
 
                 name = name.split("|")[0]
                 data_dict["seq_id"].append(name)
