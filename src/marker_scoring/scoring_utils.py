@@ -2,9 +2,9 @@ import glob
 import os
 import re
 import subprocess
+from collections import defaultdict
 from pathlib import Path
 from typing import Union
-from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -174,6 +174,7 @@ def read_fasta(file):
             sequences[header] = sequence
     return sequences
 
+
 def extract_primer_binding_sites(amplicon_file, insert_file):
     """
     This method overlaps the insert sequence with the amplicon sequence to extract the primer
@@ -202,11 +203,12 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     }
 
     if not amplicon_dict or not insert_dict:
-        print(f"mozaiko WARNING: Empty data in amplicon or insert file for {amplicon_basename}")
+        print(
+            f"mozaiko WARNING: Empty data in amplicon or insert file for {amplicon_basename}"
+        )
         return pd.DataFrame(
             columns=["header", "fwd_seq", "rev_seq", "fwd_seq_len", "rev_seq_len"]
         )
-
 
     for seq_id in insert_dict:
         if seq_id in amplicon_dict:
@@ -231,7 +233,9 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
                         [amplicon_header, fwd_seq, rev_seq, fwd_seq_len, rev_seq_len]
                     )
                 else:
-                    print(f"mozaiko WARNING: Empty binding site extracted for ID {seq_id}")
+                    print(
+                        f"mozaiko WARNING: Empty binding site extracted for ID {seq_id}"
+                    )
             else:
                 print(
                     f"mozaiko WARNING: Insert sequence not found within amplicon for ID {seq_id} in {amplicon_basename}"
@@ -427,6 +431,7 @@ def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_
         print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")
         return None
 
+
 def process_sequence(header, sequence_lines, primer_name, tsv_file):
     """
     Process a single FASTA sequence and write to TSV.
@@ -450,12 +455,17 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
                 f"{seq_ID}\t{primer_name}\t{species_name}\t{full_sequence}\n"
             )
         else:
-            print(f"mozaico WARNING: Incorrect header format: {header}. Check if the header has" +
-                  "been through harmonization.")
+            print(
+                f"mozaico WARNING: Incorrect header format: {header}. Check if the header has"
+                + "been through harmonization."
+            )
     else:
         print(f"mozaico WARNING: Unexpected header format: {header}")
 
-def process_bmi_sequences(header, sequence_lines, primer_name, tsv_file, skipped_counter):
+
+def process_bmi_sequences(
+    header, sequence_lines, primer_name, tsv_file, skipped_counter
+):
     """
     DELETE THIS. test.
     """
@@ -478,16 +488,21 @@ def process_bmi_sequences(header, sequence_lines, primer_name, tsv_file, skipped
             )
         else:
             skipped_counter["insufficient_columns"] += 1
-            print(f"mozaico WARNING: Incorrect header format: {header}. Check if the header has been through harmonization.")
+            print(
+                f"mozaico WARNING: Incorrect header format: {header}. Check if the header has been through harmonization."
+            )
     else:
         skipped_counter["unexpected_format"] += 1
         print(f"mozaico WARNING: Unexpected header format: {header}")
 
     return skipped_counter
 
+
 def create_multibarcode_input_for_bmi(results_folder, output_file):
-    insert_folder =  results_folder + "/insert/filtered"
-    pbs_incomplete_folder = results_folder + "/incomplete_pbs/filtered/filtered_intersection"
+    insert_folder = results_folder + "/insert/filtered"
+    pbs_incomplete_folder = (
+        results_folder + "/incomplete_pbs/filtered/filtered_intersection"
+    )
 
     try:
         fasta_files = glob.glob(os.path.join(insert_folder, "*.fasta")) + glob.glob(
@@ -517,7 +532,7 @@ def create_multibarcode_input_for_bmi(results_folder, output_file):
                                     current_sequence,
                                     primer_name,
                                     tsv_file,
-                                    skipped_counter
+                                    skipped_counter,
                                 )
                                 processed_counter += 1
                             current_header = line[1:]
@@ -526,15 +541,23 @@ def create_multibarcode_input_for_bmi(results_folder, output_file):
                             current_sequence.append(line)
                     if current_header and current_sequence:
                         skipped_counter = process_bmi_sequences(
-                            current_header, current_sequence, primer_name, tsv_file, skipped_counter
+                            current_header,
+                            current_sequence,
+                            primer_name,
+                            tsv_file,
+                            skipped_counter,
                         )
                         processed_counter += 1
 
         # Print summary at the end
         print(f"mozaiko INFO: MultiBarcodeTools file created to {output_file}")
         print(f"mozaiko INFO: Total entries processed: {processed_counter}")
-        print(f"mozaiko WARNING: {skipped_counter['insufficient_columns']} entries were not written because they did not meet the minimum length of columns. Check if headers have been through harmonization.")
-        print(f"mozaiko WARNING: {skipped_counter['unexpected_format']} entries were not written because of unexpected header format.")
+        print(
+            f"mozaiko WARNING: {skipped_counter['insufficient_columns']} entries were not written because they did not meet the minimum length of columns. Check if headers have been through harmonization."
+        )
+        print(
+            f"mozaiko WARNING: {skipped_counter['unexpected_format']} entries were not written because of unexpected header format."
+        )
 
     except Exception as e:
         print(f"mozaiko ERROR: Error creating MultiBarcodeTools input - {str(e)}")

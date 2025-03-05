@@ -326,9 +326,7 @@ class InSilicoAmplification:
 
             with open(output_file, "w") as output_handle:
                 for seq_string_retained, record_retained in retained_sequences:
-                    output_handle.write(
-                        f">{record_retained}\n{seq_string_retained}\n"
-                    )
+                    output_handle.write(f">{record_retained}\n{seq_string_retained}\n")
 
             results[input_file] = {
                 "retained_sequences": len(retained_sequences),
@@ -348,11 +346,11 @@ class InSilicoAmplification:
             with open(self.database_fasta_file) as f:
                 mapping = {}
                 for line in f:
-                    if line.startswith('>'):
-                        parts = line[1:].strip().split('|')
+                    if line.startswith(">"):
+                        parts = line[1:].strip().split("|")
                         if len(parts) >= 11:
                             accession = parts[0]
-                            taxonomy = '|'.join(parts[1:11])
+                            taxonomy = "|".join(parts[1:11])
                             mapping[accession] = taxonomy
                 return mapping
         except Exception as e:
@@ -380,18 +378,15 @@ class InSilicoAmplification:
             # Only write if modifications were made
             if modified:
                 with open(fasta_file, "w") as output_handle:
-                        for record in records:
-                            output_handle.write(
-                                f">{record.description}\n{str(record.seq)}\n"
-                            )
+                    for record in records:
+                        output_handle.write(
+                            f">{record.description}\n{str(record.seq)}\n"
+                        )
 
         except Exception as e:
             print(f"mozaiko ERROR: Error processing {fasta_file}: {e}")
 
-    def add_taxonomy_to_pga_outputs(
-        self,
-        input_folders: list[str]
-    ) -> None:
+    def add_taxonomy_to_pga_outputs(self, input_folders: list[str]) -> None:
         """
         Add taxonomy information to FASTA file headers where missing.
 
@@ -421,9 +416,7 @@ class InSilicoAmplification:
                 self._process_fasta_file(fasta_file, taxonomy_dict)
 
     def run_in_silico_analysis(
-        self,
-        primer_table=None,
-        max_len_according_to_ilumina: bool = True
+        self, primer_table=None, max_len_according_to_ilumina: bool = True
     ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
@@ -481,9 +474,7 @@ class InSilicoAmplification:
             self.run_dir / "incomplete_pbs" / "filtered",
             self.run_dir / "incomplete_pbs" / "filtered" / "filtered_intersection",
         ]
-        self.add_taxonomy_to_pga_outputs(
-            pga_directories
-        )
+        self.add_taxonomy_to_pga_outputs(pga_directories)
 
         directories_to_filter = ["all_complete_pbs", "incomplete_pbs"]
         for dir_name in directories_to_filter:
@@ -749,6 +740,7 @@ class InSilicoAmplification:
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: CRABS PGA command failed: {e}")
             sys.exit(1)
+
 
 # if __name__ == "__main__":
 #     data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-taxa_harmonized.fasta"

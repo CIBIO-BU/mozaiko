@@ -120,7 +120,9 @@ class CustomFastaImport:
         pd.DataFrame
         """
         if fasta_file is None:
-            print(f"mozaico INFO: No FASTA file attributed to read_fasta. Reading {self.database_fasta_file}.")
+            print(
+                f"mozaico INFO: No FASTA file attributed to read_fasta. Reading {self.database_fasta_file}."
+            )
             fasta_file = self.database_fasta_file
 
         if overide_validation is False:
@@ -164,7 +166,9 @@ class CustomFastaImport:
                             description_parts[taxa_column_start:taxa_column_end]
                         )
                     else:
-                        print("mozaiko WARNING: Taxonomy information not found in header.")
+                        print(
+                            "mozaiko WARNING: Taxonomy information not found in header."
+                        )
                         taxa_info = ""
                     data_dict["taxa_info"].append(taxa_info)
 
@@ -183,9 +187,7 @@ class CustomFastaImport:
         clean_text = re.sub(r"[^\w\s|.-]", "", ascii_text)
         return clean_text
 
-    def clean_fasta_headers(
-        self, input_file, output_file, verbose: bool = False
-    ):
+    def clean_fasta_headers(self, input_file, output_file, verbose: bool = False):
         """
         Cleans FASTA headers by:
         1. Removing non-ASCII characters
@@ -218,7 +220,9 @@ class CustomFastaImport:
                     problematic_headers.append((original_header, cleaned_header))
 
                 new_record = SeqRecord(
-                    record.seq, id=self.clean_header(record.id), description=cleaned_header
+                    record.seq,
+                    id=self.clean_header(record.id),
+                    description=cleaned_header,
                 )
                 cleaned_records.append(new_record)
 
@@ -298,13 +302,11 @@ class CustomFastaImport:
 
         # Create column for species and populate with information in 'scientificName' that is at
         # 'SPECIES', 'FORM', 'VARIETY' and 'SUBSPECIES' level
-        self.data["rank"] = self.data["rank"].replace({"form": "species", "variety": "species", "subspecies": "species"})
+        self.data["rank"] = self.data["rank"].replace(
+            {"form": "species", "variety": "species", "subspecies": "species"}
+        )
         self.data["species"] = np.where(
-            self.data["rank"] == 'species',
-            self.data[
-                "scientificName"
-            ],
-            np.nan
+            self.data["rank"] == "species", self.data["scientificName"], np.nan
         )
         # Keep only first two strings for species column
         self.data["species"] = (
