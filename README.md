@@ -2,7 +2,6 @@
 # mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Conda Build](https://github.com/CIBIO-BU/mozaiko/actions/workflows/test-conda-setup.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/test-conda-setup.yml)
 [![Lint Status](https://github.com/CIBIO-BU/mozaiko/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/super-linter.yml)
 [![Packge Tests](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/python-test-check.yml)
 [![codecov](https://codecov.io/gh/CIBIO-BU/mozaiko/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/mozaico)
