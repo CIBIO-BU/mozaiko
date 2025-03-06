@@ -1,6 +1,4 @@
->CM074756.1 Graptemys geographica mitochondrion, complete sequence
-GTTATTGTAGCTTATC
->NC_088426.1 Pelodiscus maackii mitochondrion, complete genome
-GCATAAAGCATGGCACTGA
->PP475397.1 Chelonoidis vicina mitochondrion, complete genome
-GTTATTGA
+>example 1 without taxonomic id
+ATCG
+>example 2 without taxonomic id
+GGTA

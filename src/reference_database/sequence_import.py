@@ -74,11 +74,20 @@ class CustomFastaImport:
             taxids = []
 
             for record in records:
-                match = re.search(r"(?<=taxid=)([0-9]+)", record.description)
+                match = re.search(r"taxid(\d+)", record.description)
                 if match:
                     taxids.append(match.group(1))
 
-            self.data["taxid"] = taxids
+                else:
+                    taxids.append(None)
+
+        # Ensure taxids list matches the length of the existing dataframe
+        if len(taxids) < len(self.data):
+            taxids.extend([None] * (len(self.data) - len(taxids)))
+        elif len(taxids) > len(self.data):
+            taxids = taxids[:len(self.data)]
+
+        self.data["taxid"] = taxids
 
         return self.data
 
@@ -143,8 +152,8 @@ class CustomFastaImport:
         #     + "The count must start at 0."
         # )
 
-        with open(fasta_file, "r", encoding="UTF-8") as fasta_file:
-            records = SeqIO.parse(fasta_file, "fasta")
+        with open(fasta_file, "r", encoding="UTF-8") as fasta:
+            records = SeqIO.parse(fasta, "fasta")
             data_dict: dict = {"seq_id": [], "sequence": [], "length": []}
             if not check_taxid:
                 data_dict["taxa_info"] = []

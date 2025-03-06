@@ -6,6 +6,7 @@ import os
 import unittest
 from io import StringIO
 from unittest.mock import MagicMock, mock_open, patch
+from Bio.Seq import Seq
 
 import pandas as pd
 
@@ -116,7 +117,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.fasta_import.df2csv()
-        example_file = "data/output_data/processed_input_fasta.csv"
+        example_file = "data/input_data/processed_input_fasta.csv"
         with open(example_file, "r", encoding="UTF-8") as f:
             lines = f.readlines()
             self.assertEqual(lines[0], "seq_id,sequence,length,taxid\n")
@@ -148,8 +149,8 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         # mock the SeqIO.parse function to return a list of sequences without taxids
         mock_seqio_parse.return_value = [
-            MagicMock(description="example 1 without taxonomic id"),
-            MagicMock(description="example 2 without taxonomic id"),
+            MagicMock(id="seq1", description="example 1 without taxonomic id", seq=Seq("ATCG")),
+            MagicMock(id="seq2", description="example 2 without taxonomic id", seq=Seq("GGTA")),
         ]
 
         with patch.object(
