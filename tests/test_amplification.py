@@ -3,19 +3,18 @@ Unit tests for the InSilicoAmplification class.
 """
 
 import os
+import shutil
 import subprocess
 import sys
-import unittest
 import tempfile
-import shutil
+import unittest
 from io import StringIO
-from Bio import SeqIO
 from pathlib import Path, PosixPath
 from unittest.mock import MagicMock, mock_open, patch
 
 import pandas as pd
+from Bio import SeqIO
 from Bio.Seq import Seq
-import shutil
 
 from src.in_silico_analysis.amplification import InSilicoAmplification
 
@@ -132,7 +131,9 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         Test that the _validate_fasta method raises a SystemExit when the input data does not exist.
         """
-        test_class = InSilicoAmplification(data="nonexistent_fasta.fasta")
+        test_class = InSilicoAmplification(
+            database_fasta_file="nonexistent_fasta.fasta"
+        )
         with self.assertRaises(SystemExit):
             test_class._validate_fasta()
 
@@ -272,7 +273,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "fwd_seq": "ACACCGCCCGTCACTCTC",
                 "rev_seq": "CATGTTACGACTTGCCTCCTC",
             },
-            self.amplification.data,
+            self.amplification.database_fasta_file,
         )
         mock_process_commands.assert_any_call(
             {
@@ -281,7 +282,7 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "fwd_seq": "AGGGATAACAGCGCAATC",
                 "rev_seq": "TCGTTGAACAAACGAACC",
             },
-            self.amplification.data,
+            self.amplification.database_fasta_file,
         )
 
     @patch(
@@ -549,71 +550,53 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         Test adding taxonomy to records missing taxonomy information.
         """
-        mock_custom_fasta_import = MagicMock()
-        mock_custom_fasta_import.get_mapping_between_seq_id_taxonomy.return_value = {
-            "seq1": "Chordata",
-            "seq2": "Actinopterygii"
-        }
+        self.amplification._load_taxonomy_mapping = MagicMock(
+            return_value={"seq1": "Chordata", "seq2": "Actinopterygii"}
+        )
 
-        with patch(
-            "src.in_silico_analysis.amplification.CustomFastaImport",
-            return_value=mock_custom_fasta_import
-        ):
-            test_input_folders = [Path("test_folder")]
-            test_fasta_file = Path("test_folder/output.fasta")
+        test_input_folders = [Path("test_folder")]
+        test_fasta_file = Path("test_folder/output.fasta")
 
-            mock_records = [
-                MagicMock(
-                    description="seq1",
-                    id="seq1",
-                    seq="ATCG"
-                ),
-                MagicMock(
-                    description="seq2",
-                    id="seq2",
-                    seq="GCTA"
-                )
-            ]
+        mock_records = [
+            MagicMock(description="seq1", id="seq1", seq="ATCG"),
+            MagicMock(description="seq2", id="seq2", seq="GCTA"),
+        ]
 
-            with patch("Bio.SeqIO.parse", return_value=mock_records), \
-                patch("pathlib.Path.glob", return_value=[test_fasta_file]), \
-                patch("builtins.open", mock_open()) as mock_file:
+        with patch.object(Path, "exists", return_value=True), patch(
+            "pathlib.Path.glob", return_value=[test_fasta_file]
+        ), patch("Bio.SeqIO.parse", return_value=mock_records), patch(
+            "builtins.open", mock_open()
+        ) as mock_file:
 
-                self.amplification.data = "input_fasta.fasta"
-                self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
+            self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
 
-                mock_file.assert_called_once_with(test_fasta_file, "w")
+            mock_file.assert_called_once_with(test_fasta_file, "w")
 
     def test_add_taxonomy_to_pga_outputs_no_mapping(self):
         """
         Test behavior when no taxonomy mapping exists for a sequence.
         """
+        self.amplification._load_taxonomy_mapping = MagicMock(return_value={})
+
         test_input_folders = [Path("test_folder")]
         test_fasta_file = Path("test_folder/output.fasta")
 
-        mock_records = [
-            MagicMock(
-                description="seq1",
-                id="seq1",
-                seq="ATCG"
-            )
-        ]
+        mock_records = [MagicMock(description="seq1", id="seq1", seq="ATCG")]
 
         mock_custom_fasta_import = MagicMock()
         mock_custom_fasta_import.get_mapping_between_seq_id_taxonomy.return_value = {}
 
-        with patch(
-            "src.in_silico_analysis.amplification.CustomFastaImport",
-            return_value=mock_custom_fasta_import
-        ):
-            with patch("Bio.SeqIO.parse", return_value=mock_records), \
-                patch("pathlib.Path.glob", return_value=[test_fasta_file]), \
-                patch("builtins.open", mock_open()) as mock_file:
+        with patch.object(Path, "exists", return_value=True), patch(
+            "pathlib.Path.glob", return_value=[test_fasta_file]
+        ), patch("Bio.SeqIO.parse", return_value=mock_records), patch(
+            "builtins.open", mock_open()
+        ) as mock_file:
 
-                self.amplification.data = "input_fasta.fasta"
-                self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
+            self.amplification.add_taxonomy_to_pga_outputs(test_input_folders)
 
-                mock_file.assert_not_called()
+            # Since taxonomy_dict is empty) and no records would be modified (
+            # open() should never be called
+            mock_file.assert_not_called()
 
     def test_remove_intersection_sequences_single_file(self):
         """
@@ -633,7 +616,9 @@ class TestInSilicoAmplification(unittest.TestCase):
         output_records = list(SeqIO.parse(filtered_file, "fasta"))
         output_ids = [record.id for record in output_records]
 
-        assert len(output_records) == 1, f"Expected 1 sequence, got {len(output_records)}"
+        assert (
+            len(output_records) == 1
+        ), f"Expected 1 sequence, got {len(output_records)}"
         assert "def" not in output_ids, "def should be filtered out"
         assert "xyz" in output_ids, "abc should be retained"
 

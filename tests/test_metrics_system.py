@@ -2,15 +2,14 @@
 Unit tests for metrics_system.py
 """
 
+import os
 import shutil
 import sys
 import tempfile
 import unittest
-from pathlib import Path
-import os
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, call, mock_open, patch, Mock
+from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
 from Bio.SeqRecord import SeqRecord
 from pandas._testing import assert_frame_equal
@@ -153,13 +152,15 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         rbt_rounded = self.ref_bd_cls.barcoded_taxa_ratio(self.total_otl_taxa_count)
         print(rbt_rounded)
 
-        expected_output = pd.DataFrame({
-            "barcoded_taxa_one_plus": [50.0],
-            "ratio_barcoded_taxa": [0.33],
-        }, index=["test_amplicon_reffb"])
+        expected_output = pd.DataFrame(
+            {
+                "barcoded_taxa_one_plus": [50.0],
+                "ratio_barcoded_taxa": [0.33],
+            },
+            index=["test_amplicon_reffb"],
+        )
 
         print(rbt_rounded)
-
 
         pd.testing.assert_frame_equal(rbt_rounded, expected_output)
 
@@ -580,9 +581,7 @@ class TestBinding(unittest.TestCase):
         )
 
         primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
-            "mock_amplicon_folder",
-            "mock_insert_folder",
-            "mock_primer_table"
+            "mock_amplicon_folder", "mock_insert_folder", "mock_primer_table"
         )
 
         self.assertIsInstance(primer_pbs_df, dict)
@@ -649,9 +648,7 @@ class TestBinding(unittest.TestCase):
         )
 
         primer_pbs_df, primer_gc_df = self.binding.primer_pbs_analysis(
-            "mock_amplicon_folder",
-            "mock_insert_folder",
-            "mock_primer_table"
+            "mock_amplicon_folder", "mock_insert_folder", "mock_primer_table"
         )
 
         self.assertIsInstance(primer_pbs_df, dict)
@@ -773,8 +770,16 @@ class TestBinding(unittest.TestCase):
         """
         results_folder = self.mock_test_dir
         os.makedirs(os.path.join(results_folder, "insert/filtered"))
-        os.makedirs(os.path.join(results_folder, "all_complete_pbs/filtered/filtered_intersection"))
-        os.makedirs(os.path.join(results_folder, "incomplete_pbs/filtered/filtered_intersection"))
+        os.makedirs(
+            os.path.join(
+                results_folder, "all_complete_pbs/filtered/filtered_intersection"
+            )
+        )
+        os.makedirs(
+            os.path.join(
+                results_folder, "incomplete_pbs/filtered/filtered_intersection"
+            )
+        )
 
         in_silico_records = [
             SeqRecord(Seq("ATCG"), id="seq1", description="seq1|Taxon1"),
@@ -789,9 +794,12 @@ class TestBinding(unittest.TestCase):
         ]
 
         self.create_mock_fasta("insert/filtered/primer1.fasta", in_silico_records)
-        self.create_mock_fasta("all_complete_pbs/filtered/filtered_intersection/primer1.fasta", pbs_records)
         self.create_mock_fasta(
-            "incomplete_pbs/filtered/filtered_intersection/primer1.fasta", incomplete_pbs_records
+            "all_complete_pbs/filtered/filtered_intersection/primer1.fasta", pbs_records
+        )
+        self.create_mock_fasta(
+            "incomplete_pbs/filtered/filtered_intersection/primer1.fasta",
+            incomplete_pbs_records,
         )
 
         result = self.binding.calculate_amplification_success_score(results_folder)
@@ -832,6 +840,7 @@ class TestBinding(unittest.TestCase):
 
         shutil.rmtree(self.mock_test_dir)
 
+
 class TestTraitsAndResolution(unittest.TestCase):
     def setUp(self):
         """
@@ -840,29 +849,40 @@ class TestTraitsAndResolution(unittest.TestCase):
         self.test_dir = "data/test_data"
         self.amplicon_dir = self.test_dir + "/amplicon-test"
         self.insert_dir = self.test_dir + "/insert-test"
-        self.incomplete_pbs_dir= self.test_dir + "/insert-test"
-        self.multibarcodetools_input = self.test_dir + "/insert-test/multibarcodetools-input.tsv"
+        self.incomplete_pbs_dir = self.test_dir + "/insert-test"
+        self.multibarcodetools_input = (
+            self.test_dir + "/insert-test/multibarcodetools-input.tsv"
+        )
         self.traits = TraitsAndResolution(
             insert_folder_path=self.insert_dir,
             amplicon_folder_path=self.amplicon_dir,
-            incomplete_pbs_folder_path=self.incomplete_pbs_dir
+            incomplete_pbs_folder_path=self.incomplete_pbs_dir,
+            otl="data/test_data/test_otl.tsv",
         )
         self.created_files = [self.multibarcodetools_input]
-        self.traits.multibarcode_output_folder = os.path.join(os.path.dirname(self.traits.insert_folder_path), 'multibarcode')
-        self.primer_resolv_species = pd.DataFrame({
-            'primer': ['primerA', 'primerB', 'primerC'],
-            'additional_resolved_species': [90, 8, 2],
-            'cumulative_resolved_species': [90, 98, 100]
-        })
+        self.traits.multibarcode_output_folder = os.path.join(
+            os.path.dirname(self.traits.insert_folder_path), "multibarcode"
+        )
+        self.primer_resolv_species = pd.DataFrame(
+            {
+                "primer": ["primerA", "primerB", "primerC"],
+                "additional_resolved_species": [90, 8, 2],
+                "cumulative_resolved_species": [90, 98, 100],
+            }
+        )
         self.traits.primer_resolv_species = self.primer_resolv_species
 
     def test_init_with_results_folder(self):
         results_folder = "path/to/results"
-        expected_insert_path = os.path.join(results_folder, 'insert/filtered')
-        expected_amplicon_path = os.path.join(results_folder, 'amplicon/filtered')
-        expected_incomplete_pbs_path = os.path.join(results_folder, 'incomplete_pbs/filtered/filtered_intersection')
+        expected_insert_path = os.path.join(results_folder, "insert/filtered")
+        expected_amplicon_path = os.path.join(results_folder, "amplicon/filtered")
+        expected_incomplete_pbs_path = os.path.join(
+            results_folder, "incomplete_pbs/filtered/filtered_intersection"
+        )
 
-        traits = TraitsAndResolution(results_folder=results_folder)
+        traits = TraitsAndResolution(
+            results_folder=results_folder, otl="data/test_data/test_otl.tsv"
+        )
 
         self.assertEqual(traits.insert_folder_path, expected_insert_path)
         self.assertEqual(traits.amplicon_folder_path, expected_amplicon_path)
@@ -876,7 +896,8 @@ class TestTraitsAndResolution(unittest.TestCase):
         traits = TraitsAndResolution(
             insert_folder_path=insert_path,
             amplicon_folder_path=amplicon_path,
-            incomplete_pbs_folder_path=incomplete_pbs_path
+            incomplete_pbs_folder_path=incomplete_pbs_path,
+            otl="data/test_data/test_otl.tsv",
         )
 
         self.assertEqual(traits.insert_folder_path, insert_path)
@@ -885,32 +906,45 @@ class TestTraitsAndResolution(unittest.TestCase):
 
     def test_init_with_missing_arguments(self):
         with self.assertRaises(ValueError) as context:
-            TraitsAndResolution()
-        self.assertIn("Either provide a path to the in-silico amplification results folder", str(context.exception))
+            TraitsAndResolution(otl="data/test_data/test_otl.tsv")
+        self.assertIn(
+            "Either provide a path to the in-silico amplification results folder",
+            str(context.exception),
+        )
 
     def test_init_with_partial_arguments(self):
         # Test missing amplicon_folder_path
         with self.assertRaises(ValueError) as context:
             TraitsAndResolution(
                 insert_folder_path="path/to/insert",
-                incomplete_pbs_folder_path="path/to/incomplete_pbs"
+                incomplete_pbs_folder_path="path/to/incomplete_pbs",
+                otl="data/test_data/test_otl.tsv",
             )
-        self.assertIn("Either provide a path to the in-silico amplification results folder", str(context.exception))
+        self.assertIn(
+            "Either provide a path to the in-silico amplification results folder",
+            str(context.exception),
+        )
 
         # Test missing insert_folder_path
         with self.assertRaises(ValueError) as context:
             TraitsAndResolution(
                 amplicon_folder_path="path/to/amplicon",
-                incomplete_pbs_folder_path="path/to/incomplete_pbs"
+                incomplete_pbs_folder_path="path/to/incomplete_pbs",
+                otl="data/test_data/test_otl.tsv",
             )
-        self.assertIn("Either provide a path to the in-silico amplification results folder", str(context.exception))
+        self.assertIn(
+            "Either provide a path to the in-silico amplification results folder",
+            str(context.exception),
+        )
 
     def test_get_min_max_avg_seq_length_in_a_fasta(self):
         """
         Test sequence length calculation for individual FASTA files
         """
-        amplicon_primer_a_path = os.path.join(self.amplicon_dir, 'primerA.fasta')
-        min_len, max_len, avg_len = self.traits.get_min_max_avg_seq_length_in_a_fasta(amplicon_primer_a_path)
+        amplicon_primer_a_path = os.path.join(self.amplicon_dir, "primerA.fasta")
+        min_len, max_len, avg_len = self.traits.get_min_max_avg_seq_length_in_a_fasta(
+            amplicon_primer_a_path
+        )
 
         self.assertEqual(min_len, 6)
         self.assertEqual(max_len, 26)
@@ -924,34 +958,38 @@ class TestTraitsAndResolution(unittest.TestCase):
 
         self.assertIsInstance(length_stats, pd.DataFrame)
 
-        self.assertListEqual(list(length_stats.index), ['primerA', 'primerC'])
+        self.assertListEqual(list(length_stats.index), ["primerA", "primerC"])
 
         # Insert average length
-        self.assertAlmostEqual(length_stats.loc['primerA', 'insert_avg_length'], 9.0)
-        self.assertTrue(np.isnan(length_stats.loc['primerC', 'insert_avg_length']))
+        self.assertAlmostEqual(length_stats.loc["primerA", "insert_avg_length"], 9.0)
+        self.assertTrue(np.isnan(length_stats.loc["primerC", "insert_avg_length"]))
 
         # Amplicon min length
-        self.assertAlmostEqual(length_stats.loc['primerA', 'amplicon_min_length'], 6)
-        self.assertAlmostEqual(length_stats.loc['primerC', 'amplicon_min_length'], 23)
+        self.assertAlmostEqual(length_stats.loc["primerA", "amplicon_min_length"], 6)
+        self.assertAlmostEqual(length_stats.loc["primerC", "amplicon_min_length"], 23)
 
         # Amplicon max length
-        self.assertAlmostEqual(length_stats.loc['primerA', 'amplicon_max_length'], 26)
-        self.assertAlmostEqual(length_stats.loc['primerC', 'amplicon_max_length'], 26)
+        self.assertAlmostEqual(length_stats.loc["primerA", "amplicon_max_length"], 26)
+        self.assertAlmostEqual(length_stats.loc["primerC", "amplicon_max_length"], 26)
 
         # Amplicon average length
-        self.assertAlmostEqual(length_stats.loc['primerA', 'amplicon_avg_length'], 18.33, places=2)
-        self.assertAlmostEqual(length_stats.loc['primerC', 'amplicon_avg_length'], 24.50, places=2)
+        self.assertAlmostEqual(
+            length_stats.loc["primerA", "amplicon_avg_length"], 18.33, places=2
+        )
+        self.assertAlmostEqual(
+            length_stats.loc["primerC", "amplicon_avg_length"], 24.50, places=2
+        )
 
         expected_columns = [
-            'amplicon_min_length',
-            'amplicon_max_length',
-            'amplicon_avg_length',
-            'insert_avg_length'
+            "amplicon_min_length",
+            "amplicon_max_length",
+            "amplicon_avg_length",
+            "insert_avg_length",
         ]
         for column in expected_columns:
             self.assertIn(column, length_stats.columns, f"{column} column missing")
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_run_multibarcode_pipeline_success(self, mock_subprocess_run):
         mock_result = MagicMock()
         mock_result.stdout = """
@@ -965,7 +1003,9 @@ class TestTraitsAndResolution(unittest.TestCase):
         mock_subprocess_run.assert_called_once()
         self.assertIsNotNone(result)
 
-        expected_multibarcode_output_folder = os.path.join(self.test_dir, 'multibarcode')
+        expected_multibarcode_output_folder = os.path.join(
+            self.test_dir, "multibarcode"
+        )
         self.assertTrue(os.path.exists(expected_multibarcode_output_folder))
 
     def test_parse_multibarcode_output(self):
@@ -981,19 +1021,19 @@ class TestTraitsAndResolution(unittest.TestCase):
         self.assertEqual(len(result_df), 3)
 
         expected_columns = [
-            'primer',
-            'additional_resolved_species',
-            'cumulative_resolved_species'
+            "primer",
+            "additional_resolved_species",
+            "cumulative_resolved_species",
         ]
         self.assertListEqual(list(result_df.columns), expected_columns)
 
-        self.assertEqual(result_df.iloc[0]['primer'], 'primerA')
-        self.assertEqual(result_df.iloc[0]['additional_resolved_species'], 3)
-        self.assertEqual(result_df.iloc[0]['cumulative_resolved_species'], 3)
+        self.assertEqual(result_df.iloc[0]["primer"], "primerA")
+        self.assertEqual(result_df.iloc[0]["additional_resolved_species"], 3)
+        self.assertEqual(result_df.iloc[0]["cumulative_resolved_species"], 3)
 
-        self.assertEqual(result_df.iloc[1]['primer'], 'primerC')
-        self.assertEqual(result_df.iloc[1]['additional_resolved_species'], 1)
-        self.assertEqual(result_df.iloc[1]['cumulative_resolved_species'], 4)
+        self.assertEqual(result_df.iloc[1]["primer"], "primerC")
+        self.assertEqual(result_df.iloc[1]["additional_resolved_species"], 1)
+        self.assertEqual(result_df.iloc[1]["cumulative_resolved_species"], 4)
 
     def test_parse_multibarcode_output_empty(self):
         result_df = self.traits.parse_multibarcode_output("")
@@ -1001,11 +1041,10 @@ class TestTraitsAndResolution(unittest.TestCase):
         self.assertIsInstance(result_df, pd.DataFrame)
         self.assertEqual(len(result_df), 0)
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_run_multibarcode_pipeline_failure(self, mock_subprocess_run):
         mock_subprocess_run.side_effect = subprocess.CalledProcessError(
-            returncode=1,
-            cmd=['multi-barcode']
+            returncode=1, cmd=["multi-barcode"]
         )
 
         with self.assertRaises(subprocess.CalledProcessError):
@@ -1027,33 +1066,41 @@ class TestTraitsAndResolution(unittest.TestCase):
 
         result = self.traits.load_nucleotide_distance()
 
-        mock_read_excel.assert_called_once_with("data/test_data/multibarcode/matrix.xlsx")
+        mock_read_excel.assert_called_once_with(
+            "data/test_data/multibarcode/matrix.xlsx"
+        )
         pd.testing.assert_frame_equal(result, mock_df)
 
     @patch.object(TraitsAndResolution, "load_nucleotide_distance")
     @patch.object(TraitsAndResolution, "get_length_stats_for_amplicon_and_insert")
-    def test_compute_genetic_divergence_per_taxon(self, mock_get_length_stats, mock_load_nucleotide_distance):
+    def test_compute_genetic_divergence_per_taxon(
+        self, mock_get_length_stats, mock_load_nucleotide_distance
+    ):
         # Mock data for load_nucleotide_distance
-        mock_nuc_dist_matrix = pd.DataFrame({
-            'Species': ['Species1', 'Species2'],
-            'primerA': [10, 20],
-            'primerB': [30, 40]
-        })
+        mock_nuc_dist_matrix = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2"],
+                "primerA": [10, 20],
+                "primerB": [30, 40],
+            }
+        )
         mock_load_nucleotide_distance.return_value = mock_nuc_dist_matrix
 
         # Mock data for get_length_stats_for_amplicon_and_insert
         mock_length_stats = {
-            'insert_avg_length': pd.Series([100, 200], index=['primerA', 'primerB'])
-            }
+            "insert_avg_length": pd.Series([100, 200], index=["primerA", "primerB"])
+        }
         mock_get_length_stats.return_value = mock_length_stats
 
         result = self.traits.compute_genetic_divergence_per_taxon()
 
-        expected_result = pd.DataFrame({
-            'Species': ['Species1', 'Species2'],
-            'primerA': [10.0, 20.0],  # (10/100)*100, (20/100)*100
-            'primerB': [15.0, 20.0]   # (30/200)*100, (40/200)*100
-        })
+        expected_result = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2"],
+                "primerA": [10.0, 20.0],  # (10/100)*100, (20/100)*100
+                "primerB": [15.0, 20.0],  # (30/200)*100, (40/200)*100
+            }
+        )
 
         pd.testing.assert_frame_equal(result, expected_result)
 
@@ -1062,28 +1109,40 @@ class TestTraitsAndResolution(unittest.TestCase):
 
     @patch.object(TraitsAndResolution, "load_nucleotide_distance")
     @patch.object(TraitsAndResolution, "get_length_stats_for_amplicon_and_insert")
-    def test_compute_genetic_divergence_per_taxon_nan_values(self, mock_get_length_stats, mock_load_nucleotide_distance):
+    def test_compute_genetic_divergence_per_taxon_nan_values(
+        self, mock_get_length_stats, mock_load_nucleotide_distance
+    ):
         # Mock data for load_nucleotide_distance
-        mock_nuc_dist_matrix = pd.DataFrame({
-            'Species': ['Species1', 'Species2'],
-            'primerA': [10, 20],
-            'primerB': ['-', 40]
-        })
+        mock_nuc_dist_matrix = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2"],
+                "primerA": [10, 20],
+                "primerB": ["-", 40],
+            }
+        )
         mock_load_nucleotide_distance.return_value = mock_nuc_dist_matrix
 
         # Mock data for get_length_stats_for_amplicon_and_insert
         mock_length_stats = {
-            'insert_avg_length': pd.Series([100, 0], index=['primerA', 'primerB'])
-            }
+            "insert_avg_length": pd.Series([100, 0], index=["primerA", "primerB"])
+        }
         mock_get_length_stats.return_value = mock_length_stats
 
         result = self.traits.compute_genetic_divergence_per_taxon()
 
-        expected_result = pd.DataFrame({
-            'Species': ['Species1', 'Species2'],
-            'primerA': [10.0, 20.0],  # (10/100)*100, no length insert results in NaN
-            'primerB': [np.nan, np.nan]   # 'invalid' results in NaN, no length insert results in NaN
-        })
+        expected_result = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2"],
+                "primerA": [
+                    10.0,
+                    20.0,
+                ],  # (10/100)*100, no length insert results in NaN
+                "primerB": [
+                    np.nan,
+                    np.nan,
+                ],  # 'invalid' results in NaN, no length insert results in NaN
+            }
+        )
 
         pd.testing.assert_frame_equal(result, expected_result)
 
@@ -1091,21 +1150,31 @@ class TestTraitsAndResolution(unittest.TestCase):
         mock_get_length_stats.assert_called_once()
 
     def test_get_divergence_score_normal_case(self):
-        mock_divergence_df = pd.DataFrame({
-            'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
-            'primerA': [1.5, 2.5, 3.0, 1.0],
-            'primerB': [1.0, 1.5, 2.0, 3.0]
-        })
+        mock_divergence_df = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2", "Species3", "Species4"],
+                "primerA": [1.5, 2.5, 3.0, 1.0],
+                "primerB": [1.0, 1.5, 2.0, 3.0],
+            }
+        )
 
-        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
-                        return_value=mock_divergence_df):
+        with patch.object(
+            self.traits,
+            "compute_genetic_divergence_per_taxon",
+            return_value=mock_divergence_df,
+        ):
 
             result = self.traits.get_divergence_score(4)
 
             self.assertIsInstance(result, pd.DataFrame)
             self.assertEqual(len(result), 2)
 
-            expected_columns = ['primer', 'total_taxa', 'n_taxa_above_cutoff', 'divergence_score']
+            expected_columns = [
+                "primer",
+                "total_taxa",
+                "n_taxa_above_cutoff",
+                "divergence_score",
+            ]
             self.assertListEqual(list(result.columns), expected_columns)
 
     def test_get_divergence_score_zero_total_taxa(self):
@@ -1117,53 +1186,72 @@ class TestTraitsAndResolution(unittest.TestCase):
             self.traits.get_divergence_score(-5)
 
     def test_get_divergence_score_custom_cutoff(self):
-        mock_divergence_df = pd.DataFrame({
-            'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
-            'primerA': [1.5, 2.5, 3.0, 1.0],
-            'primerB': [1.0, 1.5, 2.0, 3.0]
-        })
+        mock_divergence_df = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2", "Species3", "Species4"],
+                "primerA": [1.5, 2.5, 3.0, 1.0],
+                "primerB": [1.0, 1.5, 2.0, 3.0],
+            }
+        )
 
-        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
-                        return_value=mock_divergence_df):
+        with patch.object(
+            self.traits,
+            "compute_genetic_divergence_per_taxon",
+            return_value=mock_divergence_df,
+        ):
 
             result = self.traits.get_divergence_score(4, cutoff=1.8)
 
             for _, row in result.iterrows():
                 expected_taxa_above_cutoff = sum(
-                    mock_divergence_df[row['primer']] > 1.8
+                    mock_divergence_df[row["primer"]] > 1.8
                 )
-                self.assertEqual(row['n_taxa_above_cutoff'], expected_taxa_above_cutoff)
+                self.assertEqual(row["n_taxa_above_cutoff"], expected_taxa_above_cutoff)
 
     def test_get_divergence_score_no_taxa_above_cutoff(self):
-        mock_divergence_df = pd.DataFrame({
-            'Species': ['Species1', 'Species2'],
-            'primerA': [1.0, 1.5],
-            'primerB': [0.5, 1.0]
-        })
+        mock_divergence_df = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2"],
+                "primerA": [1.0, 1.5],
+                "primerB": [0.5, 1.0],
+            }
+        )
 
-        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
-                        return_value=mock_divergence_df):
+        with patch.object(
+            self.traits,
+            "compute_genetic_divergence_per_taxon",
+            return_value=mock_divergence_df,
+        ):
 
             result = self.traits.get_divergence_score(2, cutoff=2.0)
 
-            self.assertTrue((result['divergence_score'] == 0).all())
+            self.assertTrue((result["divergence_score"] == 0).all())
 
     def test_get_divergence_score_dataframe_structure(self):
-        mock_divergence_df = pd.DataFrame({
-            'Species': ['Species1', 'Species2', 'Species3', 'Species4'],
-            'primerA': [1.5, 2.5, 3.0, 1.0],
-            'primerB': [1.0, 1.5, 2.0, 3.0]
-        })
+        mock_divergence_df = pd.DataFrame(
+            {
+                "Species": ["Species1", "Species2", "Species3", "Species4"],
+                "primerA": [1.5, 2.5, 3.0, 1.0],
+                "primerB": [1.0, 1.5, 2.0, 3.0],
+            }
+        )
 
-        with patch.object(self.traits, 'compute_genetic_divergence_per_taxon',
-                        return_value=mock_divergence_df):
+        with patch.object(
+            self.traits,
+            "compute_genetic_divergence_per_taxon",
+            return_value=mock_divergence_df,
+        ):
 
             result = self.traits.get_divergence_score(4)
 
-            self.assertTrue(result['primer'].is_unique)
+            self.assertTrue(result["primer"].is_unique)
 
-            self.assertTrue(((result['divergence_score'] >= 0) &
-                            (result['divergence_score'] <= 100)).all())
+            self.assertTrue(
+                (
+                    (result["divergence_score"] >= 0)
+                    & (result["divergence_score"] <= 100)
+                ).all()
+            )
 
     def tearDown(self):
         for file_path in self.created_files:
@@ -1173,6 +1261,7 @@ class TestTraitsAndResolution(unittest.TestCase):
 
         if os.path.exists(self.traits.multibarcode_output_folder):
             shutil.rmtree(self.traits.multibarcode_output_folder)
+
 
 class TestMetricsSystemExecutor(unittest.TestCase):
     def setUp(self):
@@ -1186,29 +1275,29 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         # Mock OTLHandler
         self.mock_otl_handler = Mock()
         self.mock_otl_handler.total_taxa = 100
-        self.mock_otl_handler.otl_taxa_set = set(['species1', 'species2'])
+        self.mock_otl_handler.otl_taxa_set = set(["species1", "species2"])
 
         # Set up path patches
         self.mock_paths = {
-            'insert': '/fake/path/results/insert/filtered',
-            'amplicon': '/fake/path/results/amplicon/filtered',
-            'incomplete_pbs': '/fake/path/results/incomplete_pbs/filtered/filtered_intersection'
+            "insert": "/fake/path/results/insert/filtered",
+            "amplicon": "/fake/path/results/amplicon/filtered",
+            "incomplete_pbs": "/fake/path/results/incomplete_pbs/filtered/filtered_intersection",
         }
 
-    @patch('os.path.join')
-    @patch('src.marker_scoring.metrics_system.OtlHandler')
+    @patch("os.path.join")
+    @patch("src.marker_scoring.metrics_system.OtlHandler")
     def test_initialization(self, mock_otl_handler_class, mock_join):
         """
         Test the initialization of MetricsSystemExecutor.
         """
         mock_otl_handler_instance = Mock()
         mock_otl_handler_class.return_value = mock_otl_handler_instance
-        mock_join.side_effect = lambda *args: '/'.join(args)
+        mock_join.side_effect = lambda *args: "/".join(args)
 
         executor = MetricsSystemExecutor(
             results_folder=self.results_folder,
             otl=self.otl,
-            primer_table=self.primer_table
+            primer_table=self.primer_table,
         )
 
         self.assertEqual(executor.results_folder, self.results_folder)
@@ -1216,37 +1305,38 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         self.assertEqual(executor.primer_table, self.primer_table)
         mock_otl_handler_instance.import_otl.assert_called_once()
 
-    @patch('src.marker_scoring.metrics_system.ReferenceDatabaseQuality')
-    @patch('os.path.exists')
-    @patch('os.path.join')
-    @patch('src.marker_scoring.metrics_system.OtlHandler')
-    def test_get_reference_database_quality(self, mock_otl_handler_class, mock_join, mock_exists, mock_ref_db_class):
+    @patch("src.marker_scoring.metrics_system.ReferenceDatabaseQuality")
+    @patch("os.path.exists")
+    @patch("os.path.join")
+    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    def test_get_reference_database_quality(
+        self, mock_otl_handler_class, mock_join, mock_exists, mock_ref_db_class
+    ):
         """
         Test reference database quality calculation.
         """
         mock_exists.return_value = True
-        mock_join.side_effect = lambda *args: '/'.join(args)
+        mock_join.side_effect = lambda *args: "/".join(args)
 
         # Mock OtlHandler
         mock_otl_instance = Mock()
         mock_otl_instance.total_taxa = 100
-        mock_otl_instance.otl_taxa_set = set(['species1', 'species2'])
+        mock_otl_instance.otl_taxa_set = set(["species1", "species2"])
         mock_otl_handler_class.return_value = mock_otl_instance
 
         # set ReferenceDatabaseQuality mock
         mock_ref_db_instance = Mock()
         mock_ref_db_class.return_value = mock_ref_db_instance
-        expected_result = pd.DataFrame({
-            'barcoded_taxa_one_plus': [80.0],
-            'ratio_barcoded_taxa': [0.8]
-        })
+        expected_result = pd.DataFrame(
+            {"barcoded_taxa_one_plus": [80.0], "ratio_barcoded_taxa": [0.8]}
+        )
         mock_ref_db_instance.barcoded_taxa_ratio.return_value = expected_result
 
-        with patch('builtins.open', create=True):
+        with patch("builtins.open", create=True):
             executor = MetricsSystemExecutor(
                 results_folder=self.results_folder,
                 otl=self.otl,
-                primer_table=self.primer_table
+                primer_table=self.primer_table,
             )
 
         result = executor.get_reference_database_quality()
@@ -1254,8 +1344,11 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         # Verify results
         pd.testing.assert_frame_equal(result, expected_result)
         expected_calls = [
-            call(otl='/fake/path/otl.tsv', all_inserts_path='/fake/path/results/insert/filtered'),
-            call().barcoded_taxa_ratio(total_taxa_count=100)
+            call(
+                otl="/fake/path/otl.tsv",
+                all_inserts_path="/fake/path/results/insert/filtered",
+            ),
+            call().barcoded_taxa_ratio(total_taxa_count=100),
         ]
         mock_ref_db_class.assert_has_calls(expected_calls)
 
@@ -1264,11 +1357,13 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             total_taxa_count=executor.total_otl_taxa_count
         )
 
-    @patch('src.marker_scoring.metrics_system.Binding')
-    @patch('src.marker_scoring.metrics_system.OtlHandler')
-    @patch('os.path.exists')
-    @patch('os.path.join')
-    def test_get_primer_pbs_analysis(self, mock_join, mock_exists, mock_otl_handler_class, mock_binding_class):
+    @patch("src.marker_scoring.metrics_system.Binding")
+    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("os.path.exists")
+    @patch("os.path.join")
+    def test_get_primer_pbs_analysis(
+        self, mock_join, mock_exists, mock_otl_handler_class, mock_binding_class
+    ):
         """
         Test primer PBS analysis.
         """
@@ -1277,22 +1372,22 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_binding_class.return_value = mock_binding_instance
 
         expected_primer_pbs = {
-            'primer1': {'data': 'value1'},
-            'primer2': {'data': 'value2'}
+            "primer1": {"data": "value1"},
+            "primer2": {"data": "value2"},
         }
-        expected_gc_df = pd.DataFrame({
-            'gc_content': [0.5, 0.6]
-        }, index=['primer1', 'primer2'])
+        expected_gc_df = pd.DataFrame(
+            {"gc_content": [0.5, 0.6]}, index=["primer1", "primer2"]
+        )
 
         mock_binding_instance.primer_pbs_analysis.return_value = (
             expected_primer_pbs,
-            expected_gc_df
+            expected_gc_df,
         )
 
         executor = MetricsSystemExecutor(
             results_folder=self.results_folder,
             otl=self.otl,
-            primer_table=self.primer_table
+            primer_table=self.primer_table,
         )
 
         primer_pbs_dict, gc_df = executor.get_primer_pbs_analysis()
@@ -1302,19 +1397,21 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_binding_instance.primer_pbs_analysis.assert_called_once_with(
             insert_folder=executor.insert_folder_path,
             amplicon_folder=executor.amplicon_folder_path,
-            primer_table=executor.primer_table
+            primer_table=executor.primer_table,
         )
 
-    @patch('src.marker_scoring.metrics_system.TraitsAndResolution')
-    @patch('src.marker_scoring.metrics_system.OtlHandler')
-    @patch('os.path.exists')
-    @patch('os.path.join')
-    def test_get_traits_and_resolution(self,  mock_join, mock_exists, mock_otl_handler_class, mock_traits_class):
+    @patch("src.marker_scoring.metrics_system.TraitsAndResolution")
+    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("os.path.exists")
+    @patch("os.path.join")
+    def test_get_traits_and_resolution(
+        self, mock_join, mock_exists, mock_otl_handler_class, mock_traits_class
+    ):
         """
         Test traits and resolution calculation.
         """
         mock_exists.return_value = True
-        mock_join.side_effect = lambda *args: '/'.join(args)
+        mock_join.side_effect = lambda *args: "/".join(args)
 
         # Configure mock
         mock_otl_handler_instance = Mock()
@@ -1325,17 +1422,16 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_traits_class.return_value = mock_traits_instance
 
         # Mock expected DataFrame with 'primer' index
-        expected_result = pd.DataFrame({
-            'primer': ['primer1'],
-            'divergence_score': [0.75]
-        }).set_index('primer')
+        expected_result = pd.DataFrame(
+            {"primer": ["primer1"], "divergence_score": [0.75]}
+        ).set_index("primer")
         mock_traits_instance.get_divergence_score.return_value = expected_result
 
         # Create instance with mocked dependencies
         executor = MetricsSystemExecutor(
             results_folder=self.results_folder,
             otl=self.otl,
-            primer_table=self.primer_table
+            primer_table=self.primer_table,
         )
         executor.total_otl_taxa_count = 100
 
@@ -1348,40 +1444,41 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             total_otl_taxa_count=100
         )
 
-
-    @patch('src.marker_scoring.metrics_system.OtlHandler')
-    @patch('os.path.exists')
-    @patch('os.path.join')
+    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("os.path.exists")
+    @patch("os.path.join")
     def test_rank_primers(self, mock_join, mock_exists, mock_otl_handler_class):
         """
         Test primer ranking functionality.
         """
-        mock_analysis_results = pd.DataFrame({
-            'barcoded_taxa_one_plus': [90, 80],
-            'ratio_barcoded_taxa': [0.9, 0.8],
-            'mismatch_score': [2, 3],
-            'priming_ratio_sum': [0.8, 0.7],
-            'gc_matches_across_taxon': [15, 12],
-            'min_tm_cv': [0.1, 0.2],
-            'tm_score': [0.9, 0.8],
-            'amplification_success_percent': [95, 85],
-            'divergence_score': [0.2, 0.3]
-        }, index=['primer1', 'primer2'])
+        mock_analysis_results = pd.DataFrame(
+            {
+                "barcoded_taxa_one_plus": [90, 80],
+                "ratio_barcoded_taxa": [0.9, 0.8],
+                "mismatch_score": [2, 3],
+                "priming_ratio_sum": [0.8, 0.7],
+                "gc_matches_across_taxon": [15, 12],
+                "min_tm_cv": [0.1, 0.2],
+                "tm_score": [0.9, 0.8],
+                "amplification_success_percent": [95, 85],
+                "divergence_score": [0.2, 0.3],
+            },
+            index=["primer1", "primer2"],
+        )
 
         executor = MetricsSystemExecutor(
             results_folder=self.results_folder,
             otl=self.otl,
-            primer_table=self.primer_table
+            primer_table=self.primer_table,
         )
         executor.join_analysis_results = Mock(return_value=mock_analysis_results)
 
         result = executor.rank_primers()
-        result = result.set_index('index')
+        result = result.set_index("index")
         print(result)
 
-        self.assertTrue('final_rank' in result.columns)
+        self.assertTrue("final_rank" in result.columns)
         self.assertEqual(len(result), 2)
-        primer1_rank = result.loc['primer1', 'final_rank']
-        primer2_rank = result.loc['primer2', 'final_rank']
+        primer1_rank = result.loc["primer1", "final_rank"]
+        primer2_rank = result.loc["primer2", "final_rank"]
         self.assertLess(primer1_rank, primer2_rank)
-
