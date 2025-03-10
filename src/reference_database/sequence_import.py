@@ -463,9 +463,7 @@ class LineageFileLoader:
             "order",
             "class",
             "phylum",
-            "subkingdom",
-            "kingdom",
-            "empire",
+            "kingdom"
         ]
         self.str_requirements = ", ".join(self.header_requirements)
         self.lineage_file = None

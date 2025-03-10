@@ -263,9 +263,8 @@ class TestLinageFileLoader(unittest.TestCase):
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data="seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-        + "empire\nseq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-        + "empire\n",
+        read_data="seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tkingdom"
+        + "\nseq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\tkingdom\n",
     )
     @patch("builtins.print")
     def test_load_lineage_file_tsv_file(
@@ -276,10 +275,9 @@ class TestLinageFileLoader(unittest.TestCase):
         """
         output_df = pd.read_csv(
             StringIO(
-                "seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum\t"
-                + "subkingdom\tkingdom\tempire\nseq_id\tspecies\tgenus\t"
-                + "family\torder\tclass\tphylum\tsubkingdom\tkingdom\t"
-                + "empire\n"
+                "seq_id\tspecies\tgenus\tfamily\torder\tclass\tphylum"
+                + "\tkingdom\nseq_id\tspecies\tgenus\t"
+                + "family\torder\tclass\tphylum\tkingdom\n"
             ),
             sep="\t",
             header=0,
@@ -304,5 +302,5 @@ class TestLinageFileLoader(unittest.TestCase):
             str(context.exception),
             "Columns in TSV file do not match the "
             + "requirements: [seq_id, species, genus, family, order, class, phylum, "
-            + "subkingdom, kingdom, empire]. Please try again.",
+            + "kingdom]. Please try again.",
         )
