@@ -225,7 +225,10 @@ class ReferenceDatabaseQuality:
         for primer_pair, file_path in fasta_files.items():
             # Read FASTA file with minimal validation for speed
             fasta_data = self.custom_fasta_import.read_fasta(
-                file_path, check_taxid=False, overide_validation=True, taxa_column_end=11
+                file_path,
+                check_taxid=False,
+                overide_validation=True,
+                taxa_column_end=11,
             )
 
             # Convert taxa_info to string type and handle NaN values
@@ -444,7 +447,6 @@ class ReferenceDatabaseQuality:
             ratio_barcoded_taxa = (
                 percent_5plus / percent_1plus if percent_5plus > 0 else 0
             )
-            print(ratio_barcoded_taxa)
 
             barcoded_taxa_ratio[primer_pair] = {
                 "barcoded_taxa_one_plus": percent_1plus,
