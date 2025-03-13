@@ -225,7 +225,7 @@ class ReferenceDatabaseQuality:
         for primer_pair, file_path in fasta_files.items():
             # Read FASTA file with minimal validation for speed
             fasta_data = self.custom_fasta_import.read_fasta(
-                file_path, check_taxid=False, overide_validation=True
+                file_path, check_taxid=False, overide_validation=True, taxa_column_end=11
             )
 
             # Convert taxa_info to string type and handle NaN values
@@ -258,6 +258,7 @@ class ReferenceDatabaseQuality:
         primer_taxa_data = {}
         for primer in barcodes_per_entry.keys():
             primer_taxa_data[primer] = json.loads(json.dumps(otl_hierarchical_taxonomy))
+        # print(primer_taxa_data)
 
         # Create mapping between parsed taxonomy in headers and their occurences (counts)
         taxa_counts_mapping = {}
@@ -270,6 +271,7 @@ class ReferenceDatabaseQuality:
 
                 mapping_key = (primer, family, genus, species)
                 taxa_counts_mapping[mapping_key] = count
+        # print(taxa_counts_mapping)
 
         def update_counts(primer_otl_hierarchy, taxa_counts_mapping, primer):
             """
@@ -322,7 +324,7 @@ class ReferenceDatabaseQuality:
                                     and g == genus
                                     and s
                                     and s != "nan"
-                                    and species_name.startswith(s)
+                                    and s == species_name
                                 )
 
                                 # add species-level counts to genus count
@@ -442,6 +444,7 @@ class ReferenceDatabaseQuality:
             ratio_barcoded_taxa = (
                 percent_5plus / percent_1plus if percent_5plus > 0 else 0
             )
+            print(ratio_barcoded_taxa)
 
             barcoded_taxa_ratio[primer_pair] = {
                 "barcoded_taxa_one_plus": percent_1plus,

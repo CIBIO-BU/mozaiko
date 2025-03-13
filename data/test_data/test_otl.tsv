@@ -1,7 +1,7 @@
-taxa	scientificName	rank	kingdom	phylum	class	order	family	genus	species
-speciesA	speciesA	species	kingdomA	phylumA	classA	orderA	familyA	genusA	speciesA
-speciesB	speciesB	species	kingdomB	phylumB	classB	orderB	familyB	genusB	speciesB
-speciesC	speciesC	species	kingdomC	phylumC	classC	orderC	familyC	genusC	speciesC
-speciesD	speciesD	species	kingdomD	phylumD	classD	orderD	familyD	genusD	speciesD
-speciesE	speciesE	species	kingdomE	phylumE	classE	orderE	familyE	genusE	speciesE
-speciesZ	speciesZ	species	kingdomZ	phylumZ	classZ	orderZ	familyZ	genusZ	speciesZ
+taxa	scientificName	rank	kingdom	phylum	class	order	family	genus
+species A	species A	species	kingdomA	phylumA	classA	orderA	familyA	genusA
+species B	species B	species	kingdomB	phylumB	classB	orderB	familyB	genusB
+species C	species C	species	kingdomC	phylumC	classC	orderC	familyC	genusC
+species D	species D	species	kingdomD	phylumD	classD	orderD	familyD	genusD
+species E	species E	species	kingdomE	phylumE	classE	orderE	familyE	genusE
+species Z	species Z	species	kingdomZ	phylumZ	classZ	orderZ	familyZ	genusZ
