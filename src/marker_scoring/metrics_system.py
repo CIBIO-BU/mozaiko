@@ -1879,7 +1879,7 @@ class MetricsSystemExecutor:
 
         return analysis_results
 
-    def sort_otl_level_results(self, subdirectory_name: str = None):
+    def sort_otl_level_results(self, subdirectory_name: Optional[str] = None):
         """
         This method joins the divergence score results with the OTL-level binding results.
         Files are processed in the base directory, then moved to the specified subdirectory.
