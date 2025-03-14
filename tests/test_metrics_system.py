@@ -1439,57 +1439,78 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         self.assertEqual(executor.primer_table, self.primer_table)
         mock_otl_handler_instance.import_otl.assert_called_once()
 
-    # @patch("src.marker_scoring.metrics_system.ReferenceDatabaseQuality")
-    # @patch("os.path.exists")
-    # @patch("os.path.join")
-    # @patch("src.marker_scoring.metrics_system.OtlHandler")
-    # def test_get_reference_database_quality(
-    #     self, mock_otl_handler_class, mock_join, mock_exists, mock_ref_db_class
-    # ):
-    #     """
-    #     Test reference database quality calculation.
-    #     """
-    #     mock_exists.return_value = True
-    #     mock_join.side_effect = lambda *args: "/".join(args)
+    @patch("os.makedirs")
+    @patch("tempfile.TemporaryDirectory")
+    @patch("os.listdir")
+    @patch("src.marker_scoring.metrics_system.ReferenceDatabaseQuality")
+    @patch("os.path.exists")
+    @patch("os.path.join")
+    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    def test_get_reference_database_quality(
+        self,
+        mock_otl_handler_class,
+        mock_join,
+        mock_exists,
+        mock_ref_db_class,
+        mock_listdir,
+        mock_temp_dir,
+        mock_makedirs,
+    ):
+        """
+        Test reference database quality calculation.
+        """
+        # Mock the temporary directory to return a known path
+        mock_temp_dir_instance = Mock()
+        mock_temp_dir_instance.__enter__ = Mock(return_value="/fake/temp/dir")
+        mock_temp_dir_instance.__exit__ = Mock(return_value=None)
+        mock_temp_dir.return_value = mock_temp_dir_instance
 
-    #     # Mock OtlHandler
-    #     mock_otl_instance = Mock()
-    #     mock_otl_instance.total_taxa = 100
-    #     mock_otl_instance.otl_taxa_set = set(["species1", "species2"])
-    #     mock_otl_handler_class.return_value = mock_otl_instance
+        # Mock os.makedirs to avoid actual file system operations
+        mock_makedirs.return_value = None
 
-    #     # set ReferenceDatabaseQuality mock
-    #     mock_ref_db_instance = Mock()
-    #     mock_ref_db_class.return_value = mock_ref_db_instance
-    #     expected_result = pd.DataFrame(
-    #         {"barcoded_taxa_one_plus": [80.0], "ratio_barcoded_taxa": [0.8]}
-    #     )
-    #     mock_ref_db_instance.barcoded_taxa_ratio.return_value = expected_result
+        mock_exists.return_value = True
+        mock_join.side_effect = lambda *args: "/".join(args)
+        # Mock os.listdir to return an empty list to avoid file operations
+        mock_listdir.return_value = []
 
-    #     with patch("builtins.open", create=True):
-    #         executor = MetricsSystemExecutor(
-    #             results_folder=self.results_folder,
-    #             otl=self.otl,
-    #             primer_table=self.primer_table,
-    #         )
+        # Mock OtlHandler
+        mock_otl_instance = Mock()
+        mock_otl_instance.total_taxa = 100
+        mock_otl_instance.otl_taxa_set = set(["species1", "species2"])
+        mock_otl_handler_class.return_value = mock_otl_instance
 
-    #     result = executor.get_reference_database_quality()
+        # set ReferenceDatabaseQuality mock
+        mock_ref_db_instance = Mock()
+        mock_ref_db_class.return_value = mock_ref_db_instance
+        expected_result = pd.DataFrame(
+            {"barcoded_taxa_one_plus": [80.0], "ratio_barcoded_taxa": [0.8]}
+        )
+        mock_ref_db_instance.barcoded_taxa_ratio.return_value = expected_result
 
-    #     # Verify results
-    #     pd.testing.assert_frame_equal(result, expected_result)
-    #     expected_calls = [
-    #         call(
-    #             otl="/fake/path/otl.tsv",
-    #             all_inserts_path="/fake/path/results/insert/filtered",
-    #         ),
-    #         call().barcoded_taxa_ratio(total_taxa_count=100),
-    #     ]
-    #     mock_ref_db_class.assert_has_calls(expected_calls)
+        with patch("builtins.open", create=True):
+            executor = MetricsSystemExecutor(
+                results_folder=self.results_folder,
+                otl=self.otl,
+                primer_table=self.primer_table,
+            )
 
-    #     # Verify ReferenceDatabaseQuality was initialized correctly
-    #     mock_ref_db_instance.barcoded_taxa_ratio.assert_called_once_with(
-    #         total_taxa_count=executor.total_otl_taxa_count
-    #     )
+            result = executor.get_reference_database_quality()
+
+            # Verify results
+            pd.testing.assert_frame_equal(result, expected_result)
+            expected_calls = [
+                call(
+                    otl="/fake/path/otl.tsv",
+                    all_inserts_path="/fake/temp/dir/all_inserts",
+                ),
+                call().barcoded_taxa_ratio(total_taxa_count=100),
+            ]
+            mock_ref_db_class.assert_has_calls(expected_calls)
+
+            # Verify ReferenceDatabaseQuality was initialized correctly
+            mock_ref_db_instance.barcoded_taxa_ratio.assert_called_once_with(
+                total_taxa_count=executor.total_otl_taxa_count
+            )
 
     @patch("src.marker_scoring.metrics_system.Binding")
     @patch("src.marker_scoring.metrics_system.OtlHandler")
