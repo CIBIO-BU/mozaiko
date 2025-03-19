@@ -373,6 +373,65 @@ def sequence_count_tracking(
         return None
 
 
+def remove_rc_suffix_from_fasta_files(results_directory):
+    """
+    Recursively processes all FASTA files in the given directory and its subdirectories,
+    removing ' rc' suffix from the end of headers.
+
+    Parameters:
+        results_directory (str): Path to the results directory to search for FASTA files
+
+    Returns:
+        dict: Statistics about the processing operation
+    """
+    stats = {"files_processed": 0, "headers_modified": 0, "errors": []}
+
+    # Pattern to match FASTA headers ending with ' rc'
+    # This ensures we only match ' rc' when it's at the very end of the header
+    header_pattern = re.compile(r"^(>.+)\s+rc$")
+
+    for dirpath, dirnames, filenames in os.walk(results_directory):
+        for filename in filenames:
+            if filename.endswith((".fasta")):
+                file_path = os.path.join(dirpath, filename)
+                temp_file_path = file_path + ".temp"
+
+                try:
+                    headers_changed = 0
+
+                    with open(file_path, "r") as input_file, open(
+                        temp_file_path, "w"
+                    ) as output_file:
+                        for line in input_file:
+                            if line.startswith(">"):
+                                # Check if the header ends with ' rc'
+                                match = header_pattern.match(line.strip())
+                                if match:
+                                    # Replace the header without the ' rc' suffix
+                                    new_header = match.group(1) + "\n"
+                                    output_file.write(new_header)
+                                    headers_changed += 1
+                                else:
+                                    output_file.write(line)
+                            else:
+                                output_file.write(line)
+
+                    if headers_changed > 0:
+                        os.replace(temp_file_path, file_path)
+                        stats["headers_modified"] += headers_changed
+                    else:
+                        os.remove(temp_file_path)
+
+                    stats["files_processed"] += 1
+
+                except Exception as e:
+                    stats["errors"].append(f"Error processing {file_path}: {str(e)}")
+                    if os.path.exists(temp_file_path):
+                        os.remove(temp_file_path)
+
+    return stats
+
+
 def create_MultiBarcodeTools_input(insert_folder, pbs_incomplete_folder, output_file):
     """
     Process all FASTA files in a given folder and write extracted information to a TSV file.

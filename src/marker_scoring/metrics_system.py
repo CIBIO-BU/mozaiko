@@ -1829,7 +1829,7 @@ class MetricsSystemExecutor:
 
         return binding_df
 
-    def get_traits_and_resolution(self):
+    def get_traits_and_resolution(self, run_multibarcode_pipeline: bool = True):
         """
         Combine taxonomic resolution and genetic divergence analyses
 
@@ -1844,13 +1844,9 @@ class MetricsSystemExecutor:
         )
 
         # Run Multibarcode Pipeline
-        output_str = trait.run_multibarcode_pipeline()
-        # trait.parse_multibarcode_output(output_str)
-
-        # # Get Taxonomic Resolution Percentage
-        # taxonomic_resolution = trait.get_taxonomic_resolution(
-        #     total_otl_taxa_count=int(self.total_otl_taxa_count)
-        # )
+        if run_multibarcode_pipeline:
+            output_str = trait.run_multibarcode_pipeline()
+            trait.parse_multibarcode_output(output_str)
 
         # Get Divergence Score
         taxonomic_resolution = trait.get_taxonomic_resolution()
