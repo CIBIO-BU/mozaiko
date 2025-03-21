@@ -1862,14 +1862,14 @@ class MetricsSystemExecutor:
 
         return traits_res_df
 
-    def join_analysis_results(self):
+    def join_analysis_results(self, run_multibarcode_pipeline: bool = True):
         """
         This method joins the results from the primer analysis and the traits and resolution analysis.
         """
         binding_dataframe = self.comprehensive_primer_analysis(
             self.results_folder, save_otl_level_results=True
         )
-        traits_dataframe = self.get_traits_and_resolution()
+        traits_dataframe = self.get_traits_and_resolution(run_multibarcode_pipeline)
 
         analysis_results = binding_dataframe.join(traits_dataframe, on="primer")
 
@@ -1971,7 +1971,7 @@ class MetricsSystemExecutor:
         except Exception as e:
             raise Exception(f"mozaiko ERROR: Error in sort_otl_level_results: {str(e)}")
 
-    def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None):
+    def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None, run_multibarcode_pipeline: bool = True):
         """
         This method ranks the primers performance based on the results of the Metric System.
 
@@ -1999,7 +1999,7 @@ class MetricsSystemExecutor:
             "taxonomic_resolution": "asc",
         }
 
-        metrics_df = self.join_analysis_results()
+        metrics_df = self.join_analysis_results(run_multibarcode_pipeline)
 
         for column, order in ranking_order.items():
             if order == "desc":
