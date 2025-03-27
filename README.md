@@ -6,7 +6,7 @@
 [![Packge Tests](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/python-test-check.yml)
 [![codecov](https://codecov.io/gh/CIBIO-BU/mozaiko/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/mozaico)
 
-![alt text](data/images/mosaiko-logo.png)
+![alt text](data/images/mozaiko-logo.png)
 
 mozaiko is a bioinformatics tool designed to help researchers select optimized sets of primers for complete coverage in biomonitoring studies. Taking inspiration from mosaic art—where small pieces fit together to form a whole—mozaiko supports comprehensive genetic marker analysis by suggesting a fitting combination of primers.
 
@@ -55,41 +55,43 @@ Th installation script will:
 - Install the mozaiko package;
 - Install required dependencies and tools.
 
-## Running mosaiko
+## mozaiko Metrics' System
 
-To upload custom FASTA sequences:
+mozaiko contains three main categories to evaluate and rank primer sets:
 
-   ```bash
-   mosaiko --load_custom_fasta --input path/to/file
-   ```
+### **Module 1:** Reference Database Quality
 
-To assign taxonomic information to sequences:
+- **_barcoded_taxa_one_plus_**: percentage of taxa in OTL with more than one barcode. A barcode must include the target insert to be considered.
+- **_ratio_barcoded_taxa_**: proportion of taxa in OTL with high barcode coverage (more than five barcodes) relative to taxa with minimal barcode coverage (at least one barcode). The value ranges from 0 to 1, 1 representing the optimal scenario.
 
-   ```bash
-   mosaiko --assign_tax --json_file path/to/json/file
-   ```
-The best practice is to include a JSON file that
-specifies all the correct parameters.
-A template for the JSON file can be found in
-[here](https://github.com/CIBIO-BU/mozaico/blob/main/src/reference_database/assign_tax_parameters.json). This command contemplates eight parameters, five are required ('input', 'output', 'acc2tax', 'taxid' and 'name') and three are optional ('web', 'ranks' and 'missing'). 'axx2tax', 'taxid' and 'name' are related to necessary taxonomic information to complete the task, Despite being required, these fields are already filled in and are available when the taxonomic files are downloaded upon calling the command (no user action required). The 'input' related to the input FASTA file and the 'output' to the output TSV file. For the optional ones, 'web' allows for a web-search to query NCBI's EFetch for missing taxonomic information; 'ranks' allows the user to choose which ranks should represent the organism lineage; 'missing' allows the user to provide a file path to write sequences where taxonomic information was not possible to be retrieved.
+### **Module 2:** Binding
 
+- **_mismatch_score_**: the maximum number of mismatches between the forward primer and its binding site and the reverse primer and its binding site is recorded for each taxon. The maximum mismatch values are then summed to provide the score for the OTL list. The lowest values indicate lower mismatches between primer and primer-binding sites, facilitating amplification.
+- **_priming_ratio_sum_**: sum of the priming ratio across taxon. The priming ratio is computed as the ratio of the maximum number of mismatches at the 3’ end of the primer binding site to the maximum number of mismatches across the entire primer binding site. The lowest values indicate fewer mismatches at the 3’ end of the primer binding site, hence higher binding strength.
+- **_gc_matches_across_taxon_**:  sum of G-C matches at the 3’ end across all taxa present in the OTL. Higher values are preferable, as a content of 40-60% of GC matches promotes binding.
+- **_min_tm_cv_**: The minimum melting temperature (Tm) between each pair of forward and reverse primers is calculated for each taxon. The coefficient of variation across taxa is then determined. Lower values indicate a more consistent thermal performance and are preferable.
+- **_tm_score_**: proportion of taxa with a lower or equal variation of Tm below 2ºC.  Higher values are preferable as they indicate a better thermal performance across taxa in the OTL.
+- **_amplification_success_percent_**: the ratio of taxa that amplify to the total number of taxa with sequences containing primer binding sites, expressed as a percentage. Higher values represent higher amplification success across the target taxa.
 
-To dereplicate sequences in the reference database, the --dereplicate command can be used.
+### **Module 3:** Traits and Resolution
 
- ```bash
-   mosaiko --dereplicate --json_file path/to/json/file
- ```
+- **_taxonomic_resolution_**: percentage of taxa whose genetic divergence is higher than 2%. Higher values are preferable as they indicate an increased possibility of distinguishing between closely related taxa.
+- **_final_rank_**: the final ranking position is determined based on the individual ranking scores for each metric, presented in the output file intermediate_ranks, with all metrics weighted equally. Each metric is ranked based on whether higher or lower values are more desirable:
+   - Descending (higher is better):
+      - barcoded_taxa_one_plus
+      - ratio_barcoded_taxa
+      - gc_matches_across_taxon
+      - tm_score
+      - amplification_success_percent
+   - Ascending (lower is better):
+      - mismatch_score
+      - priming_ratio_sum
+      - min_tm_cv
+      - taxonomic_resolution
 
-Similarly to --assign_tax, the best practice is to provide a JSON file that specifies all the correct parameters. A template for the dereplication JSON file can be found in [here](https://github.com/CIBIO-BU/mozaico/blob/main/src/reference_database/dereplicate_parameters.json). This command contemplates four parameters, two being required ('input' and 'output') and two being optional ('method', 'ranks'). Both the 'input' and 'output' should be a TSV file. For the optional ones, 'ranks' allows the user to choose which ranks should represent the organism lineage and 'method' allows the user to choose which method should be used for the dereplication. Please refer to [CRABS' original documentation](https://github.com/gjeunen/reference_database_creator/tree/main?tab=readme-ov-file#6-dereplicate) for further details.
+For metrics ranked ascending, primers with lower values are preferred. For example, a lower ‘mismatch_score’ is better because it means fewer mismatches. For metrics ranked descending, primers with higher values are preferred.
 
-To run the in-silico amplification analysis, the --in_silico_analysis command can be used.
-
- ```bash
-   mosaiko --in_silico_analysis --input path/to/fasta/file
- ```
-
-The in-silico analysis command will run the amplification process. It requires a FASTA file to be provided as input. This FASTA file should consider headers and sequences in different lines, with the header formatted as ">AB123 | taxid=1234". After running the command, the user will be prompted to provide a primer table and a name for the folder where results will be outputted. The primer table must be provided as a TSV file with following fields: ["target_group", "barcode_region" "assay_name", "fw_seq", "rev_seq", "min_len", "max_len"]. After all inputs are validated, the workflow will perform in-silico amplification, retriving amplicons and inserts where amplification was successful (< 3 mismatches) and inserts where amplification was unsuccessful due to too many mismatches (> 3 mismatches) or due to incomplete forward or reverse primer-binding sites.
-
+## mozaiko Workflow
 
 ## Contacts
 

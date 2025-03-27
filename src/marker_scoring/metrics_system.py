@@ -281,6 +281,7 @@ class ReferenceDatabaseQuality:
             Updates counts for each taxonomic level in the OTL-based hierarchy according to the
             number of barcodes.
             """
+            # print("mozaiko INFO: Updating counts for each taxonomic level.")
             for family, family_data in primer_otl_hierarchy.items():
                 family_total = 0
 
@@ -348,6 +349,7 @@ class ReferenceDatabaseQuality:
         # update counts for each primer according to barcode numbers
         for primer in barcodes_per_entry.keys():
             update_counts(primer_taxa_data[primer], taxa_counts_mapping, primer)
+            # print(f"mozaiko INFO: Counts updated for {primer}.")
 
         return primer_taxa_data
 
@@ -365,6 +367,7 @@ class ReferenceDatabaseQuality:
         )
 
         def count_qualifying_taxa(taxa_data, threshold):
+            # print(f"mozaiko INFO: Counting taxa with more than {barcode_threshold} barcodes.")
             qualifying_taxa = 0
 
             for family, family_data in taxa_data.items():
@@ -414,6 +417,7 @@ class ReferenceDatabaseQuality:
             taxa_meeting_threshold = count_qualifying_taxa(taxa_data, barcode_threshold)
             percentage = (taxa_meeting_threshold / total_taxa_count) * 100
             results[primer_pair] = round(percentage, 2)
+            # print(f"mozaiko INFO: Calculated percentage for {primer_pair}.")
 
         return results
 
