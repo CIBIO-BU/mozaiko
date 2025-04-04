@@ -1640,7 +1640,6 @@ class MetricsSystemExecutor:
         # Load files and folders into memory
         self.primer_table = primer_table
         self.results_folder = results_folder
-        self.results_folder = results_folder
         self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
         self.amplicon_folder_path = os.path.join(results_folder, "amplicon")
         self.incomplete_pbs_path = os.path.join(
@@ -2000,7 +1999,7 @@ class MetricsSystemExecutor:
             "min_tm_cv": "asc",
             "tm_score": "desc",
             "amplification_success_percent": "desc",
-            "taxonomic_resolution": "asc",
+            "taxonomic_resolution": "desc",
         }
 
         metrics_df = self.join_analysis_results(run_multibarcode_pipeline)
@@ -2035,6 +2034,117 @@ class MetricsSystemExecutor:
             metrics_df_intermediate = metrics_df_sorted[
                 ["primer"] + [f"rank_{col}" for col in ranking_order]
             ]
+            metrics_df_intermediate.to_csv(
+                intermediate_ranks_path, sep="\t", index=False
+            )
+            print(
+                f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}."
+            )
+
+        return metrics_df_final
+
+    def rank_primers_categorically_weighted(self,
+                                            save_intermediate_ranks: bool = False,
+                                            output_path=None,
+                                            metrics_results_path=None,
+                                            run_multibarcode_pipeline: bool = True):
+        """
+        This method ranks the primers performance based on the results of the Metric System.
+
+        It assigns a ranking order for each relevant metric and sets the ranking order after
+        joining all the results. The final rank is the sum of the ranks for each metric. This
+        allows for a comprehensive ranking of the primers by setting the metric with the highest
+        rank as the one with the lowest value (is first in most of the ranking metrics).
+
+        Parameters:
+        - save_intermediate_ranks: bool
+            If True, the intermediate ranks will be saved to a TSV file. Default is False.
+        - output_path: str
+            Path to save the results. If None, the results will be saved to the results folder.
+        - metrics_results_path: str
+            Path to the dataframe containing the metrics values results. If None, all steps of the
+        ranking process will be ran. If a path is provided, the primer ranking will be done using
+        the provided dataframe as metrics values.
+        """
+        self.output_path = output_path
+
+        if metrics_results_path:
+            metrics_df = pd.read_csv(metrics_results_path, sep='\t')
+            original_metrics = metrics_df.copy()
+        else:
+            metrics_df = self.join_analysis_results(run_multibarcode_pipeline)
+
+        metric_system = {
+            "ref_db_qual": {
+                "barcoded_taxa_one_plus": "desc",
+                "ratio_barcoded_taxa": "desc"
+            },
+            "binding_capacity": {
+                "mismatch_score": "asc",
+                "priming_ratio_sum": "asc",
+                "gc_matches_across_taxon": "desc",
+                "min_tm_cv": "asc"
+            },
+            "tax_res": {
+                "taxonomic_resolution": "desc"
+            }
+        }
+
+        ranking_order = {}
+        for category, metrics in metric_system.items():
+            for metric, order in metrics.items():
+                ranking_order[metric] = order
+
+        for metric, order in ranking_order.items():
+            if order == "desc":
+                    metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=False)
+            elif order == "asc":
+                    metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=True)
+
+
+        # Calculate rank sum for each category
+        for category, metrics in metric_system.items():
+            category_metrics = list(metrics.keys())
+            category_rank_columns = [f"rank_{metric}" for metric in category_metrics]
+            metrics_df[f"rank_sum_{category}"] = metrics_df[category_rank_columns].sum(axis=1)
+            metrics_df[f"category_rank_{category}"] = metrics_df[f"rank_sum_{category}"].rank(ascending=True)
+
+
+        # Calculate final rank as sum of category ranks
+        category_rank_columns = [f"category_rank_{category}" for category in metric_system.keys()]
+        metrics_df["final_score"] = metrics_df[category_rank_columns].sum(axis=1)
+        metrics_df["final_rank"] = metrics_df["final_score"].rank(ascending=True).astype(int)
+
+        metrics_df_sorted = metrics_df.sort_values(
+            by="final_rank", ascending=True
+        ).reset_index(drop=False)
+
+        output_columns = ["primer"] + list(ranking_order.keys()) + ["final_rank"]
+        metrics_df_final = metrics_df_sorted[output_columns]
+
+        if output_path is None:
+            output_path = Path(self.results_folder) / "ranked_primers.tsv"
+        metrics_df_final.to_csv(output_path, sep="\t", index=False)
+        print(f"mozaiko INFO: Primer Ranking results saved to {output_path}.")
+
+        # Save intermediate ranks if requestedresults_folder
+        if save_intermediate_ranks:
+            otl_name = Path(self.otl).stem
+            intermediate_ranks_path = (
+                Path(self.results_folder) / f"{otl_name}_intermediate_ranks.tsv"
+            )
+
+            metric_rank_columns = [f"rank_{col}" for col in ranking_order]
+
+            category_columns = []
+            for category in metric_system.keys():
+                category_columns.append(f"rank_sum_{category}")
+                category_columns.append(f"category_rank_{category}")
+
+            metrics_df_intermediate = metrics_df_sorted[
+                ["primer"] + metric_rank_columns + category_columns
+            ]
+
             metrics_df_intermediate.to_csv(
                 intermediate_ranks_path, sep="\t", index=False
             )

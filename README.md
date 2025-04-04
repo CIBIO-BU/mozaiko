@@ -71,7 +71,7 @@ mozaiko contains three main categories to evaluate and rank primer sets:
 - **_gc_matches_across_taxon_**:  sum of G-C matches at the 3’ end across all taxa present in the OTL. Higher values are preferable, as a content of 40-60% of GC matches promotes binding.
 - **_min_tm_cv_**: The minimum melting temperature (Tm) between each pair of forward and reverse primers is calculated for each taxon. The coefficient of variation across taxa is then determined. Lower values indicate a more consistent thermal performance and are preferable.
 - **_tm_score_**: proportion of taxa with a lower or equal variation of Tm below 2ºC.  Higher values are preferable as they indicate a better thermal performance across taxa in the OTL.
-- **_amplification_success_percent_**: the ratio of taxa that amplify to the total number of taxa with sequences containing primer binding sites, expressed as a percentage. Higher values represent higher amplification success across the target taxa.
+- **_amplification_success_percent_**: the ratio of taxa that amplify to the total number of taxa with sequences containing primer binding sites, expressed as a percentage. Higher values represent higher amplification success across taxa.
 
 ### **Module 3:** Traits and Resolution
 

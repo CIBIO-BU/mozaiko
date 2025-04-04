@@ -5,7 +5,6 @@ external_scripts/diat-barcode_pre-process/diat.barcode_release-version_12.4.xlsx
 **/__pycache__/
 .vscode/
 external_scripts/crabs
-data/output_data/*
 data/test_data/test_assign_tax.fasta
 data/test_data/test_assign_tax.json
 data/test_data/test_assign_tax.fasta
@@ -34,3 +33,4 @@ data/input_data/BMI/bmi_database.fasta
 data/input_data/BMI/bold_idm_filt_processed.fasta
 data/input_data/BMI/bold_idm_filt.fasta
 data/input_data/BMI/bmi_database_processed.fasta
+data/output_data/*
