@@ -259,109 +259,319 @@ def extract_primer_binding_sites(amplicon_file, insert_file):
     return primer_dataframe
 
 
+# def sequence_count_tracking(
+#     original_database, analysis_folder, save_results: bool = True
+# ):
+#     """
+#     This method tracks sequence count per each analysis step.
+#     Parameters:
+#     - original_database: path to the FASTA file containing the original inputted database.
+#     - analysis_folder: path to the folder contaning the analysis outcomes.
+#     - save_results: bool
+#     A boolean parameter to save the results to an CSV file, if the parameter is set to True.
+#     Output:
+#     - sequence_count_track (Dataframe): TSV file containing the number of sequences in the original
+#     database and the number of sequences considered after each analysis step.
+#     """
+#     try:
+#         # Define the specific folders to analyze and their clean names for columns
+#         target_folders = ["all_complete_pbs", "amplicon", "incomplete_pbs", "insert"]
+
+#         file_list = []
+#         # Walk through the analysis folder
+#         for root, dirs, files in os.walk(analysis_folder):
+#             # Check if this directory is or is a subdirectory of any target folder
+#             path_parts = root.split(os.path.sep)
+
+#             # Only process files if they're in target folder or subfolders
+#             is_target_or_subfolder = any(folder in path_parts for folder in target_folders)
+
+#             if is_target_or_subfolder:
+#                 for file in files:
+#                     file_list.append(os.path.join(root, file))
+
+#         # Add the original database if it exists
+#         if os.path.exists(original_database):
+#             file_list.append(original_database)
+#             original_dir = "original_database"
+#         else:
+#             print(f"mozaiko WARNING: Original database file not found.")
+#             original_dir = "original_database_not_found"
+
+#         # Dictionary to track sequence counts across folders and primers
+#         primer_step_counts = {}
+
+#         # Process each file to count sequences
+#         for file_path in file_list:
+#             try:
+#                 # Count sequences in the file
+#                 count_result = subprocess.run(
+#                     ["grep", "-c", "^>", file_path],
+#                     capture_output=True,
+#                     text=True,
+#                     check=True,
+#                 )
+#                 count = int(count_result.stdout.strip())
+
+#                 # Extract primer name from filename
+#                 filename = os.path.basename(file_path)
+#                 primer_name = filename.split('.')[0]
+
+#                 # Determine the analysis step (folder)
+#                 if file_path == original_database:
+#                     primer_name = "original_database"
+#                     step = "original_database"
+#                 else:
+#                     # Determine which target folder this belongs to
+#                     step = None
+#                     path_parts = file_path.split(os.path.sep)
+
+#                     for folder in target_folders:
+#                         if folder in path_parts:
+#                             step = folder
+#                             # Check if it's in a filtered subfolder
+#                             folder_index = path_parts.index(folder)
+#                             if folder_index + 1 < len(path_parts) and path_parts[folder_index + 1] == "filtered":
+#                                 step = f"{folder}-filtered"
+#                             break
+
+#                 # Skip if we couldn't determine the step
+#                 if step is None:
+#                     continue
+
+#                 # Create a simplified primer name by removing any folder prefix
+#                 if primer_name != "original_database":
+#                     # Remove folder prefixes if present (like "insert-" or "all_complete_pbs-")
+#                     for folder in target_folders:
+#                         prefix = f"{folder}-"
+#                         if primer_name.startswith(prefix):
+#                             primer_name = primer_name[len(prefix):]
+
+#                 # Store in our dictionary, keeping the highest count if duplicates exist
+#                 key = (primer_name, step)
+#                 if key not in primer_step_counts or primer_step_counts[key] < count:
+#                     primer_step_counts[key] = count
+
+#             except subprocess.CalledProcessError as e:
+#                 print(f"mozaiko ERROR: Error processing file {file_path}: {e}")
+#             except ValueError as e:
+#                 print(f"mozaiko ERROR: Error counting sequences for file {file_path}: {e}")
+
+#         # Convert to records for DataFrame creation
+#         records = []
+#         for (primer_name, step), count in primer_step_counts.items():
+#             records.append({
+#                 "primer_name": primer_name,
+#                 "analysis_step": step,
+#                 "number_of_sequences": count
+#             })
+
+#         # Create DataFrame and pivot
+#         df = pd.DataFrame(records)
+
+#         # Handle empty DataFrame case
+#         if df.empty:
+#             print("mozaiko WARNING: No data found to create sequence count tracking.")
+#             return None
+
+#         df_pivoted = df.pivot(
+#             index="primer_name",
+#             columns="analysis_step",
+#             values="number_of_sequences"
+#         )
+
+#         # Define column order with original_database first
+#         column_order = ["original_database"]
+#         # Add target folders in specified order
+#         column_order.extend(target_folders)
+#         # Add filtered versions
+#         column_order.extend([f"{folder}-filtered" for folder in target_folders])
+
+#         # Keep only columns that exist in our data
+#         existing_cols = [col for col in column_order if col in df_pivoted.columns]
+
+#         # Reorder columns and fill NaN values with "NA" string
+#         df_pivoted = df_pivoted[existing_cols].fillna("NA")
+
+#         if save_results:
+#             run_name = os.path.basename(analysis_folder)
+#             output_name = "sequence_count_track.tsv"
+#             output_path = os.path.join(analysis_folder, f"{run_name}-{output_name}")
+
+#             df_pivoted.to_csv(
+#                 output_path, sep="\t", index=True, header=True, index_label=""
+#             )
+#             print(
+#                 f"mozaiko INFO: Sequence count tracking file successfully saved to {output_path}."
+#             )
+
+#         return df_pivoted
+
+#     except Exception as e:
+#         print(f"mozaiko ERROR: Unexpected error occurred: {e}")
+#         import traceback
+#         traceback.print_exc()
+#         return None
+
 def sequence_count_tracking(
     original_database, analysis_folder, save_results: bool = True
 ):
     """
     This method tracks sequence count per each analysis step.
-
     Parameters:
     - original_database: path to the FASTA file containing the original inputted database.
     - analysis_folder: path to the folder contaning the analysis outcomes.
     - save_results: bool
-        A boolean parameter to save the results to an CSV file, if the parameter is set to True.
-
+    A boolean parameter to save the results to an CSV file, if the parameter is set to True.
     Output:
-    - sequence_count_track (Dataframe): TSV file containing the number of sequenc21h45 	22h03es in the original
+    - sequence_count_track (Dataframe): TSV file containing the number of sequences in the original
     database and the number of sequences considered after each analysis step.
     """
     try:
-        file_list = []
+        # Define the specific target folders to analyze
+        target_folders = ["all_complete_pbs", "amplicon", "incomplete_pbs", "insert", "input_B"]
 
+        # Dictionary to store file paths and their analysis steps
+        step_files = {}
+
+        # Walk through the analysis folder to find all relevant files
         for root, dirs, files in os.walk(analysis_folder):
-            for file in files:
-                file_list.append(os.path.join(root, file))
+            # Get path components
+            path_parts = root.split(os.path.sep)
 
+            # Check if any target folder is in the path
+            target_folder_present = False
+            target_folder_path = None
+
+            for target in target_folders:
+                if target in path_parts:
+                    target_folder_present = True
+                    # Get the index of the target folder in the path
+                    target_index = path_parts.index(target)
+                    # Extract the target and all subsequent folders to create the step name
+                    target_folder_path = path_parts[target_index:]
+                    break
+
+            # Skip if no target folder found
+            if not target_folder_present:
+                continue
+
+            # Process files in this directory
+            for file in files:
+                # Only process files with extensions that could be sequence files
+                if file.endswith((".fasta", ".fa", ".fna", ".ffn", ".faa", ".frn")):
+                    file_path = os.path.join(root, file)
+
+                    # Create a standardized analysis step name based on the subfolder path
+                    # Join all path components after the target folder with hyphens
+                    step_name = "-".join(target_folder_path)
+
+                    # Add to our collection
+                    if step_name not in step_files:
+                        step_files[step_name] = []
+                    step_files[step_name].append(file_path)
+
+        # Add the original database to our analysis steps
         if os.path.exists(original_database):
-            file_list.append(original_database)
-            original_dir = "original_database"
+            if "original_database" not in step_files:
+                step_files["original_database"] = []
+            step_files["original_database"].append(original_database)
         else:
             print(f"mozaiko WARNING: Original database file not found.")
-            original_dir = "original_database_not_found"
 
-        sequence_counts = {}
+        # Dictionary to store sequence counts by primer and step
+        primer_step_counts = {}
 
-        for file_path in file_list:
-            try:
-                count_result = subprocess.run(
-                    ["grep", "-c", "^>", file_path],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                count = int(count_result.stdout.strip())
-                sequence_counts[file_path] = count
-            except subprocess.CalledProcessError as e:
-                print(f"mozaiko ERROR: Error processing file {file_path}: {e}")
-                sequence_counts[file_path] = np.na
-            except ValueError as e:
-                print(
-                    f"mozaiko ERROR: Error counting sequences for file {file_path}: {e}"
-                )
-                sequence_counts[file_path] = np.na
+        # Process each analysis step and count sequences in each file
+        for step_name, file_paths in step_files.items():
+            for file_path in file_paths:
+                try:
+                    # Count sequences in the file
+                    count_result = subprocess.run(
+                        ["grep", "-c", "^>", file_path],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
+                    count = int(count_result.stdout.strip())
 
+                    # Extract primer name from filename
+                    filename = os.path.basename(file_path)
+                    file_base_name = filename.split('.')[0]
+
+                    # Handle the original database case
+                    if step_name == "original_database":
+                        primer_name = "original_database"
+                    else:
+                        # Extract primer name, removing any folder prefixes
+                        primer_name = file_base_name
+                        for prefix in [f"{folder}-" for folder in target_folders]:
+                            if primer_name.startswith(prefix):
+                                primer_name = primer_name[len(prefix):]
+
+                    # Use the primer name and step as a key
+                    key = (primer_name, step_name)
+
+                    # Store the highest count if there are duplicates
+                    if key not in primer_step_counts or primer_step_counts[key] < count:
+                        primer_step_counts[key] = count
+
+                except subprocess.CalledProcessError as e:
+                    print(f"mozaiko ERROR: Error processing file {file_path}: {e}")
+                except ValueError as e:
+                    print(f"mozaiko ERROR: Error counting sequences for file {file_path}: {e}")
+
+        # Convert to records for DataFrame creation
         records = []
+        for (primer_name, step), count in primer_step_counts.items():
+            records.append({
+                "primer_name": primer_name,
+                "analysis_step": step,
+                "number_of_sequences": count
+            })
 
-        for path, count in sequence_counts.items():
-            if path == original_database:
-                primer_name = "original_database"
-                directory = original_dir
-
-            else:
-                primer_name = ((os.path.basename(path)).split("."))[0]
-                directory = path.split("/")[-2]
-                if directory == "filtered":
-                    directory = (path.split("/")[-3]) + "-" + directory
-
-            sequence_count = count
-
-            records.append(
-                {
-                    "primer_name": primer_name,
-                    "analysis_step": directory,
-                    "number_of_sequences": sequence_count,
-                }
-            )
-
+        # Create DataFrame and pivot
         df = pd.DataFrame(records)
+
+        # Handle empty DataFrame case
+        if df.empty:
+            print("mozaiko WARNING: No data found to create sequence count tracking.")
+            return None
+
         df_pivoted = df.pivot(
-            index="primer_name", columns="analysis_step", values="number_of_sequences"
+            index="primer_name",
+            columns="analysis_step",
+            values="number_of_sequences"
         )
 
-        analysis_order = [
-            "original_database",
-            "amplicon",
-            "amplicon-filtered",
-            "insert",
-            "insert-filtered",
-            "all_complete_pbs",
-            "all_complete_pbs-filtered",
-            "all_inserts",
-            "all_inserts_filtered",
-        ]
-        existing_cols = [col for col in analysis_order if col in df_pivoted.columns]
+        # Define a clean column order with original_database first
+        preferred_columns = ["original_database"]
 
-        df_pivoted = df_pivoted[existing_cols].fillna("NA")
+        # Add base target folders
+        preferred_columns.extend(target_folders)
 
-        if save_results == True:
+        # Add known filtered versions and other common patterns
+        for folder in target_folders:
+            preferred_columns.append(f"{folder}-filtered")
+
+        # Get the remaining columns that weren't specified in our preferred order
+        remaining_columns = [col for col in df_pivoted.columns if col not in preferred_columns]
+
+        # Combine preferred columns (that exist) with remaining columns (sorted)
+        final_columns = [col for col in preferred_columns if col in df_pivoted.columns]
+        final_columns.extend(sorted(remaining_columns))
+
+        # Reorder columns and fill NaN values with "NA" string
+        df_pivoted = df_pivoted[final_columns].fillna("NA")
+
+        if save_results:
             run_name = os.path.basename(analysis_folder)
             output_name = "sequence_count_track.tsv"
-            output_path = analysis_folder + "/" + run_name + "-" + output_name
+            output_path = os.path.join(analysis_folder, f"{run_name}-{output_name}")
 
             df_pivoted.to_csv(
                 output_path, sep="\t", index=True, header=True, index_label=""
             )
-
             print(
                 f"mozaiko INFO: Sequence count tracking file successfully saved to {output_path}."
             )
@@ -370,6 +580,8 @@ def sequence_count_tracking(
 
     except Exception as e:
         print(f"mozaiko ERROR: Unexpected error occurred: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -525,9 +737,6 @@ def process_sequence(header, sequence_lines, primer_name, tsv_file):
 def process_bmi_sequences(
     header, sequence_lines, primer_name, tsv_file, skipped_counter
 ):
-    """
-    DELETE THIS. test.
-    """
     full_sequence = "".join(sequence_lines)
     if "|" in header:
         parts = header.split("|")

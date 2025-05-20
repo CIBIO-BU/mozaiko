@@ -1,3 +1,13 @@
+"""
+This module implements the metrics system for the MOZAICO pipeline.
+
+It includes classes and methods for handling Operational Taxonomic Lists (OTL),
+calculating primer binding sites (PBS), and evaluating the quality of reference databases.
+
+"""
+
+
+
 import json
 import os
 import shutil
@@ -1156,79 +1166,79 @@ class Binding:
 
         return len(unique_taxa)
 
-    def get_outputs_taxa_counts(self, results_folder):
-        """
-        This method computes the total number of taxa that were successfuly amplified in-silico,
-        the number of taxa that contain PBS, even if amplification was not successful, and the number
-        of taxa that did not contain PBS.
-        A taxa is amplified if at least one sequence identified with the nomenclature is kept after
-        the in-silico process.
+    # def get_outputs_taxa_counts(self, results_folder):
+    #     """
+    #     This method computes the total number of taxa that were successfuly amplified in-silico,
+    #     the number of taxa that contain PBS, even if amplification was not successful, and the number
+    #     of taxa that did not contain PBS.
+    #     A taxa is amplified if at least one sequence identified with the nomenclature is kept after
+    #     the in-silico process.
 
-        Parameters:
-        - results_folder: str
-            Path to the folder containing the results from the amplification process and its
-             subdirectories. Subdirectories names should not be changed.
+    #     Parameters:
+    #     - results_folder: str
+    #         Path to the folder containing the results from the amplification process and its
+    #          subdirectories. Subdirectories names should not be changed.
 
-        Return:
-        - amplified_taxa_count: int
-            Total number of taxa that were successfuly amplified
-        """
-        # Input A
-        in_silico_amplified_inserts = os.path.join(results_folder, "insert/filtered")
-        # Input B
-        all_inserts_with_pbs = os.path.join(
-            results_folder, "all_complete_pbs/filtered/filtered_intersection"
-        )
-        # Input C
-        inserts_with_incomplete_pbs = os.path.join(
-            results_folder, "incomplete_pbs/filtered/filtered_intersection"
-        )
+    #     Return:
+    #     - amplified_taxa_count: int
+    #         Total number of taxa that were successfuly amplified
+    #     """
+    #     # Input A
+    #     in_silico_amplified_inserts = os.path.join(results_folder, "insert/filtered")
+    #     # Input B
+    #     all_inserts_with_pbs = os.path.join(
+    #         results_folder, "all_complete_pbs/filtered/filtered_intersection"
+    #     )
+    #     # Input C
+    #     inserts_with_incomplete_pbs = os.path.join(
+    #         results_folder, "incomplete_pbs/filtered/filtered_intersection"
+    #     )
 
-        folder_list = [
-            ("taxa_in_silico_amplified", in_silico_amplified_inserts),
-            ("taxa_with_pbs", all_inserts_with_pbs),
-            ("taxa_with_incomplete_pbs", inserts_with_incomplete_pbs),
-        ]
-        data = {}
+    #     folder_list = [
+    #         ("taxa_in_silico_amplified", in_silico_amplified_inserts),
+    #         ("taxa_with_pbs", all_inserts_with_pbs),
+    #         ("taxa_with_incomplete_pbs", inserts_with_incomplete_pbs),
+    #     ]
+    #     data = {}
 
-        for folder_name, folder_path in folder_list:
-            data[folder_name] = {}
-            for root, dirs, files in os.walk(folder_path):
-                for file in files:
-                    if file.endswith(".fasta"):
-                        primer_name = os.path.splitext(file)[0]
-                        file_path = os.path.join(root, file)
+    #     for folder_name, folder_path in folder_list:
+    #         data[folder_name] = {}
+    #         for root, dirs, files in os.walk(folder_path):
+    #             for file in files:
+    #                 if file.endswith(".fasta"):
+    #                     primer_name = os.path.splitext(file)[0]
+    #                     file_path = os.path.join(root, file)
 
-                        unique_taxa_count = self.count_unique_taxa(file_path)
+    #                     unique_taxa_count = self.count_unique_taxa(file_path)
 
-                        data[folder_name][primer_name] = unique_taxa_count
+    #                     data[folder_name][primer_name] = unique_taxa_count
 
-        insert_taxa_counts_df = pd.DataFrame(data).fillna(0).astype(int)
+    #     insert_taxa_counts_df = pd.DataFrame(data).fillna(0).astype(int)
 
-        insert_taxa_counts_df["taxa_with_pbs"] = (
-            insert_taxa_counts_df["taxa_in_silico_amplified"]
-            + insert_taxa_counts_df["taxa_with_pbs"]
-        )
+    #     insert_taxa_counts_df["taxa_with_pbs"] = (
+    #         insert_taxa_counts_df["taxa_in_silico_amplified"]
+    #         + insert_taxa_counts_df["taxa_with_pbs"]
+    #     )
 
-        return insert_taxa_counts_df
+    #     return insert_taxa_counts_df
 
-    def calculate_amplification_success_score(self, results_folder):
-        """
-        This method calculates the percentage of successfully amplified taxa, computed by divinding
-        the number of in-silico amplified taxa by taxa with PBS.
-        """
-        insert_taxa_counts_df = self.get_outputs_taxa_counts(results_folder)
+    # def calculate_amplification_success_score(self, results_folder):
+    #     """
+    #     This method calculates the percentage of successfully amplified taxa, computed by divinding
+    #     the number of in-silico amplified taxa by taxa with PBS.
+    #     """
+    #     insert_taxa_counts_df = self.get_outputs_taxa_counts(results_folder)
 
-        amplification_score = (
-            insert_taxa_counts_df["taxa_in_silico_amplified"]
-            / insert_taxa_counts_df["taxa_with_pbs"]
-            * 100
-        )
-        insert_taxa_counts_df["amplification_sucess_percent"] = round(
-            amplification_score, 2
-        )
+    #     amplification_score = (
+    #         insert_taxa_counts_df["taxa_in_silico_amplified"]
+    #         / insert_taxa_counts_df["taxa_with_pbs"]
+    #         * 100
+    #     )
+    #     insert_taxa_counts_df["amplification_sucess_percent"] = round(
+    #         amplification_score, 2
+    #     )
 
-        return insert_taxa_counts_df
+    #     return insert_taxa_counts_df
 
 
 class TraitsAndResolution:
@@ -1769,22 +1779,22 @@ class MetricsSystemExecutor:
             # Tm Score
             primer_metrics["tm_score"] = binding.tm_score(primer_pbs[primer])
 
-            # Amplification Success (if applicable)
-            try:
-                amp_succ = binding.calculate_amplification_success_score(output_folder)
+            # # Amplification Success (if applicable)
+            # try:
+            #     amp_succ = binding.calculate_amplification_success_score(output_folder)
 
-                amp_succ_value = (
-                    amp_succ.loc[primer, "amplification_sucess_percent"]
-                    if primer in amp_succ.index
-                    else None
-                )
-                primer_metrics["amplification_success_percent"] = amp_succ_value
+            #     amp_succ_value = (
+            #         amp_succ.loc[primer, "amplification_sucess_percent"]
+            #         if primer in amp_succ.index
+            #         else None
+            #     )
+            #     primer_metrics["amplification_success_percent"] = amp_succ_value
 
-            except Exception as e:
-                print(
-                    f"mozaico WARNING: Amplification success calculation failed for {primer}: {e}"
-                )
-                primer_metrics["amplification_success_percent"] = None
+            # except Exception as e:
+            #     print(
+            #         f"mozaico WARNING: Amplification success calculation failed for {primer}: {e}"
+            #     )
+            #     primer_metrics["amplification_success_percent"] = None
 
             # Store results for this primer
             primer_results[primer] = primer_metrics

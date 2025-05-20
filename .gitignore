@@ -34,3 +34,5 @@ data/input_data/BMI/bold_idm_filt_processed.fasta
 data/input_data/BMI/bold_idm_filt.fasta
 data/input_data/BMI/bmi_database_processed.fasta
 data/output_data/*
+data/test_data/test_filter_intersection
+pipeline_bmi_test_inters.ipynb

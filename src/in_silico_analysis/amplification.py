@@ -263,80 +263,80 @@ class InSilicoAmplification:
         """
         return sum(1 for _ in SeqIO.parse(fasta_file, "fasta"))
 
-    def remove_intersection_sequences(self, input_path, filter_path):
+    def intersect_PGA_relaxed_and_strict(self, input_path, filter_path, output_dir_name="input_B"):
         """
-        This method removes sequences that are present in both files. As such, it filters the
-        sequences present in the filter file (filter_path) from the other (input_path).
+        Currently solely used to create Input B. Where sequences from PGA Strict (Incomplete PBS)
+        are filtered out of the sequences from PGA Relaxed (Complete PBS) to create "Inserts with
+        complete PBS that were not in-silico amplified (> 3 mismatches)".
+
+        Filter sequences present in the filter file out of the input file(s).
+        Creates a directory with the specified name in self.run_dir and saves filtered sequences there.
+        Filtering is based on sequence IDs found in filter files.
+
+        Args:
+            input_path: Path to input FASTA file or directory of FASTA files
+            filter_path: Path to filter FASTA file or directory of FASTA files
+            output_dir_name: Name of the output directory (default: "filtered_intersection")
+
+        Returns:
+            dict: Results summary with stats for each processed file
         """
+        from pathlib import Path
+        from Bio import SeqIO
+
         input_path = Path(input_path)
         filter_path = Path(filter_path)
-        is_input_dir = input_path.is_dir()
 
-        # Create filtered output directory
-        filtered_output_dir = (
-            input_path.parent if not is_input_dir else input_path
-        ) / "filtered_intersection"
+        # Create output directory in self.run_dir
+        filtered_output_dir = self.run_dir / output_dir_name
         filtered_output_dir.mkdir(parents=True, exist_ok=True)
 
-        if input_path.is_file():
-            input_files = [input_path]
-        elif input_path.is_dir():
-            input_files = list(input_path.glob("*.fasta"))
-        else:
-            raise ValueError(f"mozaiko ERROR: Input path {input_path} does not exist")
+        # Find input and filter files
+        input_files = [input_path] if input_path.is_file() else list(input_path.glob("*.fasta"))
+        filter_files = [filter_path] if filter_path.is_file() else list(filter_path.glob("*.fasta"))
 
+        # Check if files exist
         if not input_files:
             raise ValueError(f"mozaiko ERROR: No FASTA files found in {input_path}")
-
-        if filter_path.is_file():
-            filter_files = [filter_path]
-        elif filter_path.is_dir():
-            filter_files = list(filter_path.glob("*.fasta"))
-        else:
-            raise ValueError(f"mozaiko ERROR: Input path {filter_path} does not exist")
-
         if not filter_files:
             raise ValueError(f"mozaiko ERROR: No FASTA files found in {filter_path}")
 
+        # Create mapping from primer name to filter file
         filter_primer_mapping = {f.stem: f for f in filter_files}
         results = {}
 
+        # Process each input file
         for input_file in input_files:
             if input_file.stem not in filter_primer_mapping:
-                print(
-                    f"mozaiko INFO: No incomplete PBSs found for {input_file}, all PBS are complete."
-                )
+                print(f"mozaiko INFO: No incomplete PBSs found for {input_file}, all PBS are complete.")
                 continue
 
-            matching_primer = filter_primer_mapping[input_file.stem]
+            # Get matching filter file and set up output file
+            matching_filter = filter_primer_mapping[input_file.stem]
             output_file = filtered_output_dir / input_file.name
 
-            ids_to_filter = set()
-            for record in SeqIO.parse(matching_primer, "fasta"):
-                id_filtered = record.id
-                ids_to_filter.add(id_filtered)
+            # Get IDs to filter out
+            ids_to_filter = {record.id for record in SeqIO.parse(matching_filter, "fasta")}
 
-            retained_sequences = set()
-            for record in SeqIO.parse(input_file, "fasta"):
-                seq_string_retained = str(record.seq).upper()
-                record_retained = record.description
-                record_id = record.id
-                if record_id not in ids_to_filter:
-                    retained_sequences.add((seq_string_retained, record_retained))
-
+            # Read and filter sequences
+            retained_sequences = []
             with open(output_file, "w") as output_handle:
-                for seq_string_retained, record_retained in retained_sequences:
-                    output_handle.write(f">{record_retained}\n{seq_string_retained}\n")
+                for record in SeqIO.parse(input_file, "fasta"):
+                    if record.id not in ids_to_filter:
+                        seq = str(record.seq).upper()
+                        output_handle.write(f">{record.description}\n{seq}\n")
+                        retained_sequences.append(record.id)
 
+            # Record results
             results[input_file] = {
                 "retained_sequences": len(retained_sequences),
-                "filter_file_used": matching_primer,
+                "filter_file_used": matching_filter,
                 "output_file": output_file,
             }
 
-            print(
-                f"    For {input_file.stem}: {results[input_file]['retained_sequences']} sequences were retained."
-            )
+            print(f" For {input_file.stem}: {len(retained_sequences)} sequences were retained.")
+
+        return results
 
     def _load_taxonomy_mapping(self):
         """
@@ -469,10 +469,8 @@ class InSilicoAmplification:
         pga_directories = [
             self.output_dirs["all_complete_pbs"],
             self.run_dir / "all_complete_pbs" / "filtered",
-            self.run_dir / "all_complete_pbs" / "filtered" / "filtered_intersection",
             self.output_dirs["incomplete_pbs"],
             self.run_dir / "incomplete_pbs" / "filtered",
-            self.run_dir / "incomplete_pbs" / "filtered" / "filtered_intersection",
         ]
         self.add_taxonomy_to_pga_outputs(pga_directories)
 
@@ -486,6 +484,12 @@ class InSilicoAmplification:
             except Exception as e:
                 print(f"mozaiko ERROR: Error filtering {dir_name} directory: {str(e)}")
 
+        self.intersect_PGA_relaxed_and_strict(
+            self.output_dirs["all_complete_pbs"] / "filtered",
+            self.output_dirs["incomplete_pbs"] / "filtered",
+            output_dir_name="input_B",
+        )
+
         print("mozaiko INFO: Number of inserts that were amplified successfully...")
         filter_inserts_path = self.output_dirs["insert"] / "filtered"
         insert_files = list(filter_inserts_path.glob("*.fasta"))
@@ -495,21 +499,6 @@ class InSilicoAmplification:
 
         print(
             "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."
-        )
-        self.remove_intersection_sequences(
-            self.output_dirs["incomplete_pbs"] / "filtered",
-            self.output_dirs["insert"] / "filtered",
-        )
-
-        self.remove_intersection_sequences(
-            self.output_dirs["all_complete_pbs"] / "filtered",
-            self.output_dirs["incomplete_pbs"] / "filtered",
-        )
-
-        print("mozaiko INFO: Number of inserts with incomplete PBS...")
-        self.remove_intersection_sequences(
-            self.output_dirs["all_complete_pbs"] / "filtered",
-            self.output_dirs["insert"] / "filtered",
         )
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
@@ -641,7 +630,6 @@ class InSilicoAmplification:
         ]
 
         if command_type == "amplicon":
-
             additional_args = ["--action", "retain"]
         elif command_type == "insert":
             additional_args = ["--action", "trim"]
