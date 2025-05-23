@@ -468,9 +468,7 @@ class InSilicoAmplification:
 
         pga_directories = [
             self.output_dirs["all_complete_pbs"],
-            self.run_dir / "all_complete_pbs" / "filtered",
             self.output_dirs["incomplete_pbs"],
-            self.run_dir / "incomplete_pbs" / "filtered",
         ]
         self.add_taxonomy_to_pga_outputs(pga_directories)
 

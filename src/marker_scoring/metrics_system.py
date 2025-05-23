@@ -1258,7 +1258,7 @@ class TraitsAndResolution:
             self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
             self.amplicon_folder_path = os.path.join(results_folder, "amplicon")
             self.incomplete_pbs_path = os.path.join(
-                results_folder, "incomplete_pbs/filtered/filtered_intersection"
+                results_folder, "incomplete_pbs/filtered"
             )
             print(
                 f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
@@ -1395,7 +1395,7 @@ class TraitsAndResolution:
         )
 
         multibarcode_file = create_MultiBarcodeTools_input(
-            self.insert_folder_path, self.incomplete_pbs_path, multibarcode_outputdir
+            self.incomplete_pbs_path, multibarcode_outputdir
         )
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1653,7 +1653,10 @@ class MetricsSystemExecutor:
         self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
         self.amplicon_folder_path = os.path.join(results_folder, "amplicon")
         self.incomplete_pbs_path = os.path.join(
-            results_folder, "incomplete_pbs/filtered/filtered_intersection"
+            results_folder, "incomplete_pbs/filtered"
+        )
+        self.complete_pbs_path = os.path.join(
+            results_folder, "all_complete_pbs/filtered"
         )
         print(
             f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
@@ -1671,25 +1674,13 @@ class MetricsSystemExecutor:
         """
         print("mozaiko INFO: Retriving information on the Reference Database Quality.")
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            all_inserts_path = os.path.join(temp_dir, "all_inserts")
-            os.makedirs(all_inserts_path, exist_ok=True)
 
-            for folder in [self.insert_folder_path, self.incomplete_pbs_path]:
-                if os.path.exists(folder):
-                    for file in os.listdir(folder):
-                        src = os.path.join(folder, file)
-                        dest = os.path.join(all_inserts_path, file)
-
-                        if os.path.isfile(src):
-                            shutil.copy(src, dest)
-
-            red_bd_qual = ReferenceDatabaseQuality(
-                otl=self.otl, all_inserts_path=all_inserts_path
-            )
-            reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
-                total_taxa_count=self.total_otl_taxa_count
-            )
+        red_bd_qual = ReferenceDatabaseQuality(
+            otl=self.otl, all_inserts_path=self.complete_pbs_path
+        )
+        reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
+            total_taxa_count=self.total_otl_taxa_count
+        )
 
         return reference_db_quality
 

@@ -36,3 +36,4 @@ data/input_data/BMI/bmi_database_processed.fasta
 data/output_data/*
 data/test_data/test_filter_intersection
 pipeline_bmi_test_inters.ipynb
+pipeline_dia_test_inters.ipynb
