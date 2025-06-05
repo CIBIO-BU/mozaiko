@@ -37,3 +37,6 @@ data/output_data/*
 data/test_data/test_filter_intersection
 pipeline_bmi_test_inters.ipynb
 pipeline_dia_test_inters.ipynb
+test-bf3-mismatches-dystera.ipynb
+data/input_data/test-bf3
+

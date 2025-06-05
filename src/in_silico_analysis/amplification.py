@@ -416,7 +416,7 @@ class InSilicoAmplification:
                 self._process_fasta_file(fasta_file, taxonomy_dict)
 
     def run_in_silico_analysis(
-        self, primer_table=None, max_len_according_to_ilumina: bool = True
+        self, primer_table=None, max_len_according_to_ilumina: bool = True, minimum_percentage_identity=0.75, minimum_alignment_coverage=99
     ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
@@ -459,7 +459,7 @@ class InSilicoAmplification:
 
         for index, row in self.primer_table.iterrows():
             if self.database_fasta_file:
-                self.process_commands(row, self.database_fasta_file)
+                self.process_commands(row, self.database_fasta_file, minimum_percentage_identity, minimum_alignment_coverage)
             else:
                 raise ValueError("mozaiko ERROR: No input data was found.")
             print(
@@ -501,7 +501,7 @@ class InSilicoAmplification:
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
-    def process_commands(self, row: dict, input_fasta: Path):
+    def process_commands(self, row: dict, input_fasta: Path, minimum_percentage_identity, minimum_alignment_coverage):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
@@ -564,6 +564,8 @@ class InSilicoAmplification:
             output_dirs["all_complete_pbs"],
             output_dirs["insert"] / "filtered",
             "relaxed",
+            minimum_percentage_identity,
+            minimum_alignment_coverage,
         )
 
         # Retrieve all inserts with incomplete PBS
@@ -576,6 +578,8 @@ class InSilicoAmplification:
             output_dirs["incomplete_pbs"],
             output_dirs["insert"] / "filtered",
             "strict",
+            minimum_percentage_identity,
+            minimum_alignment_coverage,
         )
 
         print(f"mozaiko INFO: Completed analysis for {assay_name}.")
@@ -677,6 +681,8 @@ class InSilicoAmplification:
         output_dir,
         database_dir,
         filter,
+        minimum_percentage_identity,
+        minimum_alignment_coverage,
     ):
         """
         This method designs the command to run Pairwise Global Alignment (PGA) with CRABS
@@ -688,8 +694,14 @@ class InSilicoAmplification:
         output_file = output_dir / f"{barcode_region}_{assay_name}.fasta"
         pga_database = database_dir / f"{barcode_region}_{assay_name}.fasta"
 
-        minimum_percentage_identity = 0.75  # Decimal Percentage [0 - 1.0]
-        minimum_alignment_coverage = 99  # Whole Percentage [0 - 100]
+        if minimum_percentage_identity is None:
+            minimum_percentage_identity = 0.75  # Decimal Percentage [0 - 1.0]
+        if minimum_alignment_coverage is None:
+            minimum_alignment_coverage = 99  # Whole Percentage [0 - 100]
+
+        print(
+            f"mozaiko INFO: Running PGA with {minimum_alignment_coverage} coverage and {minimum_percentage_identity} identity."
+        )
 
         pga_command = [
             "crabs",

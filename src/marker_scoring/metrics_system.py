@@ -78,16 +78,14 @@ class OtlHandler:
             The pre-processed OTL.
         """
         # 1) Transform entries with '-' to NA.
-        self.otl = self.otl.replace("-", np.nan)
+        self.otl = self.otl.replace("'-", np.nan)
 
         # 2) Tranform entries to lower case.
         self.otl["rank"] = self.otl["rank"].str.lower()
 
-        # 3) Remove entries with 'kingdom', 'phylum', 'class', 'order' in 'ranks'.
-        ranks = ["kingdom", "phylum", "class", "order"]
-        self.otl = self.otl[~self.otl["rank"].isin(ranks)]
-        for rank in ranks:
-            self.otl = self.otl.dropna(subset=[rank])
+        # 3) Keep only entries with rank 'family', 'genus', or 'species'
+        ranks_to_keep = ["family", "genus", "species"]
+        self.otl = self.otl[self.otl["rank"].isin(ranks_to_keep)]
 
         # 4) Remove entries where 'scientificName' is NA.
         self.otl = self.otl.dropna(subset=["scientificName"])
@@ -438,7 +436,7 @@ class ReferenceDatabaseQuality:
         Parameters:
         - barcoded_taxa_five_plus: float
             Percentage of taxa with more than five barcodes.
-        - barcoded_taxa_one_plus: float
+        - barcoded_taxa: float
             Percentage of taxa with more than one barcode.
 
         Output:
@@ -448,7 +446,7 @@ class ReferenceDatabaseQuality:
         barcoded_taxa_five_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
             total_taxa_count, barcode_threshold=5
         )
-        barcoded_taxa_one_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
+        barcoded_taxa = self.calculate_percentage_of_taxa_w_x_barcodes(
             total_taxa_count, barcode_threshold=1
         )
 
@@ -456,14 +454,14 @@ class ReferenceDatabaseQuality:
 
         for primer_pair in barcoded_taxa_five_plus.keys():
             percent_5plus = barcoded_taxa_five_plus[primer_pair]
-            percent_1plus = barcoded_taxa_one_plus[primer_pair]
+            percent_1plus = barcoded_taxa[primer_pair]
 
             ratio_barcoded_taxa = (
                 percent_5plus / percent_1plus if percent_5plus > 0 else 0
             )
 
             barcoded_taxa_ratio[primer_pair] = {
-                "barcoded_taxa_one_plus": percent_1plus,
+                "barcoded_taxa": percent_1plus,
                 "ratio_barcoded_taxa": round(ratio_barcoded_taxa, 2),
             }
 
@@ -1081,11 +1079,8 @@ class Binding:
 
         ratio_col = merged_df["priming_ratio"]
         ratio_df = pd.DataFrame(ratio_col)
-        priming_ratio = self.process_analysis_across_taxon(ratio_df, operation="sum")
 
-        priming_ratio = float(round(priming_ratio, 2))
-
-        return priming_ratio
+        return ratio_df
 
     def get_total_gc_matches(self, primer_pbs_df: pd.DataFrame):
         """
@@ -1734,11 +1729,18 @@ class MetricsSystemExecutor:
                 operation="max",
                 analysis_name="full_len_mismatch_sum",
             )
-            primer_metrics["mismatch_score"] = int(
+
+            mismatch_score = int(
                 binding.process_analysis_across_taxon(
                     tax_lev_max_ms_full_len, operation="sum"
                 )
             )
+
+            total_taxa_considered =len(tax_lev_max_ms_full_len[~tax_lev_max_ms_full_len['full_len_mismatch_sum'].isnull()])
+
+            mismatch_score = mismatch_score / total_taxa_considered if total_taxa_considered > 0 else 0
+
+            primer_metrics["mismatch_score"] = float(round(mismatch_score, 2))
 
             # Priming Ratio
             tax_lev_max_ms_three_end = binding.process_analysis_per_taxon(
@@ -1746,18 +1748,50 @@ class MetricsSystemExecutor:
                 operation="max",
                 analysis_name="three_end_mismatch_sum",
             )
-            primer_metrics["priming_ratio_sum"] = binding.get_priming_ratio(
+
+            priming_ratio_df = binding.get_priming_ratio(
                 tax_lev_max_ms_full_len, tax_lev_max_ms_three_end
             )
 
+            total_taxa_considered = len(
+                priming_ratio_df[~priming_ratio_df['priming_ratio'].isnull()]
+            )
+
+            priming_ratio_sum = binding.process_analysis_across_taxon(priming_ratio_df, operation="sum")
+
+            priming_ratio_normalized = (
+                priming_ratio_sum / total_taxa_considered
+                if total_taxa_considered > 0
+                else 0
+            )
+
+            priming_ratio_normalized = float(round(priming_ratio_normalized, 2))
+
+            primer_metrics["priming_ratio_sum"] = priming_ratio_normalized
+
             # GC Match Analysis
             binding.get_total_gc_matches(primer_pbs[primer])
+
             tax_lev_gc = binding.process_analysis_per_taxon(
                 primer_pbs[primer], operation="min", analysis_name="gc_matches_score"
             )
-            primer_metrics["gc_matches_across_taxon"] = (
+
+            total_taxa_considered = len(
+                tax_lev_gc[~tax_lev_gc['gc_matches_score'].isnull()]
+            )
+
+            gc_matches_sum = (
                 binding.process_analysis_across_taxon(tax_lev_gc, operation="sum")
             )
+
+            gc_matches_sum_normalized = (
+                gc_matches_sum / total_taxa_considered
+                if total_taxa_considered > 0
+                else 0
+            )
+            gc_matches_sum_normalized = float(round(gc_matches_sum_normalized, 2))
+
+            primer_metrics["gc_matches_across_taxon"] = gc_matches_sum_normalized
 
             # Temperature Melting (Tm) Analysis
             tax_lev_min_tm = binding.process_analysis_per_taxon(
@@ -1992,7 +2026,7 @@ class MetricsSystemExecutor:
         """
         self.output_path = output_path
         ranking_order = {
-            "barcoded_taxa_one_plus": "desc",
+            "barcoded_taxa": "desc",
             "ratio_barcoded_taxa": "desc",
             "mismatch_score": "asc",
             "priming_ratio_sum": "asc",
@@ -2077,7 +2111,7 @@ class MetricsSystemExecutor:
 
         metric_system = {
             "ref_db_qual": {
-                "barcoded_taxa_one_plus": "desc",
+                "barcoded_taxa": "desc",
                 "ratio_barcoded_taxa": "desc"
             },
             "binding_capacity": {
