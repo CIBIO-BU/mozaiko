@@ -1738,9 +1738,9 @@ class MetricsSystemExecutor:
 
             total_taxa_considered =len(tax_lev_max_ms_full_len[~tax_lev_max_ms_full_len['full_len_mismatch_sum'].isnull()])
 
-            mismatch_score = mismatch_score / total_taxa_considered if total_taxa_considered > 0 else 0
+            normalized_mismatch_score = mismatch_score / total_taxa_considered if total_taxa_considered > 0 else 0
 
-            primer_metrics["mismatch_score"] = float(round(mismatch_score, 2))
+            primer_metrics["normalized_mismatch_score"] = float(round(normalized_mismatch_score, 2))
 
             # Priming Ratio
             tax_lev_max_ms_three_end = binding.process_analysis_per_taxon(
@@ -1767,7 +1767,7 @@ class MetricsSystemExecutor:
 
             priming_ratio_normalized = float(round(priming_ratio_normalized, 2))
 
-            primer_metrics["priming_ratio_sum"] = priming_ratio_normalized
+            primer_metrics["normalized_priming_ratio_sum"] = priming_ratio_normalized
 
             # GC Match Analysis
             binding.get_total_gc_matches(primer_pbs[primer])
@@ -1791,7 +1791,7 @@ class MetricsSystemExecutor:
             )
             gc_matches_sum_normalized = float(round(gc_matches_sum_normalized, 2))
 
-            primer_metrics["gc_matches_across_taxon"] = gc_matches_sum_normalized
+            primer_metrics["normalized_gc_matches_across_taxon"] = gc_matches_sum_normalized
 
             # Temperature Melting (Tm) Analysis
             tax_lev_min_tm = binding.process_analysis_per_taxon(
@@ -2028,9 +2028,9 @@ class MetricsSystemExecutor:
         ranking_order = {
             "barcoded_taxa": "desc",
             "ratio_barcoded_taxa": "desc",
-            "mismatch_score": "asc",
-            "priming_ratio_sum": "asc",
-            "gc_matches_across_taxon": "desc",
+            "normalized_mismatch_score": "asc",
+            "normalized_priming_ratio_sum": "asc",
+            "normalized_gc_matches_across_taxon": "desc",
             "min_tm_cv": "asc",
             "tm_score": "desc",
             "amplification_success_percent": "desc",
@@ -2115,9 +2115,9 @@ class MetricsSystemExecutor:
                 "ratio_barcoded_taxa": "desc"
             },
             "binding_capacity": {
-                "mismatch_score": "asc",
-                "priming_ratio_sum": "asc",
-                "gc_matches_across_taxon": "desc",
+                "normalized_mismatch_score": "asc",
+                "normalized_priming_ratio_sum": "asc",
+                "normalized_gc_matches_across_taxon": "desc",
                 "min_tm_cv": "asc"
             },
             "tax_res": {

@@ -610,7 +610,7 @@ def process_bmi_sequences(
 
 def create_multibarcode_input_for_bmi(results_folder, output_file):
     pbs_incomplete_folder = (
-        results_folder + "/incomplete_pbs/filtered/filtered_intersection"
+        results_folder + "/incomplete_pbs/filtered"
     )
 
     try:
