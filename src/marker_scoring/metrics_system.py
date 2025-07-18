@@ -78,7 +78,8 @@ class OtlHandler:
             The pre-processed OTL.
         """
         # 1) Transform entries with '-' to NA.
-        self.otl = self.otl.replace("'-", np.nan)
+        pd.set_option('future.no_silent_downcasting', True)
+        self.otl = self.otl.replace("-", np.nan)
 
         # 2) Tranform entries to lower case.
         self.otl["rank"] = self.otl["rank"].str.lower()
@@ -990,25 +991,30 @@ class Binding:
 
         # Reset index to get family, genus, species as columns
         result.reset_index(inplace=True)
+        result = result.replace("nan", np.nan)
+        hierarchical_result = self.fill_hierarchical_values(result, operation)
 
-        # Get reference taxonomy
         ref_otl = self.otl_handler.otl[["family", "genus", "species"]]
         ref_otl = ref_otl.drop_duplicates()
 
-        # Merge with OTL
-        # This step will set NaN for any missing taxa
-        otl_based_result = pd.merge(
-            result, ref_otl, on=["family", "genus", "species"], how="right"
-        )
+        genus_has_data = ref_otl['genus'].notna().any()
+        species_has_data = ref_otl['species'].notna().any()
 
-        # Replace 'nan' strings with np.nan if any exist
-        otl_based_result[["family", "genus", "species"]] = otl_based_result[
-            ["family", "genus", "species"]
-        ].replace("nan", np.nan)
+        # If only family data exists, merge on family only
+        if not genus_has_data and not species_has_data:
+            otl_families = ref_otl[['family']].drop_duplicates()
+            otl_based_result = pd.merge(
+                hierarchical_result, otl_families,
+                on=['family'],
+                how='right'
+            )
+        else:
+            # will set NaN for any missing taxa
+            otl_based_result = pd.merge(
+                hierarchical_result, ref_otl, on=["family", "genus", "species"], how="right"
+            )
 
-        final_result = self.fill_hierarchical_values(otl_based_result, operation)
-
-        return final_result
+        return otl_based_result
 
     def process_analysis_across_taxon(
         self,
@@ -1826,26 +1832,26 @@ class MetricsSystemExecutor:
 
             # Save OTL-level results
             if save_otl_level_results:
+                merge_columns = ["family", "genus", "species"]
                 otl_lev_result = pd.merge(
                     tax_lev_max_ms_full_len,
                     tax_lev_max_ms_three_end,
-                    on=["family", "genus", "species"],
+                    on=merge_columns,
                     how="outer",
                 )
                 otl_lev_result = pd.merge(
                     otl_lev_result,
                     tax_lev_gc,
-                    on=["family", "genus", "species"],
+                    on=merge_columns,
                     how="outer",
                 )
                 otl_lev_result = pd.merge(
                     otl_lev_result,
                     tax_lev_min_tm,
-                    on=["family", "genus", "species"],
+                    on=merge_columns,
                     how="outer",
                 )
 
-            # Create directory for OTL-level results
             os.makedirs(
                 os.path.join(output_folder, "otl_level_results/"), exist_ok=True
             )
@@ -1950,6 +1956,10 @@ class MetricsSystemExecutor:
                     f"mozaiko WARNING: Missing required columns in divergence score file: {required_columns}"
                 )
 
+            for col in required_columns:
+                taxonomic_resolution_df[col] = taxonomic_resolution_df[col].astype(str)
+                taxonomic_resolution_df[col] = taxonomic_resolution_df[col].replace('nan', '')
+
             processed_files = []
 
             # Process files in base directory
@@ -1972,6 +1982,10 @@ class MetricsSystemExecutor:
                             col in binding_df.columns for col in required_columns
                         ):
                             continue
+
+                        for col in required_columns:
+                            binding_df[col] = binding_df[col].astype(str)
+                            binding_df[col] = binding_df[col].replace('nan', '')
 
                         div_score_subset = taxonomic_resolution_df[
                             required_columns + [primer_name]
