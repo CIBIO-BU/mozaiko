@@ -1873,7 +1873,7 @@ class MetricsSystemExecutor:
 
         return binding_df
 
-    def get_traits_and_resolution(self, run_multibarcode_pipeline: bool = True):
+    def get_traits_and_resolution(self): #, run_multibarcode_pipeline: bool = True):
         """
         Combine taxonomic resolution and genetic divergence analyses
 
@@ -1887,10 +1887,10 @@ class MetricsSystemExecutor:
             self.results_folder, "multibarcode"
         )
 
-        # Run Multibarcode Pipeline
-        if run_multibarcode_pipeline:
-            output_str = trait.run_multibarcode_pipeline()
-            trait.parse_multibarcode_output(output_str)
+        # # Run Multibarcode Pipeline
+        # if run_multibarcode_pipeline:
+        #     output_str = trait.run_multibarcode_pipeline()
+        #     # trait.parse_multibarcode_output(output_str)
 
         # Get Divergence Score
         taxonomic_resolution = trait.get_taxonomic_resolution()
@@ -1906,14 +1906,14 @@ class MetricsSystemExecutor:
 
         return traits_res_df
 
-    def join_analysis_results(self, run_multibarcode_pipeline: bool = True):
+    def join_analysis_results(self):
         """
         This method joins the results from the primer analysis and the traits and resolution analysis.
         """
         binding_dataframe = self.comprehensive_primer_analysis(
             self.results_folder, save_otl_level_results=True
         )
-        traits_dataframe = self.get_traits_and_resolution(run_multibarcode_pipeline)
+        traits_dataframe = self.get_traits_and_resolution()
 
         analysis_results = binding_dataframe.join(traits_dataframe, on="primer")
 
@@ -2023,7 +2023,7 @@ class MetricsSystemExecutor:
         except Exception as e:
             raise Exception(f"mozaiko ERROR: Error in sort_otl_level_results: {str(e)}")
 
-    def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None, run_multibarcode_pipeline: bool = True):
+    def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None):
         """
         This method ranks the primers performance based on the results of the Metric System.
 
@@ -2051,7 +2051,7 @@ class MetricsSystemExecutor:
             "taxonomic_resolution": "desc",
         }
 
-        metrics_df = self.join_analysis_results(run_multibarcode_pipeline)
+        metrics_df = self.join_analysis_results()
 
         for column, order in ranking_order.items():
             if order == "desc":
@@ -2095,8 +2095,8 @@ class MetricsSystemExecutor:
     def rank_primers_categorically_weighted(self,
                                             save_intermediate_ranks: bool = False,
                                             output_path=None,
-                                            metrics_results_path=None,
-                                            run_multibarcode_pipeline: bool = True):
+                                            metrics_results_path=None
+                                            ):
         """
         This method ranks the primers performance based on the results of the Metric System.
 
@@ -2121,7 +2121,7 @@ class MetricsSystemExecutor:
             metrics_df = pd.read_csv(metrics_results_path, sep='\t')
             original_metrics = metrics_df.copy()
         else:
-            metrics_df = self.join_analysis_results(run_multibarcode_pipeline)
+            metrics_df = self.join_analysis_results()
 
         metric_system = {
             "ref_db_qual": {
@@ -2202,3 +2202,114 @@ class MetricsSystemExecutor:
             )
 
         return metrics_df_final
+
+@staticmethod
+def evaluate_single_OTL(otl_path,
+                        output_folder,
+                        primer_table,
+                        save_intermediate_ranks=True,
+                        run_multibarcode_pipeline=True):
+    """
+    Evaluate a single OTL file and generate primer rankings.
+
+    Parameters:
+    - otl_path: str
+        Path to the OTL file
+    - output_folder: str
+        Output directory for results
+    - primer_table: str
+        Path to primer table
+    - save_intermediate_ranks: bool
+        Whether to save intermediate ranking files
+    - run_multibarcode_pipeline: bool
+        Whether to run multibarcode analysis
+
+    Returns:
+    - ranked_df: pd.DataFrame
+        Ranked primers results
+    """
+    if run_multibarcode_pipeline:
+        trait = TraitsAndResolution(otl=otl_path,
+                                    results_folder=output_folder)
+        trait.multibarcode_output_folder = os.path.join(output_folder, "multibarcode")
+        output_str = trait.run_multibarcode_pipeline()
+
+    country_name = Path(otl_path).stem.split('_')[0]
+    output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
+
+    print("---------------------")
+    print(f"Processing: {country_name}")
+
+    executor = MetricsSystemExecutor(
+        results_folder=output_folder,
+        otl=otl_path,
+        primer_table=primer_table
+    )
+
+    ranked_df = executor.rank_primers_categorically_weighted(
+        save_intermediate_ranks=save_intermediate_ranks,
+        output_path=output_path
+    )
+
+    executor.sort_otl_level_results(subdirectory_name=country_name)
+
+    print(f"Ranked primers for {country_name} saved to {output_path}")
+    return ranked_df
+
+@staticmethod
+def evaluate_several_OTLs(otl_folder,
+                         output_folder,
+                         primer_table,
+                         save_intermediate_ranks=True,
+                         run_multibarcode_pipeline=True):
+    """
+    Evaluate multiple OTL files in a folder.
+
+    Parameters:
+    - otl_folder: str
+        Path to folder containing OTL files
+    - output_folder: str
+        Output directory for results
+    - primer_table: str
+        Path to primer table
+    - save_intermediate_ranks: bool
+        Whether to save intermediate ranking files
+    - run_multibarcode_pipeline: bool
+        Whether to run multibarcode analysis
+
+    Returns:
+    - results: dict
+        Dictionary mapping country names to ranked DataFrames
+    """
+    results = {}
+
+    # Get all TSV files in the folder
+    otl_files = [f for f in os.listdir(otl_folder) if f.endswith('.tsv')]
+
+    if not otl_files:
+        print("No TSV files found in the specified folder.")
+        return results
+
+    print(f"Found {len(otl_files)} OTL files to process")
+
+    for otl_file in otl_files:
+        otl_path = os.path.join(otl_folder, otl_file)
+
+        try:
+            ranked_df = MetricsSystemExecutor.evaluate_single_OTL(
+                otl_path=otl_path,
+                output_folder=output_folder,
+                primer_table=primer_table,
+                save_intermediate_ranks=save_intermediate_ranks,
+                run_multibarcode_pipeline=run_multibarcode_pipeline
+            )
+
+            country_name = Path(otl_path).stem.split('_')[0]
+            results[country_name] = ranked_df
+
+        except Exception as e:
+            print(f"Error processing {otl_file}: {str(e)}")
+            continue
+
+    print(f"Successfully processed {len(results)} out of {len(otl_files)} OTL files")
+    return results
