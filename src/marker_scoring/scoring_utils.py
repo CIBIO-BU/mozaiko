@@ -80,7 +80,6 @@ def calculate_ambiguous_percentage(sequence):
 
     return sum(base in ambiguous_bases for base in sequence) / len(sequence)
 
-
 def write_filtered_sequence(output_handle, record):
     """
     Write a filtered sequence to the output file.

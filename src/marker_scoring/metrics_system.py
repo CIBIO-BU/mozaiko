@@ -490,7 +490,8 @@ class Binding:
         self.otl_taxa_mapping = self.otl_handler.otl_taxa_mapping
         self.otl_unique_taxa = self.otl_handler.otl_taxa_set
 
-    def parse_files_with_same_extension_in_folders(self, folder_path_A, folder_path_B):
+    @staticmethod
+    def parse_files_with_same_extension_in_folders(folder_path_A, folder_path_B):
         """
         This method checks if there are any files with the same name in two different folders
         and, if present, returns the path to this set of files.
@@ -537,7 +538,9 @@ class Binding:
 
         return self.primer_table
 
-    def get_pbs_table(self, amplicon_file, insert_file):
+
+    @staticmethod
+    def get_pbs_table(amplicon_file, insert_file):
         """
         This method reads the PBS table into memory for downstream tasks.
         """
@@ -599,12 +602,12 @@ class Binding:
         print("mozaiko INFO: Retrieving primer-PBS statistics.")
 
         self.primer_table = self.get_primer_table(primer_table)
-        matching_files = self.parse_files_with_same_extension_in_folders(
+        matching_files = Binding.parse_files_with_same_extension_in_folders(
             amplicon_folder, insert_folder
         )
 
         if not matching_files:
-            print("mozaiko ERROR: No matching files found in the provided folders.")
+            print("mozaiko ERROR: No matching primer files found between the insert and amplicon folders.")
             return None, None
 
         primer_pbs_df = {}
@@ -641,7 +644,7 @@ class Binding:
 
                 if pbs_filename == amplicon_filename:
                     matching_files_found = True
-                    pbs_table = self.get_pbs_table(amplicon_file, insert_file)
+                    pbs_table = Binding.get_pbs_table(amplicon_file, insert_file)
 
                     for _, pbs_row in pbs_table.iterrows():
                         pbs_fwd_seq = pbs_row["fwd_seq"]

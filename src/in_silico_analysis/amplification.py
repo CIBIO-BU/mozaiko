@@ -415,6 +415,143 @@ class InSilicoAmplification:
             for fasta_file in fasta_files:
                 self._process_fasta_file(fasta_file, taxonomy_dict)
 
+    def sanity_check_on_mismatches(self, output_dir):
+        from src.marker_scoring.scoring_utils import (
+            calculate_iupac_mismatches
+        )
+        if not output_dir:
+            raise ValueError("mozaiko ERROR: Output directory not specified for mismatch sanity check.")
+
+        if not isinstance(output_dir, Path):
+            output_dir = Path(output_dir)
+
+        if not output_dir.exists():
+            raise FileNotFoundError(f"mozaiko ERROR: Output directory does not exist: {output_dir}")
+
+        amplicon_folder = output_dir / "amplicon"
+        insert_folder = output_dir / "insert"
+
+        from src.marker_scoring.metrics_system import (
+            Binding
+        )
+        matching_files = Binding.parse_files_with_same_extension_in_folders(
+            amplicon_folder, insert_folder
+        )
+
+        seq_ids_to_remove = {}
+
+        if not matching_files:
+            print("mozaiko ERROR: No matching primer files found between the insert and amplicon folders.")
+            return None, None
+
+        for _primer_ind, primer_row in self.primer_table.iterrows():
+            barcode_region = primer_row["barcode_region"]
+            assay_name = primer_row["assay_name"]
+            pbs_filename = f"{barcode_region}_{assay_name}"
+            primer_seq_fwd = primer_row["fwd_seq"]
+            primer_seq_rev = primer_row["rev_seq"]
+            rev_comp_primer_seq_rev = str(Seq(primer_seq_rev).reverse_complement())
+
+            for amplicon_file, insert_file in matching_files:
+                amplicon_filename = os.path.splitext(os.path.basename(amplicon_file))[0]
+
+                if pbs_filename == amplicon_filename:
+                    pbs_table = Binding.get_pbs_table(amplicon_file, insert_file)
+
+                    for _, pbs_row in pbs_table.iterrows():
+                        pbs_fwd_seq = pbs_row["fwd_seq"]
+                        pbs_rev_seq = pbs_row["rev_seq"]
+
+                        if not pbs_fwd_seq or not pbs_rev_seq:
+                            seq_header = pbs_row["header"].replace(">", "")
+                            seq_id = seq_header.split("|")[0].replace(" ", "")
+                            print(
+                                f"mozaiko WARNING: Skipping entry with empty PBS sequence(s): {seq_id}"
+                            )
+                            continue
+
+                        seq_header = pbs_row["header"].replace(">", "")
+                        seq_id = seq_header.split("|")[0].replace(" ", "")
+
+
+                        full_fwd_mismatches = calculate_iupac_mismatches(
+                                    primer_seq_fwd, pbs_fwd_seq
+                                )
+                        full_rev_mismatches = calculate_iupac_mismatches(
+                            rev_comp_primer_seq_rev, pbs_rev_seq
+                        )
+
+                        full_len_mismatch_sum = full_fwd_mismatches + full_rev_mismatches
+
+                        mismatch_threshold = (self.number_of_mismatches * 2)
+                        if full_len_mismatch_sum > mismatch_threshold:
+                            #print(
+                            # f"mozaiko INFO: For {pbs_filename}, found {full_len_mismatch_sum} /
+                            # mismatches for sequence {seq_id}.")
+                            seq_ids_to_remove.setdefault(
+                                pbs_filename, set()
+                            ).add(seq_id)
+
+
+        # print(seq_ids_to_remove)
+        if not seq_ids_to_remove:
+            print("mozaiko INFO: No sequences with mismatches found.")
+            return None, None
+
+        for pbs_filename, seq_ids in seq_ids_to_remove.items():
+            amplicon_file_path = amplicon_folder / f"{pbs_filename}.fasta"
+            insert_file_path = insert_folder / "filtered" / f"{pbs_filename}.fasta"
+
+            if not amplicon_file_path.exists():
+                print(f"mozaiko ERROR: Amplicon file not found: {amplicon_file_path}")
+                continue
+
+            if not insert_file_path.exists():
+                print(f"mozaiko ERROR: Insert file not found: {insert_file_path}")
+                continue
+
+            self._remove_sequences_with_mismatches(amplicon_file_path, seq_ids)
+
+            self._remove_sequences_with_mismatches(insert_file_path, seq_ids)
+
+        pass
+
+    def _remove_sequences_with_mismatches(self, fasta_file: Path, seq_ids: set):
+        """
+        Remove sequences from a FASTA file based on a set of sequence IDs.
+
+        Parameters:
+        - fasta_file: Path to the FASTA file
+        - seq_ids: Set of sequence IDs to remove
+
+        Returns:
+        None
+        """
+        # print(f"mozaiko INFO: Removing sequences with more than {self.number_of_mismatches} mismatches from {fasta_file}...")
+        try:
+            records_to_keep = []
+            number_sequences_with_mismatches = 0
+
+            for record in SeqIO.parse(fasta_file, "fasta"):
+                fasta_seq_id = record.id.split("|")[0]
+
+                if fasta_seq_id not in seq_ids:
+                    records_to_keep.append(record)
+                else:
+                    number_sequences_with_mismatches += 1
+                    # print(f"mozaiko INFO: Found more than allowed mismatches "
+                    #   f"for sequence {fasta_seq_id} in {fasta_file}. Removing it...")
+
+            with open(fasta_file, "w") as output_handle:
+                for record in records_to_keep:
+                    output_handle.write(f">{record.description}\n{record.seq}\n")
+
+            # print(f"mozaiko INFO: Removed {number_sequences_with_mismatches} sequences from {fasta_file}")
+
+        except Exception as e:
+            print(f"mozaiko ERROR: Sanity Check Error. Could not remove sequences with more than"
+                  f" {(self.number_of_mismatches * 2)} combined mismatches from {fasta_file}: {e}")
+
     def run_in_silico_analysis(
         self, primer_table=None, max_len_according_to_ilumina: bool = True, minimum_percentage_identity=0.75, minimum_alignment_coverage=99
     ):
@@ -553,6 +690,8 @@ class InSilicoAmplification:
             )
         except Exception as e:
             print(f"Error filtering insert directory: {str(e)}")
+
+        self.sanity_check_on_mismatches(output_dir=self.run_dir)
 
         # Retrieve all inserts with a PBS
         self.run_pga_command(
