@@ -414,7 +414,7 @@ class CustomFastaImport:
                 f"mozaiko ERROR: Invalid output file name. File must have a '.fasta' extension."
             )
 
-        output_dir = os.path.dirname(output_name)
+        output_dir = os.path.dirname(output_name) or "."
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)

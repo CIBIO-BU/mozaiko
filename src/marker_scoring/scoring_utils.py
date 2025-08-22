@@ -426,7 +426,7 @@ def sequence_count_tracking(original_database, analysis_folder, save_results: bo
         return None
 
 
-def remove_rc_suffix_from_fasta_files(results_directory):
+def remove_rc_suffix_from_fasta_files(results_directory): # make this static?
     """
     Recursively processes all FASTA files in the given directory and its subdirectories,
     removing ' rc' suffix from the end of headers.

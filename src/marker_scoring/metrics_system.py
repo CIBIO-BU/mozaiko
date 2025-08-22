@@ -224,7 +224,7 @@ class ReferenceDatabaseQuality:
             dict: Dictionary containing number of barcodes (values) per taxonomy entry (keys),
                 organized by primer pair.
         """
-        print("mozaiko INFO: Calculating the number of barcodes per FASTA.")
+        # print("mozaiko INFO: Calculating the number of barcodes per each taxon per FASTA file.")
 
         # Get all FASTA files
         fasta_files = self.parse_fasta_files()
@@ -599,7 +599,7 @@ class Binding:
             - `forward_primer_gc_fraction`: GC fraction of the forward primer.
             - `reverse_primer_gc_fraction`: GC fraction of the reverse primer.
         """
-        print("mozaiko INFO: Retrieving primer-PBS statistics.")
+        print("mozaiko INFO: Retriving information on the Binding Efficiency.")
 
         self.primer_table = self.get_primer_table(primer_table)
         matching_files = Binding.parse_files_with_same_extension_in_folders(
@@ -1254,9 +1254,9 @@ class TraitsAndResolution:
         amplicon_folder_path: Optional[str] = None,
         incomplete_pbs_folder_path: Optional[str] = None,
     ):
-        print(
-            f"results_folder: {results_folder}, insert_folder_path: {insert_folder_path}, amplicon_folder_path: {amplicon_folder_path}"
-        )
+        # print(
+        #     f"mozaiko INFO: Provided output folder: {results_folder}."
+        # )
         if results_folder is not None:
             self.results_folder = results_folder
             self.insert_folder_path = os.path.join(results_folder, "insert/filtered")
@@ -1264,9 +1264,9 @@ class TraitsAndResolution:
             self.incomplete_pbs_path = os.path.join(
                 results_folder, "incomplete_pbs/filtered"
             )
-            print(
-                f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
-            )
+            # print(
+            #     f"mozaiko INFO: Setting insert folder path to {self.insert_folder_path} and amplicon folder path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
+            # )
         elif (
             insert_folder_path is not None
             and amplicon_folder_path is not None
@@ -1275,9 +1275,9 @@ class TraitsAndResolution:
             self.insert_folder_path = insert_folder_path
             self.amplicon_folder_path = amplicon_folder_path
             self.incomplete_pbs_path = incomplete_pbs_folder_path
-            print(
-                "Using provided insert_folder_path, amplicon_folder_path and incomplete_pbs_folder_path."
-            )
+            # print(
+            #     "mozaiko INFO: Using provided insert_folder_path, amplicon_folder_path and incomplete_pbs_folder_path."
+            # )
         else:
             raise ValueError(
                 "mozaiko ERROR: Either provide a path to the in-silico amplification results folder "
@@ -1417,7 +1417,7 @@ class TraitsAndResolution:
                 capture_output=True,
                 text=True,
             )
-            print(result.stdout)
+            # print(result.stdout)
             print(
                 f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}"
             )
@@ -1663,7 +1663,7 @@ class MetricsSystemExecutor:
             results_folder, "all_complete_pbs/filtered"
         )
         print(
-            f"Set insert_folder_path to {self.insert_folder_path}, amplicon_folder_path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
+            f"mozaiko INDO: Setting insert folder path to {self.insert_folder_path} and amplicon folder path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
         )
 
     def get_reference_database_quality(self):
@@ -1719,11 +1719,11 @@ class MetricsSystemExecutor:
         """
         binding = Binding(otl=self.otl)
 
+        ref_qual = self.get_reference_database_quality()
+
         primer_pbs, gc_df = self.get_primer_pbs_analysis()
 
         primer_results = {}
-
-        ref_qual = self.get_reference_database_quality()
 
         primers_to_analyze = list(primer_pbs.keys())
 
@@ -1884,10 +1884,11 @@ class MetricsSystemExecutor:
         pd.DataFrame
             Combined analysis results with taxonomic resolution and divergence metrics
         """
+        print("mozaiko INFO: Retriving information on the Taxonomic Resolution.")
         trait = TraitsAndResolution(otl=self.otl, results_folder=self.results_folder)
 
         trait.multibarcode_output_folder = os.path.join(
-            self.results_folder, "multibarcode"
+            self.results_folder, "insert/multibarcode"
         )
 
         # # Run Multibarcode Pipeline
@@ -2206,113 +2207,113 @@ class MetricsSystemExecutor:
 
         return metrics_df_final
 
-@staticmethod
-def evaluate_single_OTL(otl_path,
-                        output_folder,
-                        primer_table,
-                        save_intermediate_ranks=True,
-                        run_multibarcode_pipeline=True):
-    """
-    Evaluate a single OTL file and generate primer rankings.
+    @staticmethod
+    def evaluate_single_OTL(otl_path,
+                            output_folder,
+                            primer_table,
+                            save_intermediate_ranks=True,
+                            run_multibarcode_pipeline=True):
+        """
+        Evaluate a single OTL file and generate primer rankings.
 
-    Parameters:
-    - otl_path: str
-        Path to the OTL file
-    - output_folder: str
-        Output directory for results
-    - primer_table: str
-        Path to primer table
-    - save_intermediate_ranks: bool
-        Whether to save intermediate ranking files
-    - run_multibarcode_pipeline: bool
-        Whether to run multibarcode analysis
+        Parameters:
+        - otl_path: str
+            Path to the OTL file
+        - output_folder: str
+            Output directory for results
+        - primer_table: str
+            Path to primer table
+        - save_intermediate_ranks: bool
+            Whether to save intermediate ranking files
+        - run_multibarcode_pipeline: bool
+            Whether to run multibarcode analysis
 
-    Returns:
-    - ranked_df: pd.DataFrame
-        Ranked primers results
-    """
-    if run_multibarcode_pipeline:
-        trait = TraitsAndResolution(otl=otl_path,
-                                    results_folder=output_folder)
-        trait.multibarcode_output_folder = os.path.join(output_folder, "multibarcode")
-        output_str = trait.run_multibarcode_pipeline()
+        Returns:
+        - ranked_df: pd.DataFrame
+            Ranked primers results
+        """
+        country_name = Path(otl_path).stem.split('_')[0]
+        print("---------------------")
+        print(f"mozaiko INFO: Starting evaluating process for {country_name} OTL.")
 
-    country_name = Path(otl_path).stem.split('_')[0]
-    output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
+        if run_multibarcode_pipeline:
+            trait = TraitsAndResolution(otl=otl_path,
+                                        results_folder=output_folder)
+            multibarcode_path = os.path.join(output_folder, "/insert/multibarcode")
+            trait.multibarcode_output_folder = multibarcode_path
+            trait.run_multibarcode_pipeline()
 
-    print("---------------------")
-    print(f"Processing: {country_name}")
+        output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
 
-    executor = MetricsSystemExecutor(
-        results_folder=output_folder,
-        otl=otl_path,
-        primer_table=primer_table
-    )
+        executor = MetricsSystemExecutor(
+            results_folder=output_folder,
+            otl=otl_path,
+            primer_table=primer_table
+        )
 
-    ranked_df = executor.rank_primers_categorically_weighted(
-        save_intermediate_ranks=save_intermediate_ranks,
-        output_path=output_path
-    )
+        ranked_df = executor.rank_primers_categorically_weighted(
+            save_intermediate_ranks=save_intermediate_ranks,
+            output_path=output_path
+        )
 
-    executor.sort_otl_level_results(subdirectory_name=country_name)
+        executor.sort_otl_level_results(subdirectory_name=country_name)
 
-    print(f"Ranked primers for {country_name} saved to {output_path}")
-    return ranked_df
+        # return ranked_df
 
-@staticmethod
-def evaluate_several_OTLs(otl_folder,
-                         output_folder,
-                         primer_table,
-                         save_intermediate_ranks=True,
-                         run_multibarcode_pipeline=True):
-    """
-    Evaluate multiple OTL files in a folder.
+    @staticmethod
+    def evaluate_several_OTLs(otl_folder,
+                            output_folder,
+                            primer_table,
+                            save_intermediate_ranks=True,
+                            run_multibarcode_pipeline=True):
+        """
+        Evaluate multiple OTL files in a folder.
 
-    Parameters:
-    - otl_folder: str
-        Path to folder containing OTL files
-    - output_folder: str
-        Output directory for results
-    - primer_table: str
-        Path to primer table
-    - save_intermediate_ranks: bool
-        Whether to save intermediate ranking files
-    - run_multibarcode_pipeline: bool
-        Whether to run multibarcode analysis
+        Parameters:
+        - otl_folder: str
+            Path to folder containing OTL files
+        - output_folder: str
+            Output directory for results
+        - primer_table: str
+            Path to primer table
+        - save_intermediate_ranks: bool
+            Whether to save intermediate ranking files
+        - run_multibarcode_pipeline: bool
+            Whether to run multibarcode analysis
 
-    Returns:
-    - results: dict
-        Dictionary mapping country names to ranked DataFrames
-    """
-    results = {}
+        Returns:
+        - results: dict
+            Dictionary mapping country names to ranked DataFrames
+        """
+        results = {}
 
-    # Get all TSV files in the folder
-    otl_files = [f for f in os.listdir(otl_folder) if f.endswith('.tsv')]
+        # Get all TSV files in the folder
+        otl_files = [f for f in os.listdir(otl_folder) if f.endswith('.tsv')]
 
-    if not otl_files:
-        print("No TSV files found in the specified folder.")
-        return results
+        if not otl_files:
+            print("No TSV files found in the specified folder.")
+            return results
 
-    print(f"Found {len(otl_files)} OTL files to process")
+        print(f"mozaiko INFO: Found {len(otl_files)} OTL files to process.")
 
-    for otl_file in otl_files:
-        otl_path = os.path.join(otl_folder, otl_file)
+        for otl_file in otl_files:
+            otl_path = os.path.join(otl_folder, otl_file)
 
-        try:
-            ranked_df = MetricsSystemExecutor.evaluate_single_OTL(
-                otl_path=otl_path,
-                output_folder=output_folder,
-                primer_table=primer_table,
-                save_intermediate_ranks=save_intermediate_ranks,
-                run_multibarcode_pipeline=run_multibarcode_pipeline
-            )
+            try:
+                ranked_df = MetricsSystemExecutor.evaluate_single_OTL(
+                    otl_path=otl_path,
+                    output_folder=output_folder,
+                    primer_table=primer_table,
+                    save_intermediate_ranks=save_intermediate_ranks,
+                    run_multibarcode_pipeline=run_multibarcode_pipeline
+                )
 
-            country_name = Path(otl_path).stem.split('_')[0]
-            results[country_name] = ranked_df
+                country_name = Path(otl_path).stem.split('_')[0]
+                results[country_name] = ranked_df
 
-        except Exception as e:
-            print(f"Error processing {otl_file}: {str(e)}")
-            continue
+            except Exception as e:
+                print(f"mozaiko ERROR: Error processing {otl_file}: {str(e)}")
+                continue
 
-    print(f"Successfully processed {len(results)} out of {len(otl_files)} OTL files")
-    return results
+        print(f"Successfully processed {len(results)} out of {len(otl_files)} OTL files")
+        # return results

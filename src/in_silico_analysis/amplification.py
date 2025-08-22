@@ -17,7 +17,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from pandas import DataFrame
 
-from src.marker_scoring.scoring_utils import filter_sequences_by_ambiguity
+from src.marker_scoring.scoring_utils import *
 from src.reference_database.db_curation import CrabsScriptGenerator
 from src.reference_database.sequence_import import CustomFastaImport
 
@@ -415,7 +415,7 @@ class InSilicoAmplification:
             for fasta_file in fasta_files:
                 self._process_fasta_file(fasta_file, taxonomy_dict)
 
-    def sanity_check_on_mismatches(self, output_dir):
+    def sanity_check_on_mismatches(self, output_dir, testing = False):
         from src.marker_scoring.scoring_utils import (
             calculate_iupac_mismatches
         )
@@ -439,6 +439,7 @@ class InSilicoAmplification:
         )
 
         seq_ids_to_remove = {}
+        mismatch_per_seq_id = {}
 
         if not matching_files:
             print("mozaiko ERROR: No matching primer files found between the insert and amplicon folders.")
@@ -483,7 +484,12 @@ class InSilicoAmplification:
 
                         full_len_mismatch_sum = full_fwd_mismatches + full_rev_mismatches
 
-                        mismatch_threshold = (self.number_of_mismatches * 2)
+                        if seq_id not in mismatch_per_seq_id:
+                            mismatch_per_seq_id[seq_id] = full_len_mismatch_sum
+
+                        # mismatch_threshold = (self.number_of_mismatches * 2)
+                        mismatch_threshold = 6
+
                         if full_len_mismatch_sum > mismatch_threshold:
                             #print(
                             # f"mozaiko INFO: For {pbs_filename}, found {full_len_mismatch_sum} /
@@ -514,7 +520,12 @@ class InSilicoAmplification:
 
             self._remove_sequences_with_mismatches(insert_file_path, seq_ids)
 
-        pass
+        if testing:
+            mismatch_per_seq_id = pd.DataFrame.from_dict(
+                mismatch_per_seq_id, orient="index", columns=["mismatches"]
+            ).reset_index()
+            mismatch_per_seq_id.rename(columns={"index": "seq_id"}, inplace=True)
+            return mismatch_per_seq_id
 
     def _remove_sequences_with_mismatches(self, fasta_file: Path, seq_ids: set):
         """
@@ -720,6 +731,8 @@ class InSilicoAmplification:
             minimum_percentage_identity,
             minimum_alignment_coverage,
         )
+
+        remove_rc_suffix_from_fasta_files(results_directory=self.run_dir)
 
         print(f"mozaiko INFO: Completed analysis for {assay_name}.")
 

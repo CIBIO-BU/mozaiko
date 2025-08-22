@@ -39,4 +39,6 @@ pipeline_bmi_test_inters.ipynb
 pipeline_dia_test_inters.ipynb
 test-bf3-mismatches-dystera.ipynb
 data/input_data/test-bf3
+data/input_data/BMI/bmi-jh.tsv
+
 
