@@ -70,8 +70,6 @@ class OtlHandler:
         2) Tranform entries to lower case.
         3) Remove entries with with 'kingdom', 'phylum', 'class', 'order' in 'ranks'.
         5) Clean ASCII characters from the 'scientificName' column.
-        4) Create 'species' column populated from 'scientificName' column where 'rank' is 'species',
-        'form', 'variety', 'subspecies'
 
         Returns:
         - otl: DataFrame
@@ -84,7 +82,12 @@ class OtlHandler:
         # 2) Tranform entries to lower case.
         self.otl["rank"] = self.otl["rank"].str.lower()
 
-        # 3) Keep only entries with rank 'family', 'genus', or 'species'
+        # 3) Normalize level above species ('form', 'variety', 'subspecies') to 'species'
+        self.otl["rank"] = self.otl["rank"].replace(
+            {"form": "species", "variety": "species", "subspecies": "species"}
+        )
+
+        # 4) Keep only entries with rank 'family', 'genus', or 'species'
         ranks_to_keep = ["family", "genus", "species"]
         self.otl = self.otl[self.otl["rank"].isin(ranks_to_keep)]
 
@@ -96,16 +99,13 @@ class OtlHandler:
             lambda x: self.fasta_handler.clean_header(x) if pd.notnull(x) else x
         )
 
-        # 5) Create 'species' column populated from 'scientificName' column where 'rank' is
-        # 'species',  'form', 'variety', 'subspecies'
-        self.otl["rank"] = self.otl["rank"].replace(
-            {"form": "species", "variety": "species", "subspecies": "species"}
-        )
-        self.otl["species"] = np.where(
-            self.otl["rank"] == "species", self.otl["scientificName"], np.nan
-        )
-        # 6) Extract the first two strings from the 'species' column
-        self.otl["species"] = self.otl["species"].str.split().str[:2].str.join(" ")
+        # # 5) Create 'species' column populated from 'scientificName' column where 'rank' is
+        # # 'species',  'form', 'variety', 'subspecies'
+        # self.otl["species"] = np.where(
+        #     self.otl["rank"] == "species", self.otl["scientificName"], np.nan
+        # )
+        # # 6) Extract the first two strings from the 'species' column
+        # self.otl["species"] = self.otl["species"].str.split().str[:2].str.join(" ")
 
     def import_otl(self):
         """
@@ -1616,7 +1616,7 @@ class TraitsAndResolution:
         taxonomic_resolution_results = []
 
         for column in primer_cols:
-            taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][
+            taxa_above_cutoff = self.divergence_df[self.divergence_df[column] > cutoff][ #TODO: + INFS
                 column
             ].count()
 
