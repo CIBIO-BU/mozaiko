@@ -99,6 +99,9 @@ class OtlHandler:
             lambda x: self.fasta_handler.clean_header(x) if pd.notnull(x) else x
         )
 
+        # 5) Dereplicate entries based on 'scientificName'
+        self.otl = self.otl.drop_duplicates(subset=["scientificName"])
+
         # # 5) Create 'species' column populated from 'scientificName' column where 'rank' is
         # # 'species',  'form', 'variety', 'subspecies'
         # self.otl["species"] = np.where(

@@ -242,120 +242,6 @@ install_entry_points() {
     pip install -e .
 }
 
-install_multibarcodetools() {
-    # Check if MultiBarcodePipeline is already installed
-    echo "Checking MultiBarcodePipeline installation..."
-    if command -v multi-barcode &> /dev/null; then
-        echo "MultiBarcodePipeline is already installed."
-        multi-barcode -h
-        return 0
-    fi
-
-    # Ensure git is installed
-    if ! command -v git &> /dev/null; then
-        echo "Git is not installed. Attempting to install git..."
-        sudo apt-get update
-        sudo apt-get install -y git
-    fi
-
-    if ! command -v python3.9 &> /dev/null; then
-        echo "Python 3.9 is not installed. Installing Python 3.9..."
-        sudo apt update
-        sudo apt install -y software-properties-common
-        sudo add-apt-repository -y ppa:deadsnakes/ppa
-        sudo apt update
-        sudo apt install -y python3.9 python3.9-venv python3.9-distutils || {
-            echo "Failed to install Python 3.9. Please install it manually and rerun this script."
-            return 1
-        }
-    fi
-
-        # Ensure Conda is installed for MAFFT installation
-    if ! command -v conda &> /dev/null; then
-        echo "Conda is not installed. Please install Conda and rerun this script."
-        return 1
-    fi
-
-    # Install MAFFT using Conda
-    echo "Checking if MAFFT is installed..."
-    if ! conda list | grep -q mafft; then
-        echo "MAFFT not found. Installing MAFFT via Conda..."
-        conda install -c bioconda mafft -y || {
-            echo "Failed to install MAFFT. Ensure Conda is set up correctly and try again."
-            return 1
-        }
-    else
-        echo "MAFFT is already installed."
-    fi
-
-    # Create a directory for installation if it doesn't exist
-    INSTALL_DIR="${HOME}/tools/MultiBarcodePipeline"
-    mkdir -p "${INSTALL_DIR}"
-    cd "${INSTALL_DIR}"
-
-    # Create a separate virtual environment for MultiBarcodePipeline with Python 3.9
-    VENV_NAME="multibarcode"
-
-    # Check if the virtual environment already exists
-    if [ ! -d "$VENV_NAME" ]; then
-        echo "Creating virtual environment for MultiBarcodePipeline with Python 3.9..."
-        python3.9 -m venv "$VENV_NAME" || {
-            echo "Failed to create virtual environment with Python 3.9"
-            echo "Ensure Python 3.9 is installed on your system"
-            return 1
-        }
-    fi
-
-    # Activate the virtual environment
-    source "$VENV_NAME/bin/activate"
-
-    echo "Cloning MultiBarcodePipeline repository..."
-    if [ ! -d "MultiBarcodePipeline" ]; then
-        git clone "https://github.com/billzt/MultiBarcodePipeline.git" || {
-            echo "Failed to clone repository"
-            deactivate
-            return 1
-        }
-    fi
-
-    cd MultiBarcodePipeline
-
-    echo "Installing MultiBarcodePipeline..."
-    pip install . || {
-        echo "Failed to install MultiBarcodePipeline"
-        deactivate
-        return 1
-    }
-
-    echo "Verifying installation..."
-    if command -v multi-barcode &> /dev/null; then
-        echo "MultiBarcodePipeline successfully installed in separate environment."
-        multi-barcode -h
-    else
-        echo "Installation failed: multi-barcode command not found"
-        deactivate
-        return 1
-    fi
-
-    # Deactivate the virtual environment
-    deactivate
-
-    # Create a wrapper script to use the specific environment
-    WRAPPER_SCRIPT="${HOME}/.local/bin/multi-barcode"
-    mkdir -p "$(dirname "$WRAPPER_SCRIPT")"
-
-    cat > "$WRAPPER_SCRIPT" << EOL
-    #!/bin/bash
-    source "${INSTALL_DIR}/${VENV_NAME}/bin/activate"
-    command multi-barcode "\$@"
-    deactivate
-EOL
-
-    chmod +x "$WRAPPER_SCRIPT"
-
-    echo "Wrapper script created at $WRAPPER_SCRIPT"
-}
-
 main() {
     check_conda
     check_env
@@ -367,7 +253,6 @@ main() {
     echo "Proceeding with installation..."
     install_crabs_release
     install_cutadapt_package
-    install_multibarcodetools
     echo "Instalation complete"
 }
 
