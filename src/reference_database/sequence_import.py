@@ -416,6 +416,8 @@ class CustomFastaImport:
 
         output_dir = os.path.dirname(output_name) or "."
 
+        # print(f"output_name: {output_name}")
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 

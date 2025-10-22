@@ -46,6 +46,12 @@ The name comes from the Esperanto word 'Mozaiko', reflecting the idea of bringin
    conda activate mozaiko
    ```
 
+3. Install mozaiko:
+
+      ```bash
+   pip install -e .
+   ```
+
 Th installation script will:
 
 - Check if Conda is installed;
