@@ -8,6 +8,18 @@ EXTERNAL_SCRIPTS_DIR="external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
 CRABS_DIR="reference_database_creator-0.1.7"
 
+# If a token argument is given, modify REPO_URL to use HTTPS with the token
+if [ $# -gt 0 ]; then
+    TOKEN="$1"
+    REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/mozaico.git"
+    echo "Using token-based repository URL."
+else
+    echo "Using default SSH repository URL."
+fi
+
+# Continue with the rest of your script
+echo "Repository URL: $REPO_URL"
+
 # Check if Conda is installed
 check_conda() {
     if ! command -v conda &> /dev/null; then
