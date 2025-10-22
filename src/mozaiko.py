@@ -14,37 +14,100 @@ from src.reference_database.sequence_import import CustomFastaImport
 
 def create_parser():
     """
-    Create an argument parser for the mozaiko's CLI.
+    Create an argument parser for mozaiko's CLI.
     """
     parser = argparse.ArgumentParser(
-        description="mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring"
-    )
-    parser.add_argument("-i", "--input", help="Path to the input FASTA file")
-    parser.add_argument(
-        "-o", "--output", help="Path to processed FASTA file (optional)"
-    )
-    parser.add_argument(
-        "--pre_process_db", action="store_true", help="Load custom FASTA file."
-    )
-    parser.add_argument(
-    "--harmonized", action="store_true",
-    help="Pre-process data as if it was taxonomically harmonized.",
-    )
-    parser.add_argument("--json_file", help="Path to the JSON file with parameters.")
-    parser.add_argument(
-        "--assign_tax", action="store_true", help="Assign taxonomic information."
-    )
-    parser.add_argument(
-        "--dereplicate", action="store_true", help="Dereplicate sequences."
-    )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Enable verbose logging."
-    )
-    parser.add_argument(
-        "--in_silico_analysis", action="store_true", help="Run in-silico analysis."
-    )
-    return parser
+        description="mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring",
+        epilog="""
+Examples:
+  # Pre-process a FASTA database
+  %(prog)s --pre_process_db -i input.fasta -o output.tsv
 
+  # Pre-process with taxonomic harmonization
+  %(prog)s --pre_process_db --harmonized -i input.fasta -o output.tsv
+
+  # Assign taxonomy to sequences
+  %(prog)s --assign_tax --json_file config.json
+
+  # Dereplicate sequences
+  %(prog)s --dereplicate --json_file derep_config.json
+
+  # Run in-silico PCR analysis
+  %(prog)s --in_silico_analysis -i database.fasta --run_name my_analysis --primer_table primers.tsv
+
+For more information, visit: https://github.com/CIBIO-BU/mozaiko
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    # Input/Output options
+    io_group = parser.add_argument_group('Input/Output Options')
+    io_group.add_argument(
+        "-i", "--input",
+        help="Path to the input FASTA file (required for --pre_process_db and --in_silico_analysis)",
+        metavar="FILE"
+    )
+    io_group.add_argument(
+        "-o", "--output",
+        help="Path where the processed FASTA file will be saved (required for --pre_process_db)",
+        metavar="FILE"
+    )
+
+    # Workflow Processing options
+    process_group = parser.add_argument_group('Workflow Processing Options')
+    process_group.add_argument(
+        "--pre_process_db",
+        action="store_true",
+        help="Pre-process input database (cleans and standardizes FASTA file)"
+    )
+    process_group.add_argument(
+        "--harmonized",
+        action="store_true",
+        help="Pre-processed databases as if taxonomic harmonization was previously applied (use with --pre_process_db)"
+    )
+    process_group.add_argument(
+        "--assign_tax",
+        action="store_true",
+        help="Assign taxonomic information using CRABS (requires --json_file)"
+    )
+    process_group.add_argument(
+        "--dereplicate",
+        action="store_true",
+        help="Remove duplicate sequences using CRABS method (requires --json_file)"
+    )
+
+    # Analysis options
+    analysis_group = parser.add_argument_group('Analysis Options')
+    analysis_group.add_argument(
+        "--in_silico_analysis",
+        action="store_true",
+        help="Perform in-silico PCR amplification analysis (requires -i, --run_name, and --primer_table)"
+    )
+    analysis_group.add_argument(
+        "--run_name",
+        help="Name for the analysis results folder (required for --in_silico_analysis)",
+        metavar="NAME"
+    )
+    analysis_group.add_argument(
+        "--primer_table",
+        help="Path to TSV file containing primer sequences to evaluate (required for --in_silico_analysis)",
+        metavar="FILE"
+    )
+
+    # Configuration options
+    config_group = parser.add_argument_group('Configuration Options')
+    config_group.add_argument(
+        "--json_file",
+        help="Path to JSON configuration file with parameters for CRABS operations (--dereplicate)",
+        metavar="FILE"
+    )
+    config_group.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable detailed logging output for debugging"
+    )
+
+    return parser
 
 def database_pre_process(args):
     """
@@ -64,9 +127,8 @@ def database_pre_process(args):
             print(f"mozaiko INFO: Processing taxonomic harmonization.")
             fasta_import.pre_process_harmonized_fasta_database()
 
-        if args.output:
-            print(f"mozaiko INFO: Saving output to {args.output}...")
-            fasta_import.df2csv(args.output)
+        print(f"mozaiko INFO: Saving output to {args.output}...")
+        fasta_import.df2csv(args.output)
 
     except Exception as e:
         logging.error(f"mozaiko ERROR: Failed to process the FASTA file: {e}")
@@ -96,8 +158,8 @@ def handle_in_silico_analysis(args):
     Handle the in-silico analysis process.
     """
     print("mozaiko INFO: Initiating in-silico analysis...")
-    in_silico_generator = InSilicoAmplification(args.input)
-    in_silico_generator.run_in_silico_analysis()
+    in_silico_generator = InSilicoAmplification(database_fasta_file=args.input, run_name=args.run_name)
+    in_silico_generator.run_in_silico_analysis(primer_table=args.primer_table)
 
 
 def main():
@@ -108,14 +170,19 @@ def main():
     args = parser.parse_args()
     print(f"Parsed args: {args}")
 
+    if args.pre_process_db and args.dereplicate:
+        parser.error(
+            "mozaiko INFO: The options --pre_process_db and --dereplicate cannot be used together."
+        )
+
     # Verbose logging
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Load custom FASTA file
-    if args.pre_process_db and not args.input:
+    if args.pre_process_db and not args.input and not args.output:
         parser.error(
-            "mozaiko INFO: No FASTA file specified. Please specify a FASTA file with parameter --input."
+            "mozaiko INFO: Please specify a FASTA file with parameter --input and an output file name with --output."
         )
 
     if args.pre_process_db:
@@ -142,18 +209,18 @@ def main():
 
     elif args.dereplicate:
         logging.error(
-            "mozaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file."
+            "mozaiko INFO: No JSON file specified. Please specify a JSON file with parameters --json_file for dereplication. Refer to https://github.com/CIBIO-BU/mozaiko/blob/main/data/test_data/test_dereplication.json for an example."
         )
         logging.error("Exiting...")
         return
 
     # In-silico Analysis
-    if args.in_silico_analysis and args.input:
+    if args.in_silico_analysis and args.input and args.run_name and args.primer_table:
         handle_in_silico_analysis(args)
 
     elif args.in_silico_analysis:
         logging.error(
-            "mozaiko INFO: No FASTA file specified. Please specify a FASTA file with parameter --input."
+            "mozaiko INFO: Please specify a FASTA file with parameter --input, a name for the results folder with --run_name, and a table containing primer information with --primer_table."
         )
         return
 
