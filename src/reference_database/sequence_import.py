@@ -186,6 +186,8 @@ class CustomFastaImport:
         if check_taxid:
             self.check_for_taxids(fasta_file)
 
+        self.database_fasta_file = fasta_file
+
         return self.data
 
     def clean_header(self, header):
@@ -324,10 +326,10 @@ class CustomFastaImport:
             + self.data["species"].str.split(" ").str[1]
         )
 
-        processed_file_name = self.database_fasta_file.replace(
+        if overwrite:  # Overwrite the original fasta to save the pre-processed data
+            processed_file_name = self.database_fasta_file.replace(
             ".fasta", "_processed.fasta"
         )
-        if overwrite:  # Overwrite the original fasta to save the pre-processed data
             self.df2fasta(
                 output_name=processed_file_name, write_harmonized_headers=True
             )
@@ -393,12 +395,21 @@ class CustomFastaImport:
 
         return seq_list
 
-    def df2csv(self, output_name: str = "data/input_data/processed_input_fasta.csv"):
+    def df2csv(self, output_name: str = "data/input_data/processed_input_fasta.tsv"):
         """
         Write the data frame to a csv file.
         """
+        if not output_name.lower().endswith((".tsv")):
+            raise ValueError(
+                f"mozaiko ERROR: Invalid output file name. File must have a '.tsv' extension."
+            )
 
-        self.data.to_csv(output_name, index=False)
+        output_dir = os.path.dirname(output_name) or "."
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        self.data.to_csv(output_name, index=False, header=0, sep='\t')
 
     def df2fasta(
         self,

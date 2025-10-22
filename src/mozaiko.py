@@ -24,7 +24,11 @@ def create_parser():
         "-o", "--output", help="Path to processed FASTA file (optional)"
     )
     parser.add_argument(
-        "--load_custom_fasta", action="store_true", help="Load custom FASTA file."
+        "--pre_process_db", action="store_true", help="Load custom FASTA file."
+    )
+    parser.add_argument(
+    "--harmonized", action="store_true",
+    help="Pre-process data as if it was taxonomically harmonized.",
     )
     parser.add_argument("--json_file", help="Path to the JSON file with parameters.")
     parser.add_argument(
@@ -42,11 +46,11 @@ def create_parser():
     return parser
 
 
-def handle_custom_fasta_import(args):
+def database_pre_process(args):
     """
     Handle the import of a custom FASTA file.
     """
-    print("mozaiko INFO: Initiating custom sequence import...")
+    print("mozaiko INFO: Initiating database pre-process...")
 
     try:
         fasta_import = CustomFastaImport()
@@ -56,9 +60,13 @@ def handle_custom_fasta_import(args):
             f"mozaiko INFO: Processed {fasta_import.get_number_of_sequences()} sequences."
         )
 
+        if args.harmonized:
+            print(f"mozaiko INFO: Processing taxonomic harmonization.")
+            fasta_import.pre_process_harmonized_fasta_database()
+
         if args.output:
             print(f"mozaiko INFO: Saving output to {args.output}...")
-            fasta_import.df2fasta(args.output)
+            fasta_import.df2csv(args.output)
 
     except Exception as e:
         logging.error(f"mozaiko ERROR: Failed to process the FASTA file: {e}")
@@ -105,14 +113,14 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Load custom FASTA file
-    if args.load_custom_fasta and not args.input:
+    if args.pre_process_db and not args.input:
         parser.error(
             "mozaiko INFO: No FASTA file specified. Please specify a FASTA file with parameter --input."
         )
 
-    if args.load_custom_fasta:
-        print("Loading custom FASTA...")
-        handle_custom_fasta_import(args)
+    if args.pre_process_db:
+        print("Pre-processing database...")
+        database_pre_process(args)
 
     else:
         print("Skipping custom FASTA load...")
