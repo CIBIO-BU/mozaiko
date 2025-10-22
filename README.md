@@ -2,9 +2,9 @@
 # mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Lint Status](https://github.com/CIBIO-BU/mozaiko/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/super-linter.yml)
-[![Packge Tests](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/mozaico/actions/workflows/python-test-check.yml)
-[![codecov](https://codecov.io/gh/CIBIO-BU/mozaiko/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/mozaico)
+[![Lint Status](https://github.com/CIBIO-BU/mozaiko/actions/workflows/super-linter.yml/badge.svg)](https://github.com/CIBIO-BU/mozaiko/actions/workflows/super-linter.yml)
+[![Packge Tests](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml/badge.svg)](https://github.com/CIBIO-BU/mozaiko/actions/workflows/python-test-check.yml)
+[![codecov](https://codecov.io/gh/CIBIO-BU/mozaiko/graph/badge.svg?token=21eBYKePwR)](https://codecov.io/gh/CIBIO-BU/mozaiko)
 
 ![alt text](data/images/mozaiko-logo.png)
 
@@ -25,10 +25,10 @@ The name comes from the Esperanto word 'Mozaiko', reflecting the idea of bringin
 1. Clone the repository:
 
    ```bash
-   git clone git@github.com:CIBIO-BU/mozaico.git
+   git clone git@github.com:CIBIO-BU/mozaiko.git
    ```
       ```bash
-   cd mozaico
+   cd mozaiko
    ```
 
 2. Run the installation script:
@@ -57,7 +57,7 @@ Th installation script will:
 - Check if Conda is installed;
 - Create a new Conda environment named "mozaiko", if it does not yet exist;
 - Activate the Conda environment;
-- Clone the mozaico repository, if not already cloned;
+- Clone the mozaiko repository, if not already cloned;
 - Install the mozaiko package;
 - Install required dependencies and tools.
 
