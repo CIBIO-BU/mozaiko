@@ -409,7 +409,7 @@ class CustomFastaImport:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        self.data.to_csv(output_name, index=False, header=0, sep='\t')
+        self.data.to_csv(output_name, index=False, sep='\t')
 
     def df2fasta(
         self,
