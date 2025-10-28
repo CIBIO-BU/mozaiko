@@ -249,6 +249,41 @@ install_vsearch() {
     fi
 }
 
+install_catnip() {
+    echo "Checking if catnit is installed."
+
+    catnip_output=$(catnip --help | tail -n 1)
+
+    if [ "$catnip_output" != 'catnip: command not found' ]; then
+        echo "catnip is already installed."
+    else
+        echo "catnip is not installed. Installing catnip..."
+        cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
+
+        if [ $# -gt 0 ]; then
+            TOKEN="$1"
+            CATNIP_REPO_URL="https://${TOKEN}github.com/CIBIO-BU/catnip"
+            echo "Using token-based repository UR for catnip."
+            git clone "$CATNIP_REPO_URL" || { echo "Failed to clone catnip repository"; exit 1; }
+        else
+            echo "Using default SSH repository URL for catnip."
+            git clone https://github.com/CIBIO-BU/catnip || { echo "Failed to clone catnip repository"; exit 1; }
+        fi
+
+        cd catmip || { echo "Directory catnip does not exist"; exit 1; }
+
+        conda env create -f catnip-env.yml || { echo "Failed to create catnip Conda environment"; exit 1; }
+
+        echo "Activating catnip Conda environment."
+        conda activate catnip_env || { echo "Failed to activate catnip Conda environment"; exit 1; }
+
+        echo "Installing catnip package."
+        pip install -e . || { echo "Failed to install catnip package"; exit 1; }
+
+        echo "catnip installation complete."
+    fi
+}
+
 install_entry_points() {
     echo "Installing CLI commands."
     pip install -e .

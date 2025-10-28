@@ -501,7 +501,6 @@ class InSilicoAmplification:
 
         # print(seq_ids_to_remove)
         if not seq_ids_to_remove:
-            print("mozaiko INFO: No sequences with mismatches found.")
             return None, None
 
         for pbs_filename, seq_ids in seq_ids_to_remove.items():

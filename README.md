@@ -99,6 +99,8 @@ For metrics ranked ascending, primers with lower values are preferred. For examp
 
 ## mozaiko Workflow
 
+Primer rankings are always relative to a specific run, if different primers are given the results will vary.
+
 ## Contacts
 
 In case of enquiry, please reach out to <bu@biopolis.up.pt>.

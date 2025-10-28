@@ -1291,306 +1291,23 @@ class TraitsAndResolution:
         self.otl_handler.import_otl()
         self.binding = Binding(otl)
 
-    def get_min_max_avg_seq_length_in_a_fasta(self, fasta_file):
-        """
-        This method calculates the  minimum, maximum, and average sequence lengths in a FASTA file.
+    def run_catnip(self, input_fasta, mapping_file, columns_index, tax_category_threshold):
+        # mapping_file = ....(input_fasta)
 
-        Parameters:
-        - fasta_file: str
-            Path to the FASTA file
+        for file in os.listdir(self.insert_folder_path):
+            if file.endswith(".fasta"):
+                fasta_path = os.path.join(input_fasta, file)
 
-        Returns:
-            tuple: (min_length, max_length, avg_length)
-        """
-        try:
-            seq_lengths = [
-                len(record.seq) for record in SeqIO.parse(fasta_file, "fasta")
-            ]
+                # run catnip on fasta_path for each primer with mapping_file, columns_index, tax_category_threshold
 
-            if not seq_lengths:
-                return np.nan, np.nan, np.nan
+        # join results of catnip for each primer
 
-            min_length = min(seq_lengths)
-            max_length = max(seq_lengths)
-            avg_length = sum(seq_lengths) / len(seq_lengths)
 
-            return min_length, max_length, round(avg_length, 2)
+        # na if there are no sequences
+        # inf if there are seqs but didn't went into CD-HIT
+        pass
 
-        except Exception as e:
-            print(f"mozaiko ERROR: Error processing {fasta_file}: {e}")
-            return np.nan, np.nan, np.nan
-
-    def get_length_stats_for_amplicon_and_insert(
-        self, insert_folder_path=None, amplicon_folder_path=None
-    ):
-        """
-        This method analyzes sequence lengths for insert and amplicon FASTA files.
-
-        Parameters:
-        - insert_folder_path (str, optional):
-            Path to insert FASTA files
-        - amplicon_folder_path (str, optional):
-            Path to amplicon FASTA files
-
-        Returns:
-            pd.DataFrame: DataFrame with sequence length stats
-        """
-        if insert_folder_path is None:
-            insert_folder_path = self.insert_folder_path
-        if amplicon_folder_path is None:
-            amplicon_folder_path = self.amplicon_folder_path
-
-        if not (insert_folder_path and amplicon_folder_path):
-            raise ValueError(
-                "mozaiko ERROR: Insert or amplicon folder paths are not specified."
-            )
-
-        length_data = {"insert": {}, "amplicon": {}}
-
-        for root, dirs, files in os.walk(insert_folder_path):
-            for file in files:
-                if file.endswith(".fasta"):
-                    primer_name = os.path.splitext(file)[0]
-                    file_path = os.path.join(root, file)
-
-                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(
-                        file_path
-                    )
-
-                    length_data["insert"][primer_name] = {"avg_length": avg}
-
-        for root, dirs, files in os.walk(amplicon_folder_path):
-            for file in files:
-                if file.endswith(".fasta"):
-                    primer_name = os.path.splitext(file)[0]
-                    file_path = os.path.join(root, file)
-
-                    min, max, avg = self.get_min_max_avg_seq_length_in_a_fasta(
-                        file_path
-                    )
-
-                    length_data["amplicon"][primer_name] = {
-                        "min_length": min,
-                        "max_length": max,
-                        "avg_length": avg,
-                    }
-
-        insert_df = pd.DataFrame.from_dict(length_data["insert"], orient="index")
-        amplicon_df = pd.DataFrame.from_dict(length_data["amplicon"], orient="index")
-
-        result_df = pd.concat(
-            [insert_df.add_prefix("insert_"), amplicon_df.add_prefix("amplicon_")],
-            axis=1,
-        )
-
-        return result_df.fillna(np.nan)
-
-    def run_multibarcode_pipeline(self):
-        """
-        Runs MultiBarcodePipeline on the insert files.
-
-        Zhu, T., & Iwasaki, W. (2023). MultiBarcodeTools: Easy selection of optimal primers for
-        eDNA multi-metabarcoding. Environmental DNA, 5, 1793-1808. https://doi.org/10.1002/edn3.499
-        """
-        results_folder_base = os.path.dirname(self.insert_folder_path)
-        multibarcode_output_folder = os.path.join(results_folder_base, "multibarcode")
-        self.multibarcode_output_folder = multibarcode_output_folder
-        os.makedirs(multibarcode_output_folder, exist_ok=True)
-
-        multibarcode_outputdir = os.path.join(
-            multibarcode_output_folder, "multibarcode_input.tsv"
-        )
-
-        multibarcode_file = create_MultiBarcodeTools_input(
-            self.incomplete_pbs_path, multibarcode_outputdir
-        )
-
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        multibarcode_script = os.path.join(script_dir, "multibarcodepipeline.sh")
-        os.chmod(multibarcode_script, 0o755)
-
-        try:
-            result = subprocess.run(
-                [
-                    multibarcode_script,
-                    self.multibarcode_output_folder,
-                    multibarcode_file,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            # print(result.stdout)
-            print(
-                f"mozaiko INFO: MultiBarcodePipeline completed. Output in {self.multibarcode_output_folder}"
-            )
-            return result.stdout
-
-        except subprocess.CalledProcessError as e:
-            print(f"mozaiko ERROR: Error running MultiBarcodePipeline - {e}")
-            print(f"Command output: {e.output}")
-            raise
-
-    def parse_multibarcode_output(self, result_stdout):
-        """
-        Method to parse MultiBarcode stdout into a DataFrame.
-
-        Parameters:
-            result_stdout: str
-        Output string from MultiBarcode
-
-        Returns:
-            pandas.DataFrame: Parsed primer information
-        """
-        primers = []
-        species_counts = []
-        cumulative_counts = []
-
-        # Regular expression to extract primer and species count
-        pattern = r"(\d+):\s*([\w-]+),\s*resolve\s*(?:additional\s*)?(\d+)\s*species"
-
-        cumulative = 0
-        for match in re.finditer(pattern, result_stdout):
-            primer = match.group(2)
-            count = int(match.group(3))
-
-            primers.append(primer)
-            species_counts.append(count)
-
-            cumulative += count
-            cumulative_counts.append(cumulative)
-
-        primer_resolv_species = pd.DataFrame(
-            {
-                "primer": primers,
-                "additional_resolved_species": species_counts,
-                "cumulative_resolved_species": cumulative_counts,
-            }
-        )
-
-        self.primer_resolv_species = primer_resolv_species
-
-        return self.primer_resolv_species
-
-    def load_nucleotide_distance(self):
-        """
-        This method loads the nuclotide difference matrix into memory as outputed by MultiBarcode
-        pipeline. It then process it to map the taxonomy against the OTL. This process includes:
-            1) Add all the necessary taxonomy levels (family, genus, species);
-            2) Remove entries for taxonomy that are not considered in the OTL;
-            3) Add entries with NaN values for taxonomy that is considerd in the OTL but not on the
-            input.
-        """
-        # Load nucleotide distance matrix
-        nuc_dist_matrix_path = os.path.join(
-            self.multibarcode_output_folder, "matrix.xlsx"
-        )
-        nuc_dist_matrix = pd.read_excel(nuc_dist_matrix_path)
-        nuc_dist_matrix["Species"] = nuc_dist_matrix["Species"].str.replace("_", " ")
-
-        # Load OTL mapping
-        otl_mapping = self.otl_handler.otl_taxa_mapping
-        otl_mapping = pd.DataFrame(otl_mapping).T.reset_index()
-        otl_mapping = otl_mapping.rename(columns={"index": "Species"})
-
-        # Merge nuc_dist_matrix with OTL mapping
-        nuc_dist_otl_merged = pd.merge(
-            nuc_dist_matrix, otl_mapping, on="Species", how="right"
-        )
-        nuc_dist_otl_merged.rename(columns={"Species": "input_taxa"}, inplace=True)
-
-        # Re-order columns
-        taxa_columns = ["input_taxa", "family", "genus", "species", "rank"]
-        other_columns = [col for col in nuc_dist_otl_merged if col not in taxa_columns]
-        nuc_dist_matrix_processed = nuc_dist_otl_merged[taxa_columns + other_columns]
-
-        # Transform nucleotide distance cols to numeric to allow for hierarchical filling of values
-        # in entries that are on genus or family level
-        str_columns = ["input_taxa", "family", "genus", "species", "rank"]
-        numeric_columns = [
-            col for col in nuc_dist_matrix_processed.columns if col not in str_columns
-        ]
-        nuc_dist_matrix_processed[numeric_columns] = nuc_dist_matrix_processed[
-            numeric_columns
-        ].apply(pd.to_numeric, errors="coerce")
-        nuc_dist_matrix_processed = self.binding.fill_hierarchical_values(
-            nuc_dist_matrix_processed, "min"
-        )
-
-        return nuc_dist_matrix_processed
-
-    def compute_taxonomic_resolution_per_taxon(self, save_results: bool = False):
-        """
-        Calculate the percentage of genetic divergence for each taxon.
-
-        Returns:
-        pd.DataFrame: Percentage of genetic divergence for each taxon
-        """
-        nuc_dist_matrix = self.load_nucleotide_distance()
-        self.nuc_dist_matrix = nuc_dist_matrix
-        insert_amplicon_len_stats = self.get_length_stats_for_amplicon_and_insert()
-        insert_avg_len_matrix = insert_amplicon_len_stats["insert_avg_length"]
-
-        # Create mapping to harmonize primer naming format between MultiBarcode and
-        # Insert Length Matrix
-        name_mapping = {
-            col.replace("-", "_"): col for col in insert_avg_len_matrix.index
-        }
-
-        # Copy taxonomic columns
-        taxonomic_columns = ["input_taxa", "family", "genus", "species", "rank"]
-        divergence_df = nuc_dist_matrix[taxonomic_columns].copy()
-
-        # Process numeric columns for divergence
-        numeric_columns = [
-            col for col in nuc_dist_matrix.columns if col not in taxonomic_columns
-        ]
-
-        for primer_set in numeric_columns:
-            primer_divergence = []
-
-            for _, row in nuc_dist_matrix.iterrows():
-                try:
-                    dist_numeric = float(row[primer_set])
-
-                    # Match primer name with internal dataframe format
-                    mapped_primer_set = name_mapping.get(primer_set, primer_set)
-
-                    if mapped_primer_set in insert_avg_len_matrix.index:
-                        insert_length = float(insert_avg_len_matrix[mapped_primer_set])
-
-                        if insert_length > 0:
-                            divergence_percentage = round(
-                                ((dist_numeric / insert_length) * 100), 1
-                            )
-                        else:
-                            divergence_percentage = np.nan
-                    else:
-                        divergence_percentage = np.nan
-
-                except (ValueError, TypeError):
-                    divergence_percentage = np.nan
-
-                primer_divergence.append(divergence_percentage)
-
-            divergence_df[primer_set] = primer_divergence
-
-        if save_results:
-            os.makedirs(
-                os.path.join(self.results_folder, "otl_level_results/"), exist_ok=True
-            )
-            output_path = os.path.join(
-                self.results_folder,
-                "otl_level_results",
-                "taxonomic_resolution_per_taxon.tsv",
-            )
-            # Drop 'input_taxa' column
-            divergence_df_to_save = divergence_df.drop(columns="input_taxa")
-            divergence_df_to_save.to_csv(output_path, index=False, sep="\t")
-
-        return divergence_df
-
-    def get_taxonomic_resolution(self, cutoff: float = 2.0):
+    def get_taxonomic_resolution(self, cutoff: int = 2.0):
         """
         This method retrieves the divergence score for each primer set. The divergence score is
         the percentage of taxa with a percentage of divergence bellow a cutoff according to the
@@ -1599,17 +1316,10 @@ class TraitsAndResolution:
         Parameters:
         - otl_total_taxa_cont: int
             The total number of taxa in the OTL.
-        - cutoff: float
-            The cutoff for genetic divergence. Float number representing a percentage. Default is
-            2.0, which is equivalent to 2.0%.
 
         Returns:
         """
         total_otl_taxa_count = self.otl_handler.total_taxa
-
-        self.divergence_df = self.compute_taxonomic_resolution_per_taxon(
-            save_results=True
-        )
 
         taxonomic_columns = ["input_taxa", "family", "genus", "species", "rank"]
         primer_cols = [
