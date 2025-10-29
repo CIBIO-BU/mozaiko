@@ -15,7 +15,7 @@ CRABS_DIR="reference_database_creator-0.1.7"
 if [ $# -gt 0 ]; then
     TOKEN="$1"
     REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/mozaiko.git"
-    CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip"
+    CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip.git"
     echo "Using token-based repository URL."
 else
     echo "Using default SSH repository URL."
