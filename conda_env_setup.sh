@@ -1,10 +1,12 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 ENV_NAME="mozaiko"
 REPO_URL="git@github.com:CIBIO-BU/mozaiko.git"
 PACKAGE_DIR="mozaiko"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
-EXTERNAL_SCRIPTS_DIR="external_scripts"
+EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/${PACKAGE_DIR}/external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
 CRABS_DIR="reference_database_creator-0.1.7"
 
