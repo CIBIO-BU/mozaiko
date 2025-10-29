@@ -4,6 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ENV_NAME="mozaiko"
 REPO_URL="git@github.com:CIBIO-BU/mozaiko.git"
+CATNIP_REPO_URL="https://github.com/CIBIO-BU/catnip.git"
 PACKAGE_DIR="mozaiko"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
 EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/${PACKAGE_DIR}/external_scripts"
@@ -14,6 +15,7 @@ CRABS_DIR="reference_database_creator-0.1.7"
 if [ $# -gt 0 ]; then
     TOKEN="$1"
     REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/mozaiko.git"
+    CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip"
     echo "Using token-based repository URL."
 else
     echo "Using default SSH repository URL."
@@ -260,15 +262,7 @@ install_catnip() {
         echo "Creating catnip environment..."
         cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
 
-        if [ $# -gt 0 ]; then
-            TOKEN="$1"
-            CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip"
-            echo "Using token-based repository URL for catnip."
-            git clone "$CATNIP_REPO_URL" || { echo "Failed to clone catnip repository"; exit 1; }
-        else
-            echo "Using default SSH repository URL for catnip."
-            git clone https://github.com/CIBIO-BU/catnip || { echo "Failed to clone catnip repository"; exit 1; }
-        fi
+        git clone "$CATNIP_REPO_URL" || { echo "Failed to clone catnip repository"; exit 1; }
 
         cd catnip || { echo "Directory catnip does not exist"; exit 1; }
         conda env create -f catnip-env.yml || { echo "Failed to create catnip Conda environment"; exit 1; }
