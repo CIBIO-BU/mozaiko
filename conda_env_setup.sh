@@ -250,11 +250,9 @@ install_vsearch() {
 }
 
 install_catnip() {
-    echo "Checking if catnit is installed."
+    echo "Checking if catnip is installed."
 
-    catnip_output=$(catnip --help | tail -n 1)
-
-    if [ "$catnip_output" != 'catnip: command not found' ]; then
+    if command -v catnip &> /dev/null; then
         echo "catnip is already installed."
     else
         echo "catnip is not installed. Installing catnip..."
@@ -262,16 +260,15 @@ install_catnip() {
 
         if [ $# -gt 0 ]; then
             TOKEN="$1"
-            CATNIP_REPO_URL="https://${TOKEN}github.com/CIBIO-BU/catnip"
-            echo "Using token-based repository UR for catnip."
+            CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip"
+            echo "Using token-based repository URL for catnip."
             git clone "$CATNIP_REPO_URL" || { echo "Failed to clone catnip repository"; exit 1; }
         else
             echo "Using default SSH repository URL for catnip."
             git clone https://github.com/CIBIO-BU/catnip || { echo "Failed to clone catnip repository"; exit 1; }
         fi
 
-        cd catmip || { echo "Directory catnip does not exist"; exit 1; }
-
+        cd catnip || { echo "Directory catnip does not exist"; exit 1; }
         conda env create -f catnip-env.yml || { echo "Failed to create catnip Conda environment"; exit 1; }
 
         echo "Activating catnip Conda environment."
@@ -295,12 +292,12 @@ main() {
     activate_env
     clone_repo
     install_package
-    install_catnip
     install_entry_points
     echo "mozaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
     echo "Proceeding with installation..."
     install_crabs_release
     install_cutadapt_package
+    install_catnip
     echo "Instalation complete"
 }
 
