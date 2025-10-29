@@ -252,12 +252,12 @@ install_vsearch() {
 }
 
 install_catnip() {
-    echo "Checking if catnip is installed."
+    echo "Checking if catnip environment exists..."
 
-    if command -v catnip &> /dev/null; then
-        echo "catnip is already installed."
+    if conda env list | grep -q "^catnip "; then
+        echo "catnip environment already exists."
     else
-        echo "catnip is not installed. Installing catnip..."
+        echo "Creating catnip environment..."
         cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
 
         if [ $# -gt 0 ]; then
@@ -273,13 +273,11 @@ install_catnip() {
         cd catnip || { echo "Directory catnip does not exist"; exit 1; }
         conda env create -f catnip-env.yml || { echo "Failed to create catnip Conda environment"; exit 1; }
 
-        echo "Activating catnip Conda environment."
-        conda activate catnip_env || { echo "Failed to activate catnip Conda environment"; exit 1; }
-
-        echo "Installing catnip package."
-        pip install -e . || { echo "Failed to install catnip package"; exit 1; }
+        # Install in the environment directly without activating
+        conda run -n catnip pip install -e . || { echo "Failed to install catnip package"; exit 1; }
 
         echo "catnip installation complete."
+        echo "To use catnip, run: conda activate catnip"
     fi
 }
 
