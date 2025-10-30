@@ -1291,12 +1291,12 @@ class TraitsAndResolution:
         self.otl_handler = OtlHandler(otl)
         self.otl_handler.import_otl()
         self.binding = Binding(otl)
+        self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
     def run_catnip(self, tax_category_threshold: int = 10):
         print("mozaiko INFO: Starting catnip to retrieve nucleotide divergence across taxa levels...")
         # create directory for catnip analysis
-        catnip_dir = os.path.join(self.results_folder, "catnip")
-        os.makedirs(catnip_dir, exist_ok=True)
+        os.makedirs(self.catnip_dir, exist_ok=True)
 
         # get catnip script
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1313,7 +1313,7 @@ class TraitsAndResolution:
                 primer_name = os.path.splitext(file)[0]
 
                 # Create a subdirectory for each primer to keep outputs organized
-                primer_output_dir = os.path.join(catnip_dir, primer_name)
+                primer_output_dir = os.path.join(self.catnip_dir, primer_name)
                 os.makedirs(primer_output_dir, exist_ok=True)
 
                 # Copy FASTA to the primer's output directory
@@ -1359,23 +1359,55 @@ class TraitsAndResolution:
                     print(f"mozaiko ERROR: Unexpected error processing {primer_name}: {str(e)}")
 
         print(f"\nmozaiko INFO: catnip processing complete.")
-        print(f"mozaiko INFO: Output directory: {catnip_dir}")
+        print(f"mozaiko INFO: Output directory: {self.catnip_dir}")
         print(f"mozaiko INFO: Successfully processed: {processed_files} primers(s)")
 
         if failed_files:
             print(f"mozaiko WARNING: Failed to process {len(failed_files)} file(s): {', '.join(failed_files)}")
-
-        return catnip_dir
 
     def join_catnip_results(self):
         """
         This method joins the results obtained from catnip for each primer set into a single
         DataFrame.
         """
+        print("mozaiko INFO: Joining catnip analysis...")
+        dataframes = []
+
+        for folder in os.listdir(self.catnip_dir):
+            folder_path = Path(os.path.join(self.catnip_dir, folder))
+            folder_name = folder_path.name
+            output_file_path = folder_path / "final_output_interclst.tsv"
+
+            if output_file_path.exists():
+                df = pd.read_csv(output_file_path, sep='\t')
+
+                if 'edit_distance' in df.columns:
+                    df = df.drop('edit_distance', axis=1)
+
+                if 'divergence_prct' in df.columns:
+                    df = df.rename(columns={'divergence_prct':folder_name})
+
+                    dataframes.append(df)
+
+        if not dataframes:
+            return None
+
+        merge_cols = ['query', 'query_cat', 'target', 'target_cat']
+
+        merged_df = dataframes[0]
+
+        for dataframe in dataframes[1:]:
+            merged_df = pd.merge(merged_df, dataframe, on=merge_cols, how='outer')
+
+        merged_df_name = Path(self.catnip_dir) / "merged_catnip.tsv"
+        merged_df.to_csv(merged_df_name, sep='\t', index=False, header=True)
+
+        print(f"mozaiko INFO: Saved merged file to {merged_df_name}")
+
+        return merged_df
 
         # na if there are no sequences
         # inf if there are seqs but didn't went into CD-HIT
-        pass
 
     def get_taxonomic_resolution(self, cutoff: int = 2.0):
         """
