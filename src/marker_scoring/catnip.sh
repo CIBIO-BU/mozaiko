@@ -1,14 +1,19 @@
 #!/bin/bash
+set -euo pipefail
 
-# Get input args
-INPUT_FILE=$1
-MAPPING_FILE=$2
-MAPPING_COLS=$3
-THRESHOLD=$4
+OUTPUT_DIR=$1      # primer output directory
+INPUT_FILE=$2
+MAPPING_NAME=$3
+MAPPING_COLS=$4
+THRESHOLD=$5
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate catnip
 
-catnip -i "$INPUT_FILE" -f "$MAPPING_FILE" -c "$MAPPING_COLS" -p "$THRESHOLD"
+# move into primer directory
+cd "$OUTPUT_DIR" || exit 1
+
+catnip -i "$INPUT_FILE" -M -o "$MAPPING_NAME"
+catnip -i "$INPUT_FILE" -f "$MAPPING_NAME" -c "$MAPPING_COLS" -p "$THRESHOLD"
 
 conda deactivate

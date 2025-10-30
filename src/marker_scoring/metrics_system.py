@@ -1278,6 +1278,7 @@ class TraitsAndResolution:
             self.insert_folder_path = insert_folder_path
             self.amplicon_folder_path = amplicon_folder_path
             self.incomplete_pbs_path = incomplete_pbs_folder_path
+            self.results_folder = os.path.dirname(os.path.dirname(insert_folder_path))
             # print(
             #     "mozaiko INFO: Using provided insert_folder_path, amplicon_folder_path and incomplete_pbs_folder_path."
             # )
@@ -1291,17 +1292,86 @@ class TraitsAndResolution:
         self.otl_handler.import_otl()
         self.binding = Binding(otl)
 
-    def run_catnip(self, input_fasta, mapping_file, columns_index, tax_category_threshold):
-        # mapping_file = ....(input_fasta)
+    def run_catnip(self, tax_category_threshold: int = 10):
+        print("mozaiko INFO: Starting catnip to retrieve nucleotide divergence across taxa levels...")
+        # create directory for catnip analysis
+        catnip_dir = os.path.join(self.results_folder, "catnip")
+        os.makedirs(catnip_dir, exist_ok=True)
 
-        for file in os.listdir(self.insert_folder_path):
+        # get catnip script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        catnip_script = os.path.join(script_dir, "catnip.sh")
+        os.chmod(catnip_script, 0o755)
+
+        # run catnip for each primer
+        processed_files = 0
+        failed_files = []
+
+        for file in os.listdir(self.incomplete_pbs_path):
             if file.endswith(".fasta"):
-                fasta_path = os.path.join(input_fasta, file)
+                original_fasta_path = os.path.join(self.incomplete_pbs_path, file)
+                primer_name = os.path.splitext(file)[0]
 
-                # run catnip on fasta_path for each primer with mapping_file, columns_index, tax_category_threshold
+                # Create a subdirectory for each primer to keep outputs organized
+                primer_output_dir = os.path.join(catnip_dir, primer_name)
+                os.makedirs(primer_output_dir, exist_ok=True)
 
-        # join results of catnip for each primer
+                # Copy FASTA to the primer's output directory
+                catnip_fasta_path = os.path.join(primer_output_dir, file)
+                shutil.copy2(original_fasta_path, catnip_fasta_path)
 
+                mapping_file_name = f"mapping_{primer_name}.tsv"
+                cols = "0,8,9,10"  # seq_id, family, genus, species
+
+                try:
+                    result = subprocess.run(
+                        [
+                            catnip_script,
+                            primer_output_dir,
+                            file,
+                            mapping_file_name,
+                            cols,
+                            str(tax_category_threshold)
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        cwd=primer_output_dir  # Run in primer-specific directory
+                    )
+
+                    processed_files += 1
+                    print(f"mozaiko INFO: catnip completed successfully for {primer_name}.")
+
+                    # if result.stdout:
+                    #     print(f"mozaiko INFO: {result.stdout.strip()}")
+
+                except subprocess.CalledProcessError as e:
+                    failed_files.append(primer_name)
+                    print(f"mozaiko ERROR: catnip failed for {primer_name}.")
+                    print(f"mozaiko ERROR: Error code: {e.returncode}")
+                    if e.stderr:
+                        print(f"mozaiko ERROR: {e.stderr.strip()}")
+                    if e.stdout:
+                        print(f"mozaiko ERROR: {e.stdout.strip()}")
+
+                except Exception as e:
+                    failed_files.append(primer_name)
+                    print(f"mozaiko ERROR: Unexpected error processing {primer_name}: {str(e)}")
+
+        print(f"\nmozaiko INFO: catnip processing complete.")
+        print(f"mozaiko INFO: Output directory: {catnip_dir}")
+        print(f"mozaiko INFO: Successfully processed: {processed_files} primers(s)")
+
+        if failed_files:
+            print(f"mozaiko WARNING: Failed to process {len(failed_files)} file(s): {', '.join(failed_files)}")
+
+        return catnip_dir
+
+    def join_catnip_results(self):
+        """
+        This method joins the results obtained from catnip for each primer set into a single
+        DataFrame.
+        """
 
         # na if there are no sequences
         # inf if there are seqs but didn't went into CD-HIT
