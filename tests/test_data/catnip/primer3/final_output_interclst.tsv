@@ -1,0 +1,3 @@
+query	query_cat	target	target_cat	edit_distance	divergence_prct
+AODON115-20	('Aeshnidae', 'Aeshna', 'Aeshna affinis')	AODON611-20	('Aeshnidae', 'Aeshna', 'Aeshna caerulea')	8	6.0
+AODON115-20	('Aeshnidae', 'Aeshna', 'Aeshna affinis')	AODON103-20	('Aeshnidae', 'Aeshna', 'Aeshna cyanea')	8	6.0

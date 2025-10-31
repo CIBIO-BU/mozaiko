@@ -1,0 +1,4 @@
+query	query_cat	target	target_cat	edit_distance	divergence_prct
+AAHYM439-16	('Braconidae', 'Pholetesor', 'Pholetesor salicifoliellae')	AAHYM256-16	('Braconidae', 'Pholetesor', 'Pholetesor ornigis')	7	4.9
+AAHYM325-16	('Braconidae', 'Pholetesor', nan)	AAHYM157-16	('Braconidae', 'Pholetesor', 'Pholetesor variabilis')	4	2.8
+AODON115-20	('Aeshnidae', 'Aeshna', 'Aeshna affinis')	AODON103-20	('Aeshnidae', 'Aeshna', 'Aeshna cyanea')	8	9.0

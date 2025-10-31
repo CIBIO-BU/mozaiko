@@ -1,0 +1,7 @@
+query	query_family	query_genus	query_species	target	target_family	target_genus	target_species	primer3	primer2	primer1
+AAHYM325-16	Braconidae	Pholetesor	nan	AAHYM157-16	Braconidae	Pholetesor	Pholetesor variabilis		2.8	
+AAHYM439-16	Braconidae	Pholetesor	Pholetesor salicifoliellae	AAHYM256-16	Braconidae	Pholetesor	Pholetesor ornigis		4.9	
+AODON103-20	Aeshnidae	Aeshna	Aeshna cyanea	AODON640-20	Aeshnidae	Aeshna	Aeshna mixta			6.9
+AODON115-20	Aeshnidae	Aeshna	Aeshna affinis	AODON103-20	Aeshnidae	Aeshna	Aeshna cyanea	6.0	9.0	7.3
+AODON115-20	Aeshnidae	Aeshna	Aeshna affinis	AODON611-20	Aeshnidae	Aeshna	Aeshna caerulea	6.0		
+AODON144-20	Aeshnidae	Aeshna	Aeshna juncea	AODON103-20	Aeshnidae	Aeshna	Aeshna cyanea			8.6

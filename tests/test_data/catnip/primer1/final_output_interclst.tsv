@@ -1,0 +1,4 @@
+query	query_cat	target	target_cat	edit_distance	divergence_prct
+AODON144-20	('Aeshnidae', 'Aeshna', 'Aeshna juncea')	AODON103-20	('Aeshnidae', 'Aeshna', 'Aeshna cyanea')	36	8.6
+AODON103-20	('Aeshnidae', 'Aeshna', 'Aeshna cyanea')	AODON640-20	('Aeshnidae', 'Aeshna', 'Aeshna mixta')	29	6.9
+AODON115-20	('Aeshnidae', 'Aeshna', 'Aeshna affinis')	AODON103-20	('Aeshnidae', 'Aeshna', 'Aeshna cyanea')	8	7.3
