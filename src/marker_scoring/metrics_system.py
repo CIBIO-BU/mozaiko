@@ -1549,6 +1549,7 @@ class TraitsAndResolution:
         self.make_merged_df_symmetric()
         self.add_taxa_not_in_heterogenous_clusters()
 
+        self.merged_df = self.merged_df.drop(['query', 'target'], axis=1)
 
         merged_df_name = Path(self.catnip_dir) / "merged_catnip.tsv"
         self.merged_df.to_csv(merged_df_name, sep='\t', index=False, header=True)
