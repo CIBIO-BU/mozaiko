@@ -137,20 +137,6 @@ class OtlHandler:
         self.total_taxa = total_taxa_count
         self.otl_taxa_set = unique_otl_taxa
 
-        # Mapping between scientificName, family, genus, and species
-        self.otl_taxa_mapping = {
-            taxon: {
-                "family": row["family"],
-                "genus": row["genus"],
-                "species": row["species"],
-                "rank": row["rank"],
-            }
-            for _, row in otl.iterrows()
-            for taxon in [row["scientificName"]]
-        }
-        # Dataframe of self.otl_taxa_mapping
-        self.otl_taxa_mapping_df = pd.DataFrame(self.otl_taxa_mapping).T.reset_index()
-
         return total_taxa_count, unique_otl_taxa
 
     def create_taxonomic_hierarchy(self):
@@ -490,7 +476,6 @@ class Binding:
         self.processed_primers = {}
         self.otl_handler = OtlHandler(otl)
         self.otl_handler.import_otl()
-        self.otl_taxa_mapping = self.otl_handler.otl_taxa_mapping
         self.otl_unique_taxa = self.otl_handler.otl_taxa_set
 
     @staticmethod
@@ -1377,18 +1362,21 @@ class TraitsAndResolution:
             folder_name = folder_path.name
             output_file_path = folder_path / "final_output_interclst.tsv"
 
-            if output_file_path.exists():
-                df = pd.read_csv(output_file_path, sep='\t')
+            if not output_file_path.exists():
+                continue
 
-                if 'edit_distance' in df.columns:
-                    df = df.drop('edit_distance', axis=1)
+            df = pd.read_csv(output_file_path, sep="\t")
 
-                if 'divergence_prct' in df.columns:
-                    df = df.rename(columns={'divergence_prct':folder_name})
+            if 'edit_distance' in df.columns:
+                df = df.drop('edit_distance', axis=1)
 
-                    dataframes.append(df)
+            if 'divergence_prct' in df.columns:
+                df = df.rename(columns={'divergence_prct':folder_name})
+
+                dataframes.append(df)
 
         if not dataframes:
+            print("mozaiko WARNING: No valid catnip outputs found.")
             return None
 
         merge_cols = ['query', 'query_cat', 'target', 'target_cat']
@@ -1405,7 +1393,6 @@ class TraitsAndResolution:
             """
             col = f"{col_prefix}_cat"
 
-            # df[col] = df[col].str.replace(r"\bnan\b", "NaN", regex=True)  # 'nan' (case-insensitive) to NaN
             df[col] = df[col].str.replace(r"[\'\(\)]", "", regex=True)
             new_cols = [f"{col_prefix}_family", f"{col_prefix}_genus", f"{col_prefix}_species"]
             df[new_cols] = df[col].str.split(',', expand=True)
@@ -1417,6 +1404,19 @@ class TraitsAndResolution:
         merged_df = clean_and_split(merged_df, "query")
         merged_df = clean_and_split(merged_df, "target")
 
+        group_cols = [
+            "query_family", "query_genus", "query_species",
+            "target_family", "target_genus", "target_species"
+        ]
+
+        value_cols = [c for c in merged_df.columns if c not in group_cols + ["query_cat", "target_cat"]]
+
+        # Keep row with minimum values for each primer column within each taxonomic group that
+        # gets duplicated (same taxa, different seq ids)
+        if value_cols:
+            min_df = merged_df.groupby(group_cols, dropna=False)[value_cols].min().reset_index()
+            merged_df = min_df
+
         ordered_cols = [
             "query", "query_family", "query_genus", "query_species",
             "target", "target_family", "target_genus", "target_species"
@@ -1427,11 +1427,6 @@ class TraitsAndResolution:
         ]]
 
         merged_df = merged_df[ordered_cols]
-
-        merged_df_name = Path(self.catnip_dir) / "merged_catnip.tsv"
-        merged_df.to_csv(merged_df_name, sep='\t', index=False, header=True)
-
-        print(f"mozaiko INFO: Saved merged file to {merged_df_name}")
 
         self.merged_df = merged_df
 
@@ -1504,11 +1499,11 @@ class TraitsAndResolution:
                 'query_family': row['family'],
                 'query_genus': row['genus'],
                 'query_species': row['species'],
-                'target_family': row['family'],
-                'target_genus': row['genus'],
-                'target_species': row['species'],
+                'target_family': 'nan',
+                'target_genus': 'nan',
+                'target_species': 'nan',
                 'query': seq_id,
-                'target': seq_id
+                'target': 'nan'
             }
 
             # Add primer divergence columns
@@ -1524,13 +1519,49 @@ class TraitsAndResolution:
 
         return self.merged_df
 
+    def make_merged_df_symmetric(self):
+        merged_df_copy = self.merged_df.copy()
+
+        rename_map = {
+            'query': 'target', 'target': 'query',
+            'query_family': 'target_family', 'target_family': 'query_family',
+            'query_genus': 'target_genus', 'target_genus': 'query_genus',
+            'query_species': 'target_species', 'target_species': 'query_species'
+        }
+
+        merged_df_copy = merged_df_copy.rename(columns=rename_map)
+
+        first_cols = [
+            'query', 'query_family', 'query_genus', 'query_species',
+            'target', 'target_family', 'target_genus', 'target_species'
+        ]
+        rest_cols = [col for col in merged_df_copy.columns if col not in first_cols]
+        merged_df_copy = merged_df_copy[first_cols + rest_cols]
+
+        symmetric_df = pd.concat([self.merged_df, merged_df_copy], ignore_index=True)
+
+        symmetric_df = self.merged_df
+
+        return symmetric_df
+
+    def post_process_catnip_primer_results(self):
+        self.join_catnip_results()
+        self.make_merged_df_symmetric()
+        self.add_taxa_not_in_heterogenous_clusters()
+
+
+        merged_df_name = Path(self.catnip_dir) / "merged_catnip.tsv"
+        self.merged_df.to_csv(merged_df_name, sep='\t', index=False, header=True)
+
+        print(f"mozaiko INFO: Saved merged file to {merged_df_name}")
+
     def filter_merged_tax_resolution_by_otl(self):
 
-        otl_tuple = self.otl_handler.otl
+        otl_tax = self.otl_handler.otl
 
-        otl_tuple['taxon_tuple'] = list(otl_tuple[['family', 'genus', 'species']].itertuples(index=False, name=None))
+        otl_tax = otl_tax[['family', 'genus', 'species']]
+        otl_tax = otl_tax.rename(columns={'family':'query_family', 'genus': 'query_genus', 'species': 'query_species'})
 
-        otl_tuple = otl_tuple[['family', 'genus', 'species', 'taxon_tuple']]
 
         # na if there are no sequences
         # inf if there are seqs but didn't went into CD-HIT
