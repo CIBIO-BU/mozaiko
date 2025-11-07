@@ -1349,97 +1349,88 @@ class TraitsAndResolution:
         if failed_files:
             print(f"mozaiko WARNING: Failed to process {len(failed_files)} file(s): {', '.join(failed_files)}")
 
-    def join_catnip_results(self):
+    def clean_and_split(self, df, col_prefix):
         """
-        This method joins the results obtained from catnip for each primer set into a single
-        DataFrame.
+        Cleans up taxa columns and splits them into family, genus, species.
+        Keeps NaN as np.nan.
+
+        Args:
+            df: DataFrame to process
+            col_prefix: Either "query" or "target"
+
+        Returns:
+            DataFrame with added family, genus, species columns
         """
-        print("mozaiko INFO: Joining catnip analysis...")
-        dataframes = []
+        col = f"{col_prefix}_cat"
 
-        for folder in os.listdir(self.catnip_dir):
-            folder_path = Path(os.path.join(self.catnip_dir, folder))
-            folder_name = folder_path.name
-            output_file_path = folder_path / "final_output_interclst.tsv"
+        # Remove brackets and parentheses of tuple
+        df[col] = df[col].str.replace(r"[\'\(\)]", "", regex=True)
 
-            if not output_file_path.exists():
-                continue
+        new_cols = [f"{col_prefix}_family", f"{col_prefix}_genus", f"{col_prefix}_species"]
+        df[new_cols] = df[col].str.split(',', expand=True)
 
-            df = pd.read_csv(output_file_path, sep="\t")
+        df[new_cols] = df[new_cols].apply(lambda x: x.str.strip() if x.dtype == "object" else x)
 
-            if 'edit_distance' in df.columns:
-                df = df.drop('edit_distance', axis=1)
+        return df
 
-            if 'divergence_prct' in df.columns:
-                df = df.rename(columns={'divergence_prct':folder_name})
 
-                dataframes.append(df)
+    def make_dataframe_symmetric(self, df):
+        """
+        Creates symmetric version of dataframe by swapping query and target columns.
+        This ensures that both query->target and target->query relationships are present.
 
-        if not dataframes:
-            print("mozaiko WARNING: No valid catnip outputs found.")
-            return None
+        Args:
+            df: DataFrame to make symmetric
 
-        merge_cols = ['query', 'query_cat', 'target', 'target_cat']
+        Returns:
+            Concatenated DataFrame with original + swapped rows
+        """
+        df_copy = df.copy()
 
-        merged_df = dataframes[0]
+        rename_map = {
+            'query': 'target',
+            'target': 'query',
+            'query_family': 'target_family',
+            'target_family': 'query_family',
+            'query_genus': 'target_genus',
+            'target_genus': 'query_genus',
+            'query_species': 'target_species',
+            'target_species': 'query_species'
+        }
 
-        for dataframe in dataframes[1:]:
-            merged_df = pd.merge(merged_df, dataframe, on=merge_cols, how='outer')
+        # Swap query and target columns by renaming
+        df_copy = df_copy.rename(columns=rename_map)
 
-        def clean_and_split(df, col_prefix):
-            """
-            Cleans up taxa columns.
-            Keeps NaN as np.nan.
-            """
-            col = f"{col_prefix}_cat"
-
-            df[col] = df[col].str.replace(r"[\'\(\)]", "", regex=True)
-            new_cols = [f"{col_prefix}_family", f"{col_prefix}_genus", f"{col_prefix}_species"]
-            df[new_cols] = df[col].str.split(',', expand=True)
-
-            df[new_cols] = df[new_cols].apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-
-            return df
-
-        merged_df = clean_and_split(merged_df, "query")
-        merged_df = clean_and_split(merged_df, "target")
-
-        group_cols = [
-            "query_family", "query_genus", "query_species",
-            "target_family", "target_genus", "target_species"
+        first_cols = [
+            'query', 'query_family', 'query_genus', 'query_species',
+            'target', 'target_family', 'target_genus', 'target_species'
         ]
+        rest_cols = [col for col in df_copy.columns if col not in first_cols]
+        df_copy = df_copy[first_cols + rest_cols]
 
-        value_cols = [c for c in merged_df.columns if c not in group_cols + ["query_cat", "target_cat"]]
+        # Concatenate original and swapped dataframes
+        symmetric_df = pd.concat([df, df_copy], ignore_index=True)
 
-        # Keep row with minimum values for each primer column within each taxonomic group that
-        # gets duplicated (same taxa, different seq ids)
-        if value_cols:
-            min_df = merged_df.groupby(group_cols, dropna=False)[value_cols].min().reset_index()
-            merged_df = min_df
+        return symmetric_df
 
-        ordered_cols = [
-            "query", "query_family", "query_genus", "query_species",
-            "target", "target_family", "target_genus", "target_species"
-        ] + [c for c in merged_df.columns if c not in [
-            "query", "query_family", "query_genus", "query_species",
-            "target", "target_family", "target_genus", "target_species",
-            "query_cat", "target_cat"
-        ]]
 
-        merged_df = merged_df[ordered_cols]
-
-        self.merged_df = merged_df
-
-        return merged_df
-
-    def add_taxa_not_in_heterogenous_clusters(self):
+    def add_taxa_from_mapping(self, df, folder_path, primer_name):
         """
-        Add taxa present in mapping_*.tsv files but not in self.merged_df. In other words, adds taxa
-        that when clustered was grouped in homogenous clusters and, as such, did not get intaken by
-        Bowtie for alignment.
-        Merged only new taxonomies. If there the taxonomy is not present for a primer, 'nan' is
-        added. If the taxonomy is present for a primer, 'inf' is added, meaning that the divergence
-        value was not calculated as it suprassed the divergence defined for clustering.
+        Add taxa present in mapping_*.tsv file but not in the dataframe.
+        These are taxa that were in homogeneous clusters and didn't get aligned by Bowtie.
+
+        For these taxa:
+        - Add them as query taxa
+        - Set target to 'nan'
+        - Set divergence_prct to 'inf' (couldn't be calculated due to clustering threshold)
+
+        Args:
+            df: DataFrame to augment
+            folder_path: Path to the primer folder
+            primer_name: Name of the primer (for logging/debugging)
+
+        Returns:
+            DataFrame with additional rows for missing taxa
         """
         mapping_cols = [
             'seq_id', 'og_taxa', 'scientificName', 'rank',
@@ -1447,114 +1438,155 @@ class TraitsAndResolution:
             'family', 'genus', 'species'
         ]
 
-        all_taxa = [] # gathers all taxonomies found in mapping files
-        taxa_by_primer = defaultdict(set) # gathers taxa for each primers
-        seqid_map = {}  # to map taxa tuples to seq_id
+        # Read mapping file for THIS primer only
+        mapping_files = list(folder_path.glob("mapping_*.tsv"))
 
-        self.merged_df = self.merged_df.fillna('nan')
+        if not mapping_files:
+            print(f"mozaiko WARNING: No mapping file found for {primer_name}")
+            return df
 
-        for folder in os.listdir(self.catnip_dir):
-            folder_path = Path(self.catnip_dir) / folder
-            for file in folder_path.glob("mapping_*.tsv"):
-                mapping_file = pd.read_csv(file, sep="\t", names=mapping_cols, header=0, index_col=False)
+        mapping_file = pd.read_csv(mapping_files[0], sep="\t", names=mapping_cols, header=0, index_col=False)
 
-                tax_cols = ['family', 'genus', 'species', 'seq_id']
-                mapping_file = mapping_file[tax_cols]
+        tax_cols = ['family', 'genus', 'species', 'seq_id']
+        mapping_df = mapping_file[tax_cols].copy()
+        mapping_df = mapping_df.fillna('nan')
 
-                mapping_file = mapping_file.fillna('nan')
+        # Create a map from taxa tuple to seq_id
+        seqid_map = {}
+        for _, row in mapping_df.iterrows():
+            taxa_tuple = (row['family'], row['genus'], row['species'])
+            seqid_map[taxa_tuple] = row['seq_id']
 
-                # track which taxa are present for each primer + store seq_id
-                for _, row in mapping_file.iterrows():
-                    taxa_tuple = (row['family'], row['genus'], row['species'])
-                    taxa_by_primer[folder].add(taxa_tuple)
-                    seqid_map[taxa_tuple] = row['seq_id']
+        # Get all unique taxa from mapping file
+        all_taxa_in_mapping = mapping_df[['family', 'genus', 'species']].drop_duplicates()
 
-                all_taxa.append(mapping_file)
-
-        # all taxa in mapping files
-        all_taxa_df = pd.concat(all_taxa, ignore_index=True).drop_duplicates(subset=['family', 'genus', 'species'])
-
-        merge_cols = ['family', 'genus', 'species']
-
-        existing_query = self.merged_df[['query_family', 'query_genus', 'query_species']].rename(
-            columns={'query_family':'family', 'query_genus':'genus', 'query_species':'species'}
+        # Get existing taxa from current dataframe (both query and target sides)
+        existing_query = df[['query_family', 'query_genus', 'query_species']].rename(
+            columns={'query_family': 'family', 'query_genus': 'genus', 'query_species': 'species'}
         )
-        existing_target = self.merged_df[['target_family', 'target_genus', 'target_species']].rename(
-            columns={'target_family':'family', 'target_genus':'genus', 'target_species':'species'}
+        existing_target = df[['target_family', 'target_genus', 'target_species']].rename(
+            columns={'target_family': 'family', 'target_genus': 'genus', 'target_species': 'species'}
         )
 
-        # gathers all existing taxa in the merged df (be it on query or target)
+        # Combine all existing taxa
         existing_taxa = pd.concat([existing_query, existing_target], ignore_index=True).drop_duplicates()
 
-        new_taxa = pd.merge(all_taxa_df, existing_taxa, on=merge_cols, how='left', indicator=True)
-        new_taxa = new_taxa[new_taxa['_merge'] == 'left_only'].drop(columns=['_merge', 'seq_id'])
+        # Find taxa taht's in mapping but not in dataframe
+        merge_cols = ['family', 'genus', 'species']
+        new_taxa = pd.merge(all_taxa_in_mapping, existing_taxa, on=merge_cols, how='left', indicator=True)
+        new_taxa = new_taxa[new_taxa['_merge'] == 'left_only'].drop(columns=['_merge'])
 
-        # Create rows for the new taxa entries
+
+        # Create rows for new taxa
         new_rows = []
         for _, row in new_taxa.iterrows():
             taxa_tuple = (row['family'], row['genus'], row['species'])
             seq_id = seqid_map.get(taxa_tuple, pd.NA)
 
             new_row = {
+                'query': seq_id,
                 'query_family': row['family'],
                 'query_genus': row['genus'],
                 'query_species': row['species'],
+                'target': 'nan',
                 'target_family': 'nan',
                 'target_genus': 'nan',
                 'target_species': 'nan',
-                'query': seq_id,
-                'target': 'nan'
+                'divergence_prct': 'inf'  # Couldn't be calculated (homogeneous cluster)
             }
-
-            # Add primer divergence columns
-            for primer in taxa_by_primer.keys():
-                if primer in self.merged_df.columns:
-                    new_row[primer] = str('inf') if taxa_tuple in taxa_by_primer[primer] else str('nan')
 
             new_rows.append(new_row)
 
+        # Add new taxa rows to dataframe
         if new_rows:
             new_taxa_df = pd.DataFrame(new_rows)
-            self.merged_df = pd.concat([self.merged_df, new_taxa_df], ignore_index=True)
+            df = pd.concat([df, new_taxa_df], ignore_index=True)
 
-        return self.merged_df
+        return df
 
-    def make_merged_df_symmetric(self):
-        merged_df_copy = self.merged_df.copy()
 
-        rename_map = {
-            'query': 'target', 'target': 'query',
-            'query_family': 'target_family', 'target_family': 'query_family',
-            'query_genus': 'target_genus', 'target_genus': 'query_genus',
-            'query_species': 'target_species', 'target_species': 'query_species'
-        }
+    def process_single_primer(self, folder_name, df, folder_path):
+        """
+        Process a single primer's catnip output:
+        1. Clean and split taxonomy columns
+        2. Make dataframe symmetric (swap query<->target)
+        3. Add taxa from mapping file that weren't in heterogeneous clusters (as inf values)
 
-        merged_df_copy = merged_df_copy.rename(columns=rename_map)
+        Args:
+            folder_name: Name of the primer folder
+            df: DataFrame with catnip results
+            folder_path: Path to the primer folder
 
-        first_cols = [
-            'query', 'query_family', 'query_genus', 'query_species',
-            'target', 'target_family', 'target_genus', 'target_species'
+        Returns:
+            Processed DataFrame
+        """
+        print(f"mozaiko INFO: Processing primer {folder_name}...")
+
+        # Step 1: Clean and split taxonomy columns
+        df = self.clean_and_split(df, "query")
+        df = self.clean_and_split(df, "target")
+
+        ordered_cols = [
+            "query", "query_family", "query_genus", "query_species",
+            "target", "target_family", "target_genus", "target_species",
+            "divergence_prct"
         ]
-        rest_cols = [col for col in merged_df_copy.columns if col not in first_cols]
-        merged_df_copy = merged_df_copy[first_cols + rest_cols]
+        df = df[ordered_cols]
 
-        symmetric_df = pd.concat([self.merged_df, merged_df_copy], ignore_index=True)
+        # Fill NaN with 'nan' string for taxonomy match
+        df = df.fillna('nan')
 
-        symmetric_df = self.merged_df
+        # Step 3: Make symmetric (add swapped query/target rows)
+        df = self.make_dataframe_symmetric(df)
 
-        return symmetric_df
+        # Step 4: Add taxa from mapping file that were not processed with bowtie (infs)
+        df = self.add_taxa_from_mapping(df, folder_path, folder_name)
+
+        # Step 5: Drop seq_id columns (only keep taxonomy)
+        df = df.drop(['query', 'target'], axis=1)
+
+        return df
+
 
     def post_process_catnip_primer_results(self):
-        self.join_catnip_results()
-        self.make_merged_df_symmetric()
-        self.add_taxa_not_in_heterogenous_clusters()
+        """
+        Process each primer's final_output_interclst.tsv file individually.
+        Saves each processed file as processed_<primer_name>.tsv in the same folder.
+        """
+        print("mozaiko INFO: Processing catnip results for each primer...")
 
-        self.merged_df = self.merged_df.drop(['query', 'target'], axis=1)
+        processed_count = 0
 
-        merged_df_name = Path(self.catnip_dir) / "merged_catnip.tsv"
-        self.merged_df.to_csv(merged_df_name, sep='\t', index=False, header=True)
+        for folder in os.listdir(self.catnip_dir):
+            folder_path = Path(self.catnip_dir) / folder
 
-        print(f"mozaiko INFO: Saved merged file to {merged_df_name}")
+            if not folder_path.is_dir():
+                continue
+
+            output_file_path = folder_path / "final_output_interclst.tsv"
+
+            if not output_file_path.exists():
+                print(f"mozaiko WARNING: No final_output_interclst.tsv found for {folder}")
+                continue
+
+            df = pd.read_csv(output_file_path, sep="\t")
+
+            if 'edit_distance' in df.columns:
+                df = df.drop('edit_distance', axis=1)
+
+            df = self.process_single_primer(folder, df, folder_path)
+
+            # Save processed file
+            processed_file_path = folder_path / f"processed_{folder}.tsv"
+            df.to_csv(processed_file_path, sep='\t', index=False, header=True)
+
+            print(f"mozaiko INFO: Saved processed file to {processed_file_path}")
+            processed_count += 1
+
+        if processed_count == 0:
+            print("mozaiko WARNING: No valid catnip outputs found to process.")
+        else:
+            print(f"mozaiko INFO: Successfully processed {processed_count} primer(s).")
 
     def filter_merged_tax_resolution_by_otl(self):
 

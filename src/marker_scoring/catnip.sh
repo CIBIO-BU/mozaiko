@@ -7,7 +7,6 @@ MAPPING_NAME=$3
 MAPPING_COLS=$4
 THRESHOLD=$5
 
-source ~/miniconda3/etc/profile.d/conda.sh
 conda activate catnip
 
 # move into primer directory
