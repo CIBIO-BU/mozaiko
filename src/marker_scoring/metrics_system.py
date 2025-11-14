@@ -1312,7 +1312,6 @@ class TraitsAndResolution:
                     result = subprocess.run(
                         [
                             catnip_script,
-                            primer_output_dir,
                             file,
                             mapping_file_name,
                             cols,
@@ -1341,8 +1340,8 @@ class TraitsAndResolution:
                     print(f"mozaiko ERROR: Unexpected error processing {primer_name}: {str(e)}")
 
         print(f"\nmozaiko INFO: catnip processing complete.")
-        print(f"mozaiko INFO: Output directory: {self.catnip_dir}")
-        print(f"mozaiko INFO: Successfully processed: {processed_files} primers(s)")
+        # print(f"mozaiko INFO: Output directory: {self.catnip_dir}")
+        # print(f"mozaiko INFO: Successfully processed: {processed_files} primers(s)")
 
         if failed_files:
             print(f"mozaiko WARNING: Failed to process {len(failed_files)} file(s): {', '.join(failed_files)}")
@@ -1556,7 +1555,7 @@ class TraitsAndResolution:
 
         Returns: None. Saves processed files to disk.
         """
-        print(f"mozaiko INFO: Processing {len(list(os.listdir(self.catnip_dir)))} primers...")
+        # print(f"mozaiko INFO: Processing {len(list(os.listdir(self.catnip_dir)))} primers...")
 
         for folder in os.listdir(self.catnip_dir):
             folder_path = Path(self.catnip_dir) / folder
@@ -1699,16 +1698,16 @@ class TraitsAndResolution:
 
         return otl_filtered
 
-    def filipa_filter(self, df, thresholds: list | int = None):
+    def filipa_filter(self, df, thresholds: list | float = None):
         if thresholds is None:
             thresholds = [10.0, 5.0, 2.0]
         single_threhold = None
-        if isinstance(thresholds, int):
+        if isinstance(thresholds, float):
             single_threhold = thresholds
         elif isinstance(thresholds, list):
             th_family, th_genus, th_species = thresholds
         else:
-            raise TypeError("mozaiko ERROR: threhsolds must be int or a list of three numbers.")
+            raise TypeError("mozaiko ERROR: threhsolds must be float or a list of three numbers.")
 
         otl_filtered = df.copy()
 
@@ -1718,9 +1717,9 @@ class TraitsAndResolution:
         # Step 2: Apply rank-dependent divergence thresholds
         if single_threhold is not None:
             threshold_mask = (
-                otl_filtered['divergence_prct'] <= single_threhold |
-                otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) |
-                otl_filtered['divergence_prct'].isna()
+                (otl_filtered['divergence_prct'] <= single_threhold) |
+                (otl_filtered['divergence_prct'].isin([np.inf, -np.inf])) |
+                (otl_filtered['divergence_prct'].isna())
             )
         else:
             cond_family = (
@@ -2420,7 +2419,9 @@ class MetricsSystemExecutor:
                             output_folder,
                             primer_table,
                             save_intermediate_ranks=True,
-                            run_catnip=True):
+                            run_catnip=True,
+                            approach="filipa",
+                            thresholds: list | float = None):
         """
         Evaluate a single OTL file and generate primer rankings.
 
@@ -2464,7 +2465,7 @@ class MetricsSystemExecutor:
                         trait = TraitsAndResolution(otl=otl_path,
                                                     results_folder=output_folder)
                         trait.run_catnip()
-                        trait.post_process_catnip_primer_results()
+                        trait.post_process_catnip_primer_results(approach, thresholds)
 
         output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
 
@@ -2488,7 +2489,9 @@ class MetricsSystemExecutor:
                             output_folder,
                             primer_table,
                             save_intermediate_ranks=True,
-                            run_catnip=True):
+                            run_catnip=True,
+                            approach="filipa",
+                            thresholds: list | float = None):
         """
         Evaluate multiple OTL files in a folder.
 
@@ -2528,7 +2531,9 @@ class MetricsSystemExecutor:
                     output_folder=output_folder,
                     primer_table=primer_table,
                     save_intermediate_ranks=save_intermediate_ranks,
-                    run_catnip=run_catnip
+                    run_catnip=run_catnip,
+                    approach=approach,
+                    thresholds=thresholds
                 )
 
                 country_name = Path(otl_path).stem.split('_')[0]

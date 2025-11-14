@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTPUT_DIR=$1      # primer output directory
-INPUT_FILE=$2
-MAPPING_NAME=$3
-MAPPING_COLS=$4
-THRESHOLD=$5
+INPUT_FILE=$1
+MAPPING_NAME=$2
+MAPPING_COLS=$3
+THRESHOLD=$4
 
 eval "$(conda shell.bash hook)"
 conda activate catnip
 
-# move into primer directory
-cd "$OUTPUT_DIR" || exit 1
 
 catnip -i "$INPUT_FILE" -M -o "$MAPPING_NAME"
 catnip -i "$INPUT_FILE" -f "$MAPPING_NAME" -c "$MAPPING_COLS" -p "$THRESHOLD"
