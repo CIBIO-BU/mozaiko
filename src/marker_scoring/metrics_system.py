@@ -8,7 +8,7 @@ calculating primer binding sites (PBS), and evaluating the quality of reference 
 
 
 
-import json
+import copy
 import os
 import shutil
 import subprocess
@@ -249,17 +249,22 @@ class ReferenceDatabaseQuality:
         # Allows us to add barcode counts based on OTL structure
         primer_taxa_data = {}
         for primer in barcodes_per_entry.keys():
-            primer_taxa_data[primer] = json.loads(json.dumps(otl_hierarchical_taxonomy))
+            primer_taxa_data[primer] = copy.deepcopy(otl_hierarchical_taxonomy)
         # print(primer_taxa_data)
+
+        def normalize_taxon(value):
+            if value in ["nan"]:
+                return None
+            return value
 
         # Create mapping between parsed taxonomy in headers and their occurences (counts)
         taxa_counts_mapping = {}
         for primer, unique_header_counts in barcodes_per_entry.items():
             for taxa_header, count in unique_header_counts.items():
                 taxa_parts = taxa_header.split("|")
-                family = taxa_parts[7]
-                genus = taxa_parts[8] if len(taxa_parts) > 8 else None
-                species = taxa_parts[9] if len(taxa_parts) > 9 else None
+                family = normalize_taxon(taxa_parts[7])
+                genus = normalize_taxon(taxa_parts[8] if len(taxa_parts) > 8 else None)
+                species = normalize_taxon(taxa_parts[9] if len(taxa_parts) > 9 else None)
 
                 mapping_key = (primer, family, genus, species)
                 taxa_counts_mapping[mapping_key] = count
