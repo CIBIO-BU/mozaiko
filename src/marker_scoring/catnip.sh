@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 OUTPUT_DIR=$1      # primer output directory
@@ -7,6 +7,7 @@ MAPPING_NAME=$3
 MAPPING_COLS=$4
 THRESHOLD=$5
 
+eval "$(conda shell.bash hook)"
 conda activate catnip
 
 # move into primer directory

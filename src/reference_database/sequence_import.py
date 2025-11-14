@@ -117,7 +117,7 @@ class CustomFastaImport:
         overide_validation=False,
         check_taxid=False,
         taxa_column_start: int = 1,
-        taxa_column_end: int = 10,
+        taxa_column_end: int = 11,
     ):
         """
         Reads a fasta file.
@@ -143,7 +143,7 @@ class CustomFastaImport:
         if taxa_column_start is None:
             taxa_column_start = 1
         if taxa_column_end is None:
-            taxa_column_end = 10
+            taxa_column_end = 11
         # print(
         #     f"Retrieving taxonomy in header, from column {taxa_column_start} to"
         #     + f" column {taxa_column_end}, considering the separator: '{sep}'. \n"
@@ -280,7 +280,7 @@ class CustomFastaImport:
         )
         print(
             "sequence id, original taxonomy, harmonized taxonomy, rank, kingdom, phylum, class"
-            + ", order, family, genus."
+            + ", order, family, genus, species."
         )
 
         # Name columns
@@ -298,6 +298,7 @@ class CustomFastaImport:
             "order",
             "family",
             "genus",
+            "species"
         ]
 
         # Replace '-' entries with NaN
@@ -311,19 +312,9 @@ class CustomFastaImport:
         non_interest_ranks = ["kingdom", "phylum", "class", "order"]
         self.data = self.data[~self.data["rank"].isin(non_interest_ranks)]
 
-        # Create column for species and populate with information in 'scientificName' that is at
-        # 'SPECIES', 'FORM', 'VARIETY' and 'SUBSPECIES' level
+        # Normalize below species ranks to species
         self.data["rank"] = self.data["rank"].replace(
             {"form": "species", "variety": "species", "subspecies": "species"}
-        )
-        self.data["species"] = np.where(
-            self.data["rank"] == "species", self.data["scientificName"], np.nan
-        )
-        # Keep only first two strings for species column
-        self.data["species"] = (
-            self.data["species"].str.split(" ").str[0]
-            + " "
-            + self.data["species"].str.split(" ").str[1]
         )
 
         if overwrite:  # Overwrite the original fasta to save the pre-processed data

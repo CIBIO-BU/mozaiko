@@ -76,12 +76,14 @@ class InSilicoAmplification:
             "incomplete_pbs": self.run_dir / "incomplete_pbs",
         }
 
+        all_exists = all(dir_path.exists() for dir_path in output_dirs.values())
+
         for dir_path in output_dirs.values():
             dir_path.mkdir(parents=True, exist_ok=True)
 
         self.output_dirs = output_dirs
 
-        return output_dirs
+        return output_dirs, all_exists
 
     def _ensure_output_dirs(self) -> Dict[str, Path]:
         if self.output_dirs is None:
@@ -173,14 +175,12 @@ class InSilicoAmplification:
         """
         Method to read and extract the required properties from the primer table.
         """
-
-        print(
-            f"mozaiko INFO: To continue the analysis, a set of primers is needed. "
-            f"This information should be uploaded as a TSV table and it should contain the "
-            f"following fields: {self.primer_table_columns}"
-        )
-
         if primer_table is None:
+            print(
+                f"mozaiko INFO: To continue the analysis, a set of primers is needed. "
+                f"This information should be uploaded as a TSV table and it should contain the "
+                f"following fields: {self.primer_table_columns}"
+            )
             primer_table = input("Please enter the path to the primer table: ")
 
         self.validate_primer_table(primer_table)
@@ -597,54 +597,59 @@ class InSilicoAmplification:
             if not self.run_name:
                 raise ValueError("Run name cannot be empty")
 
-        self._setup_output_directories(self.run_name)
+        # Setup directories and check if they already exist
+        output_dirs, already_exists = self._setup_output_directories(self.run_name)
 
-        if self.primer_table is None:
-            raise ValueError("Primer table not initialized")
+        if already_exists:
+            print("mozaiko INFO: Amplification folders already exist. Skipping amplification.")
+            print("             If you want to repeat amplification, please delete these folders and run again.")
+        else:
+            if self.primer_table is None:
+                raise ValueError("Primer table not initialized")
 
-        print("mozaiko INFO: All set. Running in-silico amplification...")
+            print("mozaiko INFO: All set. Running in-silico amplification...")
 
-        for index, row in self.primer_table.iterrows():
-            if self.database_fasta_file:
-                self.process_commands(row, self.database_fasta_file, minimum_percentage_identity, minimum_alignment_coverage)
-            else:
-                raise ValueError("mozaiko ERROR: No input data was found.")
-            print(
-                f"   --------   {index + 1}/{len(self.primer_table)} processed   --------   "
+            for index, row in self.primer_table.iterrows():
+                if self.database_fasta_file:
+                    self.process_commands(row, self.database_fasta_file, minimum_percentage_identity, minimum_alignment_coverage)
+                else:
+                    raise ValueError("mozaiko ERROR: No input data was found.")
+                print(
+                    f"   --------   {index + 1}/{len(self.primer_table)} processed   --------   "
+                )
+
+            pga_directories = [
+                self.output_dirs["all_complete_pbs"],
+                self.output_dirs["incomplete_pbs"],
+            ]
+            self.add_taxonomy_to_pga_outputs(pga_directories)
+
+            directories_to_filter = ["all_complete_pbs", "incomplete_pbs"]
+            for dir_name in directories_to_filter:
+                try:
+                    input_path = self.output_dirs[dir_name]
+                    filter_sequences_by_ambiguity(
+                        input_path=input_path,
+                    )
+                except Exception as e:
+                    print(f"mozaiko ERROR: Error filtering {dir_name} directory: {str(e)}")
+
+            self.intersect_PGA_relaxed_and_strict(
+                self.output_dirs["all_complete_pbs"] / "filtered",
+                self.output_dirs["incomplete_pbs"] / "filtered",
+                output_dir_name="input_B",
             )
 
-        pga_directories = [
-            self.output_dirs["all_complete_pbs"],
-            self.output_dirs["incomplete_pbs"],
-        ]
-        self.add_taxonomy_to_pga_outputs(pga_directories)
+        # print("mozaiko INFO: Number of inserts that were amplified successfully...")
+        # filter_inserts_path = self.output_dirs["insert"] / "filtered"
+        # insert_files = list(filter_inserts_path.glob("*.fasta"))
+        # for file in insert_files:
+        #     number_of_sequences = self.count_sequences(file)
+        #     print(f"    For {file.stem}, {number_of_sequences} were retained.")
 
-        directories_to_filter = ["all_complete_pbs", "incomplete_pbs"]
-        for dir_name in directories_to_filter:
-            try:
-                input_path = self.output_dirs[dir_name]
-                filter_sequences_by_ambiguity(
-                    input_path=input_path,
-                )
-            except Exception as e:
-                print(f"mozaiko ERROR: Error filtering {dir_name} directory: {str(e)}")
-
-        self.intersect_PGA_relaxed_and_strict(
-            self.output_dirs["all_complete_pbs"] / "filtered",
-            self.output_dirs["incomplete_pbs"] / "filtered",
-            output_dir_name="input_B",
-        )
-
-        print("mozaiko INFO: Number of inserts that were amplified successfully...")
-        filter_inserts_path = self.output_dirs["insert"] / "filtered"
-        insert_files = list(filter_inserts_path.glob("*.fasta"))
-        for file in insert_files:
-            number_of_sequences = self.count_sequences(file)
-            print(f"    For {file.stem}, {number_of_sequences} were retained.")
-
-        print(
-            "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."
-        )
+        # print(
+        #     "mozaiko INFO: Number of inserts with complete PBS that were not amplified..."
+        # )
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 

@@ -1,0 +1,28 @@
+# Imports
+from src.reference_database.sequence_import import *
+from src.in_silico_analysis.amplification import InSilicoAmplification
+from src.marker_scoring.metrics_system import *
+
+# Files
+database_file = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaiko/data/input_data/DIA/diat_barcode_hrm_dreped.fasta"
+primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaiko/data/input_data/DIA/diat-barcode-primers.tsv"
+run_name = 'DIA-catnip-1st-run'
+otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia"
+output_folder = '/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaiko/data/output_data/' + run_name
+
+# Data Import
+custom_fasta_import = CustomFastaImport(database_file)
+custom_fasta_import.read_fasta(database_file, check_taxid=False)
+custom_fasta_import.pre_process_harmonized_fasta_database()
+data = custom_fasta_import.data
+
+# In Sillico Analysis
+insil = InSilicoAmplification(custom_fasta_import.database_fasta_file, run_name=run_name)
+insil.run_in_silico_analysis(primer_table)
+
+# Primer Evaluation
+MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
+                      output_folder=output_folder,
+                      primer_table=primer_table,
+                      save_intermediate_ranks=True,
+                      run_catnip=True)
