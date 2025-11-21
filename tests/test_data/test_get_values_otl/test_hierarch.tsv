@@ -1,0 +1,27 @@
+query_family	query_genus	query_species	target_family	target_genus	target_species	divergence_prct
+Baetidae	Acentrella	Acentrella inexpectata	nan	nan	nan	NaN
+Baetidae	Alainites	Alainites muticus	nan	nan	nan	NaN
+Baetidae	Baetis	Baetis alpinus	nan	nan	nan
+Baetidae	Baetis	Baetis buceratus	nan	nan	nan
+Baetidae	Baetis	Baetis fuscatus	Baetidae	Baetis	nan	0
+Baetidae	Baetis	Baetis liebenauae	nan	nan	nan
+Baetidae	Baetis	Baetis lutheri	nan	nan	nan
+Baetidae	Baetis	Baetis melanonyx	nan	nan	nan
+Baetidae	Baetis	Baetis nexus	Baetidae	Baetis	Baetis pentaphlebodes	0
+Baetidae	Baetis	Baetis rhodani	Baetidae	Baetis	nan	0
+Baetidae	Baetis	Baetis scambus	nan	nan	nan
+Baetidae	Baetis	Baetis tracheatus	nan	nan	nan
+Baetidae	Baetis	Baetis vardarensis	nan	nan	nan
+Baetidae	Baetis	Baetis vernus	nan	nan	nan
+Baetidae	Centroptilum	Centroptilum luteolum	nan	nan	nan
+Baetidae	Cloeon	Cloeon dipterum	Baetidae	Cloeon	Cloeon inscriptum	0.3
+Baetidae	Cloeon	Cloeon simile	nan	nan	nan
+Baetidae	Labiobaetis	Labiobaetis atrebatinus	nan	nan	nan
+Baetidae	Baetis	nan	nan	nan	nan	0
+Baetidae	Cloeon	nan	Baetidae	nan	nan	2.9
+Baetidae	nan	nan	nan	nan	nan	0
+Baetidae	Procloeon	NaN	Baetidae	Plauditus	NaN	inf
+Baetidae	Nigrobaetis	Nigrobaetis digitatus	nan	nan	nan
+Baetidae	Nigrobaetis	Nigrobaetis niger	Baetidae	Baetis	nan	0
+Baetidae	Procloeon	Procloeon bifidum	nan	nan	nan
+Baetidae	Raptobaetopus	Raptobaetopus tenellus	nan	nan	nan

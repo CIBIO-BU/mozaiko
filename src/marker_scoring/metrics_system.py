@@ -1271,9 +1271,10 @@ class TraitsAndResolution:
         self.otl_handler = OtlHandler(otl)
         self.otl_handler.import_otl()
         self.otl = self.otl_handler.otl
-        self.otl = self.otl[['family', 'genus', 'species']]
+        self.otl = self.otl[['family', 'genus', 'species', 'rank']]
         self.otl = self.otl.replace(np.nan, "nan")
         self.otl = self.otl.drop_duplicates()
+        self.otl = self.otl.reset_index(drop=True)
         self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
     def run_catnip(self, tax_category_threshold: int = 10):
@@ -1489,7 +1490,7 @@ class TraitsAndResolution:
                 'target_family': 'nan',
                 'target_genus': 'nan',
                 'target_species': 'nan',
-                'divergence_prct': 'inf'  # Couldn't be calculated (homogeneous cluster)
+                'divergence_prct': np.inf  # Couldn't be calculated (homogeneous cluster)
             }
 
             new_rows.append(new_row)
@@ -1539,11 +1540,11 @@ class TraitsAndResolution:
         df = self.add_taxa_from_mapping(df, folder_path, folder_name)
         df = df.drop(['query', 'target'], axis=1)
 
-        # Step 5: Filter taxa by OTL
-        df = self.filter_results_by_otl(df, folder_path, folder_name)
+        # # # Step 5: Filter taxa by OTL
+        # df = self.filter_results_by_otl(df, folder_path, folder_name)
 
-        # Step 6: Filter by thresholds
-        df = self.choose_filter(approach, df, thresholds)
+        # # # Step 6: Filter by thresholds
+        # df = self.choose_filter(approach, df, thresholds)
 
         return df
 
@@ -1579,6 +1580,66 @@ class TraitsAndResolution:
             # Save processed file
             processed_file_path = folder_path / f"processed_{folder}.tsv"
             df.to_csv(processed_file_path, sep='\t', index=False, header=True)
+
+            return df
+
+    def get_values_otl(self, df_symmetric):
+        otl_filtered_df = self.otl.copy()
+        for index, row in self.otl.iterrows():
+            # Check highest rank and select taxonomy of that rank
+            rank = row['rank']
+            query_col = 'query_' + rank
+            target_col = 'target_' + rank
+            entry = row[query_col]
+
+            # Filter df to find minimum divergence for this entry
+            search_entry = df_symmetric[df_symmetric[query_col] == entry]
+            search_entry = search_entry[search_entry[target_col] != entry]
+
+            if search_entry.empty:
+                otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
+                                            'divergence_prct']] = ['nan', 'nan', 'nan', np.nan]
+                continue
+
+            # Extract values as numpy array
+            vals = search_entry['divergence_prct'].to_numpy()
+
+            # Find minimum values
+            finite_vals = vals[np.isfinite(vals)]      # only finite numbers (no inf, no NaN)
+
+            if len(finite_vals) > 0:
+                # Case 1: finite numbers exist, just use the smallest
+                min_value = finite_vals.min()
+            else:
+                # Case 2: only inf or NaN exist
+                if np.isinf(vals).any():
+                    min_value = np.inf                 # at least one infinite, use it
+                else:
+                    min_value = np.nan                 # all NaN
+
+            # check if there are multiple equal mins
+            same_min_div = search_entry[search_entry['divergence_prct'] == min_value]
+
+            if len(same_min_div) > 1:
+                otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
+                                            'divergence_prct']] = [
+                    'nan', 'nan', 'nan', min_value
+                ]
+            else:
+                best_value = same_min_div.iloc[0]
+                otl_filtered_df.loc[index,
+                    ['target_family', 'target_genus', 'target_species', 'divergence_prct']
+                ] = [
+                    best_value['target_family'],
+                    best_value['target_genus'],
+                    best_value['target_species'],
+                    best_value['divergence_prct']
+                ]
+
+        otl_filtered_df.drop(columns=['rank'], inplace=True)
+
+        return otl_filtered_df
+
 
     def filter_results_by_otl(self, df, folder_path, folder_name):
         """
@@ -1717,7 +1778,7 @@ class TraitsAndResolution:
         # Step 2: Apply rank-dependent divergence thresholds
         if single_threhold is not None:
             threshold_mask = (
-                (otl_filtered['divergence_prct'] <= single_threhold) |
+                (otl_filtered['divergence_prct'] > single_threhold) |
                 (otl_filtered['divergence_prct'].isin([np.inf, -np.inf])) |
                 (otl_filtered['divergence_prct'].isna())
             )
@@ -1726,18 +1787,18 @@ class TraitsAndResolution:
                 otl_filtered['query_family'].notna() &
                 otl_filtered['query_genus'].isna() &
                 otl_filtered['query_species'].isna() &
-                (otl_filtered['divergence_prct'] <= th_family)
+                (otl_filtered['divergence_prct'] > th_family)
             )
 
             cond_genus = (
                 otl_filtered['query_genus'].notna() &
                 otl_filtered['query_species'].isna() &
-                (otl_filtered['divergence_prct'] <= th_genus)
+                (otl_filtered['divergence_prct'] > th_genus)
             )
 
             cond_species = (
                 otl_filtered['query_species'].notna() &
-                (otl_filtered['divergence_prct'] <= th_species)
+                (otl_filtered['divergence_prct'] > th_species)
             )
 
             threshold_mask = (

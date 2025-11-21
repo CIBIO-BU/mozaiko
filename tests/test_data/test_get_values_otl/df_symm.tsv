@@ -1,0 +1,80 @@
+query_family	query_genus	query_species	target_family	target_genus	target_species	divergence_prct
+Baetidae	Acentrella	Acentrella insignificans	Baetidae	Acentrella	nan	0
+Baetidae	Baetis	Baetis bicaudatus	Baetidae	Baetis	Baetis tricaudatus	0
+Baetidae	Baetis	Baetis bicaudatus	Baetidae	Baetis	nan	6.8
+Baetidae	Baetis	Baetis bicaudatus	Leptohyphidae	Tricorythodes	nan	8.1
+Baetidae	Baetis	Baetis bicaudatus	Rhyacophilidae	Rhyacophila	Rhyacophila brunnea	8.4
+Baetidae	Baetis	Baetis flavistriga	Baetidae	Baetis	Baetis phoebus	0.3
+Baetidae	Baetis	Baetis flavistriga	Baetidae	Baetis	nan	0
+Baetidae	Baetis	Baetis fuscatus	Baetidae	Baetis	nan	0
+Baetidae	Baetis	Baetis magnus	Baetidae	Baetis	nan	0
+Baetidae	Baetis	Baetis magnus	Baetidae	nan	nan	0
+Baetidae	Baetis	Baetis nexus	Baetidae	Baetis	Baetis pentaphlebodes	0
+Baetidae	Baetis	Baetis pentaphlebodes	Baetidae	Baetis	Baetis nexus	0
+Baetidae	Baetis	Baetis phoebus	Baetidae	Baetis	nan	1.6
+Baetidae	Baetis	Baetis phoebus	Baetidae	Baetis	Baetis flavistriga	0.3
+Baetidae	Baetis	Baetis rhodani	Baetidae	Nigrobaetis	Nigrobaetis niger	0.6
+Baetidae	Baetis	Baetis rhodani	Baetidae	Baetis	nan	0
+Baetidae	Baetis	Baetis rhodani	Baetidae	nan	nan	0.3
+Baetidae	Baetis	Baetis tricaudatus	Baetidae	Baetis	nan	7.1
+Baetidae	Baetis	Baetis tricaudatus	Leptohyphidae	Tricorythodes	nan	7.4
+Baetidae	Baetis	Baetis tricaudatus	Planariidae	nan	nan	7.4
+Baetidae	Baetis	Baetis tricaudatus	Baetidae	Baetis	Baetis bicaudatus	0
+Baetidae	Baetis	Baetis tricaudatus	Rhyacophilidae	Rhyacophila	Rhyacophila brunnea	8.9
+Baetidae	Cloeon	Cloeon dipterum	Baetidae	Cloeon	Cloeon inscriptum	0.3
+Baetidae	Cloeon	Cloeon inscriptum	Baetidae	Cloeon	Cloeon dipterum	0.3
+Baetidae	Cloeon	Cloeon schoenemundi	Baetidae	nan	nan	2.9
+Baetidae	Diphetor	Diphetor hageni	Baetidae	Diphetor	nan	0.3
+Baetidae	Guajirolus	Guajirolus nanus	Baetidae	nan	nan	0.3
+Baetidae	Acentrella	nan	Baetidae	Acentrella	Acentrella insignificans	0
+Baetidae	Americabaetis	nan	Baetidae	Baetis	nan	0
+Baetidae	Andesiops	nan	Baetidae	nan	nan	0
+Baetidae	Andesiops	nan	Baetidae	Baetodes	nan	0
+Baetidae	Andesiops	nan	Hydropsychidae	Smicridea	nan	0.6
+Baetidae	Andesiops	nan	Hydropsychidae	nan	nan	0
+Baetidae	Baetis	nan	Baetidae	Americabaetis	nan	0
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis flavistriga	0
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis fuscatus	0
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis rhodani	0
+Baetidae	Baetis	nan	Baetidae	Nigrobaetis	Nigrobaetis niger	0
+Baetidae	Baetis	nan	Leptohyphidae	Tricorythodes	nan	0
+Baetidae	Baetis	nan	Planariidae	nan	nan	0
+Baetidae	Baetis	nan	Rhyacophilidae	Rhyacophila	Rhyacophila brunnea	0
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis bicaudatus	6.8
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis magnus	0
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis phoebus	1.6
+Baetidae	Baetis	nan	Baetidae	Baetis	Baetis tricaudatus	7.1
+Baetidae	Baetis	nan	Baetidae	nan	nan	0
+Baetidae	Baetodes	nan	Baetidae	Andesiops	nan	0
+Baetidae	Baetodes	nan	Baetidae	nan	nan	0
+Baetidae	Callibaetis	nan	Baetidae	nan	nan	1.6
+Baetidae	Callibaetis	nan	Siphlonuridae	Siphlonurus	nan	0
+Baetidae	Camelobaetidius	nan	Baetidae	nan	nan	0
+Baetidae	Diphetor	nan	Baetidae	Diphetor	Diphetor hageni	0.3
+Baetidae	Diphetor	nan	Baetidae	nan	nan	0
+Baetidae	Fallceon	nan	Baetidae	nan	nan	0
+Baetidae	Labiobaetis	nan	Baetidae	nan	nan	7.7
+Baetidae	nan	nan	Baetidae	Baetis	Baetis rhodani	0.3
+Baetidae	nan	nan	Baetidae	Baetis	nan	0
+Baetidae	nan	nan	Baetidae	Baetodes	nan	0
+Baetidae	nan	nan	Baetidae	Callibaetis	nan	1.6
+Baetidae	nan	nan	Baetidae	Camelobaetidius	nan	0
+Baetidae	nan	nan	Baetidae	Diphetor	nan	0
+Baetidae	nan	nan	Baetidae	Fallceon	nan	0
+Baetidae	nan	nan	Baetidae	Guajirolus	Guajirolus nanus	0.3
+Baetidae	nan	nan	Baetidae	Andesiops	nan	0
+Baetidae	nan	nan	Baetidae	Baetis	Baetis magnus	0
+Baetidae	nan	nan	Baetidae	Cloeon	Cloeon schoenemundi	2.9
+Baetidae	nan	nan	Baetidae	Labiobaetis	nan	7.7
+Baetidae	nan	nan	Psychodidae	nan	nan	0
+Baetidae	Plauditus	nan	Baetidae	Plauditus	Plauditus dubius	0.6
+Baetidae	Plauditus	nan	Baetidae	Plauditus	Plauditus punctiventris	0
+Baetidae	Nigrobaetis	Nigrobaetis niger	Baetidae	Baetis	Baetis rhodani	0.6
+Baetidae	Nigrobaetis	Nigrobaetis niger	Baetidae	Baetis	nan	0
+Baetidae	Plauditus	Plauditus dubius	Baetidae	Plauditus	Plauditus punctiventris	0
+Baetidae	Plauditus	Plauditus dubius	Baetidae	Plauditus	nan	0.6
+Baetidae	Plauditus	Plauditus punctiventris	Baetidae	Plauditus	nan	0
+Baetidae	Plauditus	Plauditus punctiventris	Baetidae	Plauditus	Plauditus dubius	0
+Baetidae	Procloeon	nan	Baetidae	Procloeon	speciesA	0.3
+Baetidae	Procloeon	speciesB	Baetidae	Plauditus	nan	inf
+Baetidae	Procloeon	nan	Baetidae	Plauditus	Plauditus dubius	

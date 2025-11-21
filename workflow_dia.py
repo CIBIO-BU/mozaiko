@@ -6,7 +6,7 @@ from src.marker_scoring.metrics_system import *
 # Files
 database_file = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaiko/data/input_data/DIA/diat_barcode_hrm_dreped.fasta"
 primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaiko/data/input_data/DIA/diat-barcode-primers.tsv"
-run_name = 'DIA-catnip-florian'
+run_name = 'DIA-catnip-filipa-cutoff'
 otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia"
 output_folder = '/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaiko/data/output_data/' + run_name
 
@@ -26,4 +26,4 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
                       primer_table=primer_table,
                       save_intermediate_ranks=True,
                       run_catnip=True,
-                      approach="florian")
+                      approach="filipa")
