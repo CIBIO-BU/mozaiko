@@ -1540,11 +1540,15 @@ class TraitsAndResolution:
         df = self.add_taxa_from_mapping(df, folder_path, folder_name)
         df = df.drop(['query', 'target'], axis=1)
 
-        # # # Step 5: Filter taxa by OTL
-        # df = self.filter_results_by_otl(df, folder_path, folder_name)
+        # # Step 5: Filter taxa by OTL
+        df = self.get_values_otl(df)
 
-        # # # Step 6: Filter by thresholds
+        # Dataframe with all taxa on target side (before filtering)
+        df_catnipt_all_on_target = df.copy()
+
+        # # Step 6: Filter by thresholds
         # df = self.choose_filter(approach, df, thresholds)
+        df = self.filipa_filter(df, thresholds)
 
         return df
 
@@ -1584,8 +1588,28 @@ class TraitsAndResolution:
             return df
 
     def get_values_otl(self, df_symmetric):
-        otl_filtered_df = self.otl.copy()
-        for index, row in self.otl.iterrows():
+        """
+        For each entry in OTL, find the minimum divergence_prct in df_symmetric.
+        Removes entries where query and target taxa are the same.
+        If multiple entries have the same minimum divergence_prct, set target taxa to 'nan'.
+        Args:
+            df_symmetric: Symmetric DataFrame with query/target taxa and divergence_prct
+        Returns:
+            DataFrame filtered by OTL with minimum divergence_prct per OTL entry
+        """
+        otl = self.otl.copy()
+
+        otl = otl.rename(columns={'family':'query_family', 'genus': 'query_genus', 'species': 'query_species'})
+        new_cols = ['target_family', 'target_genus', 'target_species', 'divergence_prct']
+
+        for col in new_cols:
+            if col != 'divergence_prct':
+                otl[col] = 'nan'
+            else:
+                otl[col] = np.nan
+
+        otl_filtered_df = otl.copy()
+        for index, row in otl.iterrows():
             # Check highest rank and select taxonomy of that rank
             rank = row['rank']
             query_col = 'query_' + rank
@@ -1643,20 +1667,14 @@ class TraitsAndResolution:
 
     def filter_results_by_otl(self, df, folder_path, folder_name):
         """
-        Filter processed primers results by taxa that's in OTL. Keep only results for taxa in OTL,
-        and add taxa that is not in results with NaNs.
+        Filter target taxa by taxa that's only in OTL.
         """
         df_merged = self.otl.merge(
             df,
             how='left',
             left_on=['family', 'genus', 'species'],
-            right_on=['query_family', 'query_genus', 'query_species']
+            right_on=['target_family', 'target_genus', 'target_species']
             )
-
-        # fill the query_* columns in primer df with otl taxa that's missing
-        df_merged['query_family'] = df_merged['query_family'].fillna(df_merged['family'])
-        df_merged['query_genus']  = df_merged['query_genus'].fillna(df_merged['genus'])
-        df_merged['query_species'] = df_merged['query_species'].fillna(df_merged['species'])
 
         # Drop the otl columns to keep primer structure
         df_final = df_merged.drop(columns=['family', 'genus', 'species'])
@@ -1670,19 +1688,19 @@ class TraitsAndResolution:
 
         return df_final
 
-    possible_approaches = Literal["florian", "filipa"]
-    def choose_filter(self, approach: possible_approaches, df, thresholds):
-        if approach is None:
-            approach = 'filipa'
+    # possible_approaches = Literal["florian", "filipa"]
+    # def choose_filter(self, approach: possible_approaches, df, thresholds):
+    #     if approach is None:
+    #         approach = 'filipa'
 
-        if approach == 'florian':
-            threshold_filtered = self.florian_filter(df)
-        elif approach == 'filipa':
-            threshold_filtered = self.filipa_filter(df, thresholds)
-        else:
-            raise ValueError(f"mozaizo ERROR: unknown approach: {approach}")
+    #     if approach == 'florian':
+    #         threshold_filtered = self.florian_filter(df)
+    #     elif approach == 'filipa':
+    #         threshold_filtered = self.filipa_filter(df, thresholds)
+    #     else:
+    #         raise ValueError(f"mozaizo ERROR: unknown approach: {approach}")
 
-        return threshold_filtered
+    #     return threshold_filtered
 
     def exclude_common_ancestry(self, otl_filtered_df):
         only_family = (
@@ -1720,44 +1738,44 @@ class TraitsAndResolution:
 
         return otl_filtered_df
 
-    def florian_filter(self, df):
-        otl_filtered = df.copy()
+    # def florian_filter(self, df):
+    #     otl_filtered = df.copy()
 
-        # Step 1: identify taxonomic ranks (NaN mask)
-        query_mask = otl_filtered[['query_family', 'query_genus', 'query_species']].notna()
-        target_mask = otl_filtered[['target_family', 'target_genus', 'target_species']].notna()
+    #     # Step 1: identify taxonomic ranks (NaN mask)
+    #     query_mask = otl_filtered[['query_family', 'query_genus', 'query_species']].notna()
+    #     target_mask = otl_filtered[['target_family', 'target_genus', 'target_species']].notna()
 
-        target_mask.columns = query_mask.columns
-        same_rank = (query_mask == target_mask).all(axis=1)
+    #     target_mask.columns = query_mask.columns
+    #     same_rank = (query_mask == target_mask).all(axis=1)
 
-        otl_filtered['same_rank'] = same_rank
+    #     otl_filtered['same_rank'] = same_rank
 
-        # Keep rows where same_rank is True OR divergence_prct is NaN/inf
-        mask_keep = same_rank | otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) | otl_filtered['divergence_prct'].isna()
-        otl_filtered = otl_filtered[mask_keep].copy()
+    #     # Keep rows where same_rank is True OR divergence_prct is NaN/inf
+    #     mask_keep = same_rank | otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) | otl_filtered['divergence_prct'].isna()
+    #     otl_filtered = otl_filtered[mask_keep].copy()
 
-        # Step 2: exclude rows with common ancestry
-        otl_filtered = self.exclude_common_ancestry(otl_filtered)
-        otl_filtered = otl_filtered.drop(columns=['same_rank'], errors='ignore')
+    #     # Step 2: exclude rows with common ancestry
+    #     otl_filtered = self.exclude_common_ancestry(otl_filtered)
+    #     otl_filtered = otl_filtered.drop(columns=['same_rank'], errors='ignore')
 
-        # Step 3: filter finite divergence_prct values to be > 0.0 (keep inf and NaN)
-        mask_positive_or_special = (
-            (otl_filtered['divergence_prct'] > 0.0) |
-            otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) |
-            otl_filtered['divergence_prct'].isna()
-        )
-        otl_filtered = otl_filtered[mask_positive_or_special].copy()
+    #     # Step 3: filter finite divergence_prct values to be > 0.0 (keep inf and NaN)
+    #     mask_positive_or_special = (
+    #         (otl_filtered['divergence_prct'] > 0.0) |
+    #         otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) |
+    #         otl_filtered['divergence_prct'].isna()
+    #     )
+    #     otl_filtered = otl_filtered[mask_positive_or_special].copy()
 
-        # Step 4: Select only the minimum value per query
-        otl_filtered = (
-            otl_filtered
-            .sort_values('divergence_prct', ascending=True, na_position='last')
-            .groupby(['query_family', 'query_genus', 'query_species'], dropna=False)
-            .head(1)
-            .reset_index(drop=True)
-        )
+    #     # Step 4: Select only the minimum value per query
+    #     otl_filtered = (
+    #         otl_filtered
+    #         .sort_values('divergence_prct', ascending=True, na_position='last')
+    #         .groupby(['query_family', 'query_genus', 'query_species'], dropna=False)
+    #         .head(1)
+    #         .reset_index(drop=True)
+    #     )
 
-        return otl_filtered
+    #     return otl_filtered
 
     def filipa_filter(self, df, thresholds: list | float = None):
         if thresholds is None:
