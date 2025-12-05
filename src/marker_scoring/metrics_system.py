@@ -1277,7 +1277,9 @@ class TraitsAndResolution:
         self.otl = self.otl.reset_index(drop=True)
         self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
-    def run_catnip(self, tax_category_threshold: int = 10):
+    def run_catnip(self, tax_category_threshold: float = 10.0):
+        self.clustering_threshold = tax_category_threshold
+
         # create directory for catnip analysis
         os.makedirs(self.catnip_dir, exist_ok=True)
 
@@ -1502,7 +1504,7 @@ class TraitsAndResolution:
 
         return df
 
-    def process_single_primer(self, folder_name, df, folder_path, approach, thresholds):
+    def process_single_primer(self, folder_name, df, folder_path, thresholds):
         """
         Process a single primer's catnip output:
         1. Clean and split taxonomy columns
@@ -1533,30 +1535,38 @@ class TraitsAndResolution:
         # Fill NaN with 'nan' string for taxonomy match
         df = df.fillna('nan')
 
+        # Step 2: Remove entries that are above the clustering threshold
+        df = df[df['divergence_prct'] <= self.clustering_threshold]
+
         # Step 3: Make symmetric (add swapped query/target rows)
-        df = self.make_dataframe_symmetric(df)
+        df_symm = self.make_dataframe_symmetric(df)
 
         # Step 4: Add taxa from mapping file that were not processed with bowtie (infs)
-        df = self.add_taxa_from_mapping(df, folder_path, folder_name)
-        df = df.drop(['query', 'target'], axis=1)
+        df_inf = self.add_taxa_from_mapping(df_symm, folder_path, folder_name)
+        df_inf = df.drop(['query', 'target'], axis=1)
 
-        # # Step 5: Filter taxa by OTL
-        df = self.get_values_otl(df)
+        # # Step 5: Find minimum divergence_prct for each OTL entry in query and all target taxa
+        df_catnipt_all_on_target = self.get_values_otl(df_inf)
+        processed_file_path = folder_path / f"catnip_target_{folder_name}.tsv"
+        df_catnipt_all_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
-        # Dataframe with all taxa on target side (before filtering)
-        df_catnipt_all_on_target = df.copy()
+        # Step 6: Filter target taxa by OTL & find minimum divergence_prct
+        df_otl_on_target = df_inf.copy()
+        df_otl_on_target = self.filter_results_by_otl(df_otl_on_target)
+        df_otl_on_target = self.get_values_otl(df_otl_on_target)
+        processed_file_path = folder_path / f"otl_target_{folder_name}.tsv"
+        df_otl_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
-        # # Step 6: Filter by thresholds
-        # df = self.choose_filter(approach, df, thresholds)
-        df = self.filipa_filter(df, thresholds)
+        # # Step 7: Filter both dfs by thresholds
+        df_otl_on_target = self.filter_divergence_threshold(df_otl_on_target, thresholds)
+        df_catnipt_all_on_target = self.filter_divergence_threshold(df_catnipt_all_on_target, thresholds)
 
-        return df
+        return df_otl_on_target, df_catnipt_all_on_target
 
-    def post_process_catnip_primer_results(self, approach: str = 'filipa', thresholds = None):
+    def post_process_catnip_primer_results(self, thresholds = None):
         """
         Process each primer's final_output_interclst.tsv file individually.
         Saves each processed file as processed_<primer_name>.tsv in the same folder.~
-        Defaults to using the 'filipa' filtering approach.
 
         Returns: None. Saves processed files to disk.
         """
@@ -1579,21 +1589,16 @@ class TraitsAndResolution:
             if 'edit_distance' in df.columns:
                 df = df.drop('edit_distance', axis=1)
 
-            df = self.process_single_primer(folder, df, folder_path, approach, thresholds)
+            self.process_single_primer(folder, df, folder_path, thresholds)
 
-            # Save processed file
-            processed_file_path = folder_path / f"processed_{folder}.tsv"
-            df.to_csv(processed_file_path, sep='\t', index=False, header=True)
-
-            return df
-
-    def get_values_otl(self, df_symmetric):
+    def get_values_otl(self, df):
         """
-        For each entry in OTL, find the minimum divergence_prct in df_symmetric.
+        For each entry in OTL, find the minimum divergence_prct in df.
         Removes entries where query and target taxa are the same.
         If multiple entries have the same minimum divergence_prct, set target taxa to 'nan'.
         Args:
-            df_symmetric: Symmetric DataFrame with query/target taxa and divergence_prct
+            df: DataFrame with query/target taxa and divergence_prct. Should be symmetric and
+                contain all taxa from OTL as query taxa, with 'inf' for missing target taxa.
         Returns:
             DataFrame filtered by OTL with minimum divergence_prct per OTL entry
         """
@@ -1617,7 +1622,7 @@ class TraitsAndResolution:
             entry = row[query_col]
 
             # Filter df to find minimum divergence for this entry
-            search_entry = df_symmetric[df_symmetric[query_col] == entry]
+            search_entry = df[df[query_col] == entry]
             search_entry = search_entry[search_entry[target_col] != entry]
 
             if search_entry.empty:
@@ -1665,42 +1670,22 @@ class TraitsAndResolution:
         return otl_filtered_df
 
 
-    def filter_results_by_otl(self, df, folder_path, folder_name):
+    def filter_results_by_otl(self, df):
         """
         Filter target taxa by taxa that's only in OTL.
         """
-        df_merged = self.otl.merge(
+        df_filtered = self.otl.merge(
             df,
-            how='left',
+            how='inner',
             left_on=['family', 'genus', 'species'],
             right_on=['target_family', 'target_genus', 'target_species']
             )
 
-        # Drop the otl columns to keep primer structure
-        df_final = df_merged.drop(columns=['family', 'genus', 'species'])
-
-        df_final = df_final.replace(
+        df_filtered = df_filtered.replace(
         {'nan': np.nan, 'inf': np.inf}
         )
 
-        processed_file_path = folder_path / f"otl_filtered_{folder_name}.tsv"
-        df_final.to_csv(processed_file_path, sep='\t', index=False, header=True)
-
-        return df_final
-
-    # possible_approaches = Literal["florian", "filipa"]
-    # def choose_filter(self, approach: possible_approaches, df, thresholds):
-    #     if approach is None:
-    #         approach = 'filipa'
-
-    #     if approach == 'florian':
-    #         threshold_filtered = self.florian_filter(df)
-    #     elif approach == 'filipa':
-    #         threshold_filtered = self.filipa_filter(df, thresholds)
-    #     else:
-    #         raise ValueError(f"mozaizo ERROR: unknown approach: {approach}")
-
-    #     return threshold_filtered
+        return df_filtered
 
     def exclude_common_ancestry(self, otl_filtered_df):
         only_family = (
@@ -1738,46 +1723,7 @@ class TraitsAndResolution:
 
         return otl_filtered_df
 
-    # def florian_filter(self, df):
-    #     otl_filtered = df.copy()
-
-    #     # Step 1: identify taxonomic ranks (NaN mask)
-    #     query_mask = otl_filtered[['query_family', 'query_genus', 'query_species']].notna()
-    #     target_mask = otl_filtered[['target_family', 'target_genus', 'target_species']].notna()
-
-    #     target_mask.columns = query_mask.columns
-    #     same_rank = (query_mask == target_mask).all(axis=1)
-
-    #     otl_filtered['same_rank'] = same_rank
-
-    #     # Keep rows where same_rank is True OR divergence_prct is NaN/inf
-    #     mask_keep = same_rank | otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) | otl_filtered['divergence_prct'].isna()
-    #     otl_filtered = otl_filtered[mask_keep].copy()
-
-    #     # Step 2: exclude rows with common ancestry
-    #     otl_filtered = self.exclude_common_ancestry(otl_filtered)
-    #     otl_filtered = otl_filtered.drop(columns=['same_rank'], errors='ignore')
-
-    #     # Step 3: filter finite divergence_prct values to be > 0.0 (keep inf and NaN)
-    #     mask_positive_or_special = (
-    #         (otl_filtered['divergence_prct'] > 0.0) |
-    #         otl_filtered['divergence_prct'].isin([np.inf, -np.inf]) |
-    #         otl_filtered['divergence_prct'].isna()
-    #     )
-    #     otl_filtered = otl_filtered[mask_positive_or_special].copy()
-
-    #     # Step 4: Select only the minimum value per query
-    #     otl_filtered = (
-    #         otl_filtered
-    #         .sort_values('divergence_prct', ascending=True, na_position='last')
-    #         .groupby(['query_family', 'query_genus', 'query_species'], dropna=False)
-    #         .head(1)
-    #         .reset_index(drop=True)
-    #     )
-
-    #     return otl_filtered
-
-    def filipa_filter(self, df, thresholds: list | float = None):
+    def filter_divergence_threshold(self, df, thresholds: list | float = None):
         if thresholds is None:
             thresholds = [10.0, 5.0, 2.0]
         single_threhold = None
@@ -1861,28 +1807,48 @@ class TraitsAndResolution:
             if not folder_path.is_dir():
                 continue
 
-            output_file_path = folder_path / f"processed_{folder}.tsv"
+            df_catnipt_all_on_target = folder_path / f"catnip_target_{folder}.tsv"
+            df_otl_on_target = folder_path / f"otl_target_{folder}.tsv"
 
-            if not output_file_path.exists():
-                print(f"mozaiko WARNING: No processed_{folder}.tsv found.")
+            if not df_catnipt_all_on_target.exists() or not df_otl_on_target.exists():
+                print(f"mozaiko WARNING: catnip_target_{folder}.tsv or otl_target_{folder}.tsv were not found.")
                 continue
 
-            df = pd.read_csv(output_file_path, sep="\t")
+            df_catnipt_all_on_target = pd.read_csv(df_catnipt_all_on_target, sep="\t")
+            df_otl_on_target = pd.read_csv(df_otl_on_target, sep="\t")
 
-            df = df[
-                df['divergence_prct'].notna()
+            # Find all non -NaN divergence_prct entries in both dataframes
+            df_catnipt_all_on_target = df_catnipt_all_on_target[
+                df_catnipt_all_on_target['divergence_prct'].notna()
             ]
 
-            taxa_considered = df.shape[0]
+            df_otl_on_target = df_otl_on_target[
+                df_otl_on_target['divergence_prct'].notna()
+            ]
 
-            taxonomic_resolution = (taxa_considered / total_otl_taxa_count) * 100
+            # Metric 1: Taxonomic resolution considering only OTL entries
+
+            taxa_considered_otl = df_otl_on_target.shape[0]
+
+            taxonomic_resolution_otl = (taxa_considered_otl / total_otl_taxa_count) * 100
+
+            # Metric 2: Ratio between Taxonomic resolution considering only OTL entries and Taxonomic resolution considering all taxa from catnipt
+
+            taxa_considered_all_catnip = df_catnipt_all_on_target.shape[0]
+
+            taxonomic_resolution_all_catnip = (taxa_considered_all_catnip / total_otl_taxa_count) * 100
+
+            ratio_taxonomic_resolution = (
+                taxonomic_resolution_otl / taxonomic_resolution_all_catnip
+            ) * 100
 
             taxonomic_resolution_results.append(
                 {
                     "primer": folder,
                     "total_taxa": total_otl_taxa_count,
-                    "n_taxa_above_cutoff": taxa_considered,
-                    "taxonomic_resolution": round(taxonomic_resolution, 2),
+                    "n_taxa_above_cutoff": taxa_considered_otl,
+                    "taxonomic_resolution": round(taxonomic_resolution_otl, 2),
+                    "ratio_taxonomic_resolution": round(ratio_taxonomic_resolution, 2),
                 }
             )
 
@@ -2148,7 +2114,8 @@ class MetricsSystemExecutor:
             taxonomic_resolution = taxonomic_resolution.set_index("primer")
 
         combined_div_score_and_tax_res_results = pd.DataFrame(
-            {"taxonomic_resolution": taxonomic_resolution["taxonomic_resolution"]}
+            {"taxonomic_resolution": taxonomic_resolution["taxonomic_resolution"],
+             "ratio_taxonomic_resolution": taxonomic_resolution["ratio_taxonomic_resolution"]}
         )
 
         traits_res_df = combined_div_score_and_tax_res_results
@@ -2181,9 +2148,9 @@ class MetricsSystemExecutor:
             folder_path = Path(self.catnip_dir) / folder
             if not folder_path.is_dir():
                 continue
-            output_file_path = folder_path / f"processed_{folder}.tsv"
+            output_file_path = folder_path / f"otl_target_{folder}.tsv"
             if not output_file_path.exists():
-                print(f"mozaiko WARNING: No processed_{folder}.tsv found for {folder}")
+                print(f"mozaiko WARNING: No otl_target_{folder}.tsv found for {folder}")
                 continue
 
             df = pd.read_csv(output_file_path, sep="\t")
@@ -2339,6 +2306,7 @@ class MetricsSystemExecutor:
             "tm_score": "desc",
             "amplification_success_percent": "desc",
             "taxonomic_resolution": "desc",
+            "ratio_taxonomic_resolution": "desc",
         }
 
         metrics_df = self.join_analysis_results()
@@ -2425,7 +2393,8 @@ class MetricsSystemExecutor:
                 "min_tm_cv": "asc"
             },
             "tax_res": {
-                "taxonomic_resolution": "desc"
+                "taxonomic_resolution": "desc",
+                "ratio_taxonomic_resolution": "desc"
             }
         }
 
@@ -2499,7 +2468,6 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            approach="filipa",
                             thresholds: list | float = None):
         """
         Evaluate a single OTL file and generate primer rankings.
@@ -2534,8 +2502,9 @@ class MetricsSystemExecutor:
 
                     primer_output_dir = os.path.join(catnip_dir, primer_name)
 
-                    expected_output = os.path.join(primer_output_dir, f"processed_{primer_name}.tsv")
-                    if os.path.exists(expected_output):
+                    expected_output_all = os.path.join(primer_output_dir, f"catnip_target_{primer_name}.tsv")
+                    expected_output_otl = os.path.join(primer_output_dir, f"otl_target_{primer_name}.tsv")
+                    if os.path.exists(expected_output_all) and os.path.exists(expected_output_otl):
                         print(f"mozaiko INFO: catnip results already exist for {primer_name}, skipping...")
                         continue
 
@@ -2544,7 +2513,7 @@ class MetricsSystemExecutor:
                         trait = TraitsAndResolution(otl=otl_path,
                                                     results_folder=output_folder)
                         trait.run_catnip()
-                        trait.post_process_catnip_primer_results(approach, thresholds)
+                        trait.post_process_catnip_primer_results(thresholds)
 
         output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
 
@@ -2569,7 +2538,6 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            approach="filipa",
                             thresholds: list | float = None):
         """
         Evaluate multiple OTL files in a folder.
@@ -2611,7 +2579,6 @@ class MetricsSystemExecutor:
                     primer_table=primer_table,
                     save_intermediate_ranks=save_intermediate_ranks,
                     run_catnip=run_catnip,
-                    approach=approach,
                     thresholds=thresholds
                 )
 
