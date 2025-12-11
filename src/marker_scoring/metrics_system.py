@@ -472,6 +472,7 @@ class Binding:
         self.processed_primers = {}
         self.otl_handler = OtlHandler(otl)
         self.otl_handler.import_otl()
+        self.otl = self.otl_handler.otl
 
     @staticmethod
     def parse_files_with_same_extension_in_folders(folder_path_A, folder_path_B):
@@ -884,7 +885,8 @@ class Binding:
         Returns:
             pd.DataFrame: A DataFrame with missing values filled hierarchically.
         """
-        result_df = df.copy()
+        # Get OTL reference with rank information
+        otl = self.otl_handler.otl[["family", "genus", "species", "rank"]].drop_duplicates().copy()
 
         # If analysis_name is None, apply the logic to all numeric columns
         if analysis_name is None:
@@ -892,47 +894,83 @@ class Binding:
         else:
             numeric_cols = [analysis_name]
 
+        # Initialize result with OTL taxonomy and empty numeric columns
+        result = otl.copy()
         for col in numeric_cols:
-            # Genus-level aggregations
-            genus_groups = df.groupby(["family", "genus"])
-            if operation_name in {"min", "max", "sum", "mean"}:
-                genus_values = getattr(genus_groups[col], operation_name)()
-            elif operation_name == "coef_var":
-                mean = genus_groups[col].mean()
-                std = genus_groups[col].std()
-                genus_values = (std / mean) * 100
+            result[col] = np.nan
 
-            # Family-level aggregations
-            family_groups = df.groupby(["family"])
-            if operation_name in {"min", "max", "sum", "mean"}:
-                family_values = getattr(family_groups[col], operation_name)()
-            elif operation_name == "coef_var":
-                mean = family_groups[col].mean()
-                std = family_groups[col].std()
-                family_values = (std / mean) * 100
+        # For each OTL entry, aggregate values from df based on rank
+        for idx, row in otl.iterrows():
+            rank = row['rank']
 
-            # Fill NaN species entries with genus-level values
-            for (family, genus), value in genus_values.items():
-                mask = (
-                    (result_df["family"] == family)
-                    & (result_df["genus"] == genus)
-                    & (result_df["species"].isna())
-                )
-                result_df.loc[mask, col] = value
+            # Build filter based on rank - filter df by the taxonomic name at this rank
+            if rank == 'species':
+                subset = df[
+                    (df['family'] == row['family']) &
+                    (df['genus'] == row['genus']) &
+                    (df['species'] == row['species'])
+                ]
+            elif rank == 'genus':
+                subset = df[
+                    (df['family'] == row['family']) &
+                    (df['genus'] == row['genus'])
+                ]
+            elif rank == 'family':
+                subset = df[df['family'] == row['family']]
+            else:
+                subset = pd.DataFrame()  # Empty if rank is unknown
 
-            # Fill NaN genus entries with family-level values
-            for family, value in family_values.items():
-                mask = (result_df["family"] == family) & (result_df["genus"].isna())
-                result_df.loc[mask, col] = value
+            # Aggregate each numeric column
+            if not subset.empty:
+                for col in numeric_cols:
+                    values = subset[col].dropna()  # Remove NaN values before aggregation
 
-        return result_df
+                    if not values.empty:
+                        agg = self._compute_aggregation(values, operation_name)
+                    else:
+                        agg = np.nan
+
+                    result.loc[idx, col] = agg
+
+        # Drop rank column before returning
+        result.drop(columns=["rank"], inplace=True)
+
+        return result
+
+    def _compute_aggregation(self, series, operation_name):
+        """
+        Helper method to compute the aggregation based on operation_name.
+
+        Parameters:
+        - series (pd.Series): The data to aggregate
+        - operation_name (str): The operation to perform
+
+        Returns:
+            Aggregated value
+        """
+        if operation_name == "min":
+            return series.min()
+        elif operation_name == "max":
+            return series.max()
+        elif operation_name == "sum":
+            return series.sum()
+        elif operation_name == "mean":
+            return series.mean()
+        elif operation_name == "coef_var":
+            mean = series.mean()
+            std = series.std()
+            if mean == 0:
+                return np.nan
+            return (std / mean) * 100
+        else:
+            raise ValueError(f"Unknown operation: {operation_name}")
 
     def process_analysis_per_taxon(
         self,
         primer_df: pd.DataFrame,
         operation: Literal["min", "max", "sum", "mean", "coef_var"],
         analysis_name: str,
-    ) -> Union[pd.DataFrame, pd.Series]:
+        ) -> Union[pd.DataFrame, pd.Series]:
         """
         This method performs user-inputed operations on a groupby of 'taxon'.
         Modified to handle empty groups consistently across operations.
@@ -980,27 +1018,7 @@ class Binding:
         result = result.replace("nan", np.nan)
         hierarchical_result = self.fill_hierarchical_values(result, operation)
 
-        ref_otl = self.otl_handler.otl[["family", "genus", "species"]]
-        ref_otl = ref_otl.drop_duplicates()
-
-        genus_has_data = ref_otl['genus'].notna().any()
-        species_has_data = ref_otl['species'].notna().any()
-
-        # If only family data exists, merge on family only
-        if not genus_has_data and not species_has_data:
-            otl_families = ref_otl[['family']].drop_duplicates()
-            otl_based_result = pd.merge(
-                hierarchical_result, otl_families,
-                on=['family'],
-                how='right'
-            )
-        else:
-            # will set NaN for any missing taxa
-            otl_based_result = pd.merge(
-                hierarchical_result, ref_otl, on=["family", "genus", "species"], how="right"
-            )
-
-        return otl_based_result
+        return hierarchical_result
 
     def process_analysis_across_taxon(
         self,
@@ -1275,10 +1293,19 @@ class TraitsAndResolution:
         self.otl = self.otl.replace(np.nan, "nan")
         self.otl = self.otl.drop_duplicates()
         self.otl = self.otl.reset_index(drop=True)
+        self.country_name = Path(otl).stem.split('_')[0]
         self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
-    def run_catnip(self, tax_category_threshold: float = 10.0):
-        self.clustering_threshold = tax_category_threshold
+    def run_catnip(self, threshold: float | list = 10.0):
+        clustering_threshold = None
+        if isinstance(threshold, float):
+            clustering_threshold = threshold
+        elif isinstance(threshold, list):
+            if len(threshold) != 3:
+                raise TypeError("mozaiko ERROR: threhsolds must be a list of three float numbers to be used in family, genus and species filtering, respectively.")
+            clustering_threshold = max(threshold)
+        else:
+            raise TypeError("mozaiko ERROR: threhsolds must be float or a list of three numbers.")
 
         # create directory for catnip analysis
         os.makedirs(self.catnip_dir, exist_ok=True)
@@ -1318,7 +1345,7 @@ class TraitsAndResolution:
                             file,
                             mapping_file_name,
                             cols,
-                            str(tax_category_threshold)
+                            str(clustering_threshold)
                         ],
                         check=True,
                         capture_output=True,
@@ -1476,7 +1503,6 @@ class TraitsAndResolution:
         new_taxa = pd.merge(all_taxa_in_mapping, existing_taxa, on=merge_cols, how='left', indicator=True)
         new_taxa = new_taxa[new_taxa['_merge'] == 'left_only'].drop(columns=['_merge'])
 
-
         # Create rows for new taxa
         new_rows = []
         for _, row in new_taxa.iterrows():
@@ -1504,7 +1530,7 @@ class TraitsAndResolution:
 
         return df
 
-    def process_single_primer(self, folder_name, df, folder_path, thresholds):
+    def process_single_primer(self, folder_name, df, folder_path, thresholds: float | list = [10.0, 5.0, 2.0]):
         """
         Process a single primer's catnip output:
         1. Clean and split taxonomy columns
@@ -1521,6 +1547,16 @@ class TraitsAndResolution:
         """
         print(f"mozaiko INFO: Processing primer {folder_name}...")
 
+        clustering_threshold = None
+        if isinstance(thresholds, float):
+            clustering_threshold = thresholds
+        elif isinstance(thresholds, list):
+            if len(thresholds) != 3:
+                raise TypeError("mozaiko ERROR: threhsolds must be a list of three float numbers to be used in family, genus and species filtering, respectively.")
+            clustering_threshold = max(thresholds)
+        else:
+            raise TypeError("mozaiko ERROR: threhsolds must be float or a list of three numbers.")
+
         # Step 1: Clean and split taxonomy columns
         df = self.clean_and_split(df, "query")
         df = self.clean_and_split(df, "target")
@@ -1536,34 +1572,34 @@ class TraitsAndResolution:
         df = df.fillna('nan')
 
         # Step 2: Remove entries that are above the clustering threshold
-        df = df[df['divergence_prct'] <= self.clustering_threshold]
+        df = df[df['divergence_prct'] <= clustering_threshold]
 
         # Step 3: Make symmetric (add swapped query/target rows)
         df_symm = self.make_dataframe_symmetric(df)
 
         # Step 4: Add taxa from mapping file that were not processed with bowtie (infs)
         df_inf = self.add_taxa_from_mapping(df_symm, folder_path, folder_name)
-        df_inf = df.drop(['query', 'target'], axis=1)
+        df_inf = df_inf.drop(['query', 'target'], axis=1)
 
         # # Step 5: Find minimum divergence_prct for each OTL entry in query and all target taxa
         df_catnipt_all_on_target = self.get_values_otl(df_inf)
-        processed_file_path = folder_path / f"catnip_target_{folder_name}.tsv"
-        df_catnipt_all_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
         # Step 6: Filter target taxa by OTL & find minimum divergence_prct
-        df_otl_on_target = df_inf.copy()
-        df_otl_on_target = self.filter_results_by_otl(df_otl_on_target)
+        df_otl_on_target = self.filter_results_by_otl(df_inf)
         df_otl_on_target = self.get_values_otl(df_otl_on_target)
-        processed_file_path = folder_path / f"otl_target_{folder_name}.tsv"
-        df_otl_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
         # # Step 7: Filter both dfs by thresholds
         df_otl_on_target = self.filter_divergence_threshold(df_otl_on_target, thresholds)
+        processed_file_path = folder_path / f"otl_target_{folder_name}_{self.country_name}.tsv"
+        df_otl_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
+
         df_catnipt_all_on_target = self.filter_divergence_threshold(df_catnipt_all_on_target, thresholds)
+        processed_file_path = folder_path / f"catnip_target_{folder_name}_{self.country_name}.tsv"
+        df_catnipt_all_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
         return df_otl_on_target, df_catnipt_all_on_target
 
-    def post_process_catnip_primer_results(self, thresholds = None):
+    def post_process_catnip_primer_results(self, thresholds: float | list = [10.0, 5.0, 2.0]):
         """
         Process each primer's final_output_interclst.tsv file individually.
         Saves each processed file as processed_<primer_name>.tsv in the same folder.~
@@ -1667,6 +1703,10 @@ class TraitsAndResolution:
 
         otl_filtered_df.drop(columns=['rank'], inplace=True)
 
+        otl_filtered_df = otl_filtered_df.replace(
+        {'nan': np.nan}
+        )
+
         return otl_filtered_df
 
 
@@ -1729,8 +1769,10 @@ class TraitsAndResolution:
         single_threhold = None
         if isinstance(thresholds, float):
             single_threhold = thresholds
+            print(f"mozaiko INFO: Using single divergence threshold of {single_threhold}%.")
         elif isinstance(thresholds, list):
             th_family, th_genus, th_species = thresholds
+            print(f"mozaiko INFO: Using divergence thresholds of {th_family}% for family, {th_genus}% for genus and {th_species}% for species.")
         else:
             raise TypeError("mozaiko ERROR: threhsolds must be float or a list of three numbers.")
 
@@ -1807,55 +1849,62 @@ class TraitsAndResolution:
             if not folder_path.is_dir():
                 continue
 
-            df_catnipt_all_on_target = folder_path / f"catnip_target_{folder}.tsv"
-            df_otl_on_target = folder_path / f"otl_target_{folder}.tsv"
+            catnip_target_file = folder_path / f"catnip_target_{folder}_{self.country_name}.tsv"
+            otl_target_file = folder_path / f"otl_target_{folder}_{self.country_name}.tsv"
 
-            if not df_catnipt_all_on_target.exists() or not df_otl_on_target.exists():
-                print(f"mozaiko WARNING: catnip_target_{folder}.tsv or otl_target_{folder}.tsv were not found.")
+            if not catnip_target_file.exists() or not otl_target_file.exists():
+                print(
+                    f"mozaiko WARNING: Missing target files for primer '{folder}'. "
+                    f"Expected files: {catnip_target_file.name}, {otl_target_file.name}"
+                )
                 continue
 
-            df_catnipt_all_on_target = pd.read_csv(df_catnipt_all_on_target, sep="\t")
-            df_otl_on_target = pd.read_csv(df_otl_on_target, sep="\t")
+            try:
+                df_catnipt_all_on_target = pd.read_csv(catnip_target_file, sep="\t")
+                df_otl_on_target = pd.read_csv(otl_target_file, sep="\t")
 
-            # Find all non -NaN divergence_prct entries in both dataframes
-            df_catnipt_all_on_target = df_catnipt_all_on_target[
-                df_catnipt_all_on_target['divergence_prct'].notna()
-            ]
+                # Find all non -NaN divergence_prct entries in both dataframes
+                df_catnipt_all_on_target = df_catnipt_all_on_target[
+                    df_catnipt_all_on_target['divergence_prct'].notna()
+                ]
 
-            df_otl_on_target = df_otl_on_target[
-                df_otl_on_target['divergence_prct'].notna()
-            ]
+                df_otl_on_target = df_otl_on_target[
+                    df_otl_on_target['divergence_prct'].notna()
+                ]
 
-            # Metric 1: Taxonomic resolution considering only OTL entries
+                # Metric 1: Taxonomic resolution considering only OTL entries
 
-            taxa_considered_otl = df_otl_on_target.shape[0]
+                taxa_considered_otl = df_otl_on_target.shape[0]
 
-            taxonomic_resolution_otl = (taxa_considered_otl / total_otl_taxa_count) * 100
+                taxonomic_resolution_otl = (taxa_considered_otl / total_otl_taxa_count) * 100
 
-            # Metric 2: Ratio between Taxonomic resolution considering only OTL entries and Taxonomic resolution considering all taxa from catnipt
+                # Metric 2: Ratio between Taxonomic resolution considering only OTL entries and Taxonomic resolution considering all taxa from catnipt
 
-            taxa_considered_all_catnip = df_catnipt_all_on_target.shape[0]
+                taxa_considered_all_catnip = df_catnipt_all_on_target.shape[0]
 
-            taxonomic_resolution_all_catnip = (taxa_considered_all_catnip / total_otl_taxa_count) * 100
+                taxonomic_resolution_all_catnip = (taxa_considered_all_catnip / total_otl_taxa_count) * 100
 
-            ratio_taxonomic_resolution = (
-                taxonomic_resolution_otl / taxonomic_resolution_all_catnip
-            ) * 100
+                ratio_taxonomic_resolution = (
+                    taxonomic_resolution_otl / taxonomic_resolution_all_catnip
+                ) * 100
 
-            taxonomic_resolution_results.append(
-                {
-                    "primer": folder,
-                    "total_taxa": total_otl_taxa_count,
-                    "n_taxa_above_cutoff": taxa_considered_otl,
-                    "taxonomic_resolution": round(taxonomic_resolution_otl, 2),
-                    "ratio_taxonomic_resolution": round(ratio_taxonomic_resolution, 2),
-                }
-            )
+                taxonomic_resolution_results.append(
+                    {
+                        "primer": folder,
+                        "total_taxa": total_otl_taxa_count,
+                        "n_taxa_above_cutoff": taxa_considered_otl,
+                        "taxonomic_resolution": round(taxonomic_resolution_otl, 2),
+                        "ratio_taxonomic_resolution": round(ratio_taxonomic_resolution, 2),
+                    }
+                )
+
+            except Exception as e:
+                print(f"mozaiko ERROR: Failed to process primer '{folder}': {e}")
+                continue
 
         taxonomic_resolution_df = pd.DataFrame(taxonomic_resolution_results)
 
         return taxonomic_resolution_df
-
 
 class MetricsSystemExecutor:
     """
@@ -1868,6 +1917,7 @@ class MetricsSystemExecutor:
         # self.ref_db = ReferenceDatabaseQuality(otl=otl)
         # Initialize OTL and related variables
         self.otl = otl
+        self.country_name = Path(otl).stem.split('_')[0]
         self.otl_handler = OtlHandler(self.otl)
         self.otl_handler.import_otl()
         self.total_otl_taxa_count = self.otl_handler.total_taxa
@@ -2056,33 +2106,21 @@ class MetricsSystemExecutor:
             # Save OTL-level results
             if save_otl_level_results:
                 merge_columns = ["family", "genus", "species"]
-                otl_lev_result = pd.merge(
-                    tax_lev_max_ms_full_len,
-                    tax_lev_max_ms_three_end,
-                    on=merge_columns,
-                    how="outer",
-                )
-                otl_lev_result = pd.merge(
-                    otl_lev_result,
-                    tax_lev_gc,
-                    on=merge_columns,
-                    how="outer",
-                )
-                otl_lev_result = pd.merge(
-                    otl_lev_result,
-                    tax_lev_min_tm,
-                    on=merge_columns,
-                    how="outer",
-                )
+                otl_base = self.otl_handler.otl[['family', 'genus', 'species']]  # ensure this is a dataframe
 
-            os.makedirs(
-                os.path.join(output_folder, "otl_level_results/"), exist_ok=True
-            )
-            output_path_otl_results = os.path.join(
-                output_folder, "otl_level_results", f"otl_level_results_{primer}.tsv"
-            )
-            self.otl_level_filenames.append(output_path_otl_results)
-            otl_lev_result.to_csv(output_path_otl_results, sep="\t", index=False)
+                otl_lev_result = otl_base.merge(tax_lev_max_ms_full_len, on=merge_columns, how="left") \
+                                        .merge(tax_lev_max_ms_three_end, on=merge_columns, how="left") \
+                                        .merge(tax_lev_gc, on=merge_columns, how="left") \
+                                        .merge(tax_lev_min_tm, on=merge_columns, how="left")
+
+                os.makedirs(
+                    os.path.join(output_folder, "otl_level_results/"), exist_ok=True
+                )
+                output_path_otl_results = os.path.join(
+                    output_folder, "otl_level_results", f"otl_level_results_{primer}.tsv"
+                )
+                self.otl_level_filenames.append(output_path_otl_results)
+                otl_lev_result.to_csv(output_path_otl_results, sep="\t", index=False)
 
         binding_df = pd.DataFrame.from_dict(primer_results, orient="index")
 
@@ -2148,9 +2186,9 @@ class MetricsSystemExecutor:
             folder_path = Path(self.catnip_dir) / folder
             if not folder_path.is_dir():
                 continue
-            output_file_path = folder_path / f"otl_target_{folder}.tsv"
+            output_file_path = folder_path / f"otl_target_{folder}_{self.country_name}.tsv"
             if not output_file_path.exists():
-                print(f"mozaiko WARNING: No otl_target_{folder}.tsv found for {folder}")
+                print(f"mozaiko WARNING: No otl_target_{folder}_{self.country_name}.tsv found for {folder}")
                 continue
 
             df = pd.read_csv(output_file_path, sep="\t")
@@ -2502,17 +2540,26 @@ class MetricsSystemExecutor:
 
                     primer_output_dir = os.path.join(catnip_dir, primer_name)
 
-                    expected_output_all = os.path.join(primer_output_dir, f"catnip_target_{primer_name}.tsv")
-                    expected_output_otl = os.path.join(primer_output_dir, f"otl_target_{primer_name}.tsv")
+                    # OTL Files
+                    expected_output_all = os.path.join(primer_output_dir, f"catnip_target_{primer_name}_{country_name}.tsv")
+                    expected_output_otl = os.path.join(primer_output_dir, f"otl_target_{primer_name}_{country_name}.tsv")
+
+                    # Intermediate Results
+                    output_interclust = os.path.join(primer_output_dir, f"final_output_interclst.tsv")
+                    mapping = os.path.join(primer_output_dir, f"mapping_{primer_name}.tsv")
+
                     if os.path.exists(expected_output_all) and os.path.exists(expected_output_otl):
-                        print(f"mozaiko INFO: catnip results already exist for {primer_name}, skipping...")
                         continue
+
+                    trait = TraitsAndResolution(otl=otl_path, results_folder=output_folder)
+
+                    if os.path.exists(output_interclust) and os.path.exists(mapping):
+                        print(f"mozaiko INFO: catnip results already exist for {primer_name}, performing post-processing for {country_name}...")
+                        trait.post_process_catnip_primer_results(thresholds)
 
                     else:
                         print("mozaiko INFO: Taxonomic Resolution files not found. Running catnip...")
-                        trait = TraitsAndResolution(otl=otl_path,
-                                                    results_folder=output_folder)
-                        trait.run_catnip()
+                        trait.run_catnip(threshold=thresholds)
                         trait.post_process_catnip_primer_results(thresholds)
 
         output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')

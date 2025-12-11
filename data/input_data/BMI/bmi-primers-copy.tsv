@@ -1,0 +1,2 @@
+target_group	barcode_region	assay_name	fwd_seq	rev_seq	min_read_length	max_read_length
+Arthropod	COI	FwhF2_FwhR2n	GGDACWGGWTGAACWGTWTAYCCHCC	GTRATWGCHCCDGCTARWACWGG	50	205
