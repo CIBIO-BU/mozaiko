@@ -9,8 +9,8 @@ from src.marker_scoring.metrics_system import *
 
 # Files
 database_file = "data/input_data/BMI/bmi_database.fasta"
-primer_table = "data/input_data/BMI/bmi-primers-copy.tsv"
-run_name = 'BMI-NEW-CATNIP-thresholds'
+primer_table = "data/input_data/BMI/bmi-primers.tsv"
+run_name = 'BMI-NEW-CATNIP'
 otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl"
 output_folder = 'data/output_data/' + run_name
 

@@ -10,7 +10,7 @@ from src.marker_scoring.metrics_system import *
 # Files
 database_file = "data/input_data/DIA/diat_barcode_hrm_dreped.fasta"
 primer_table = "data/input_data/DIA/diat-barcode-primers.tsv"
-run_name = 'DIA-NEW-CATNIP-TEST-TARGET'
+run_name = 'DIA-NEW-CATNIP'
 otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia"
 output_folder = 'data/output_data/' + run_name
 

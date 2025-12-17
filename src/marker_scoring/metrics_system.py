@@ -1571,18 +1571,29 @@ class TraitsAndResolution:
         # Fill NaN with 'nan' string for taxonomy match
         df = df.fillna('nan')
 
-        # Step 2: Remove entries that are above the clustering threshold
+        # Step 2: Replace entries that are above the clustering threshold with 'inf'
+        df_above_clustering_th = df[df['divergence_prct'] > clustering_threshold].copy()
         df = df[df['divergence_prct'] <= clustering_threshold]
+        df_above_clustering_th.loc[:, 'divergence_prct'] = np.inf
+        df_above_clustering_th.loc[
+            :, ['target_family', 'target_genus', 'target_species']
+        ] = 'nan'
 
         # Step 3: Make symmetric (add swapped query/target rows)
         df_symm = self.make_dataframe_symmetric(df)
 
+        df_symm = pd.concat([df_symm, df_above_clustering_th], ignore_index=True)
+
         # Step 4: Add taxa from mapping file that were not processed with bowtie (infs)
         df_inf = self.add_taxa_from_mapping(df_symm, folder_path, folder_name)
         df_inf = df_inf.drop(['query', 'target'], axis=1)
+        processed_file_path = folder_path / f"df_inf_{folder_name}_{self.country_name}.tsv"
+        df_inf.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
         # # Step 5: Find minimum divergence_prct for each OTL entry in query and all target taxa
         df_catnipt_all_on_target = self.get_values_otl(df_inf)
+        processed_file_path = folder_path / f"catnip_target_prefilt_{folder_name}_{self.country_name}.tsv"
+        df_catnipt_all_on_target.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
         # Step 6: Filter target taxa by OTL & find minimum divergence_prct
         df_otl_on_target = self.filter_results_by_otl(df_inf)
@@ -1720,6 +1731,11 @@ class TraitsAndResolution:
             left_on=['family', 'genus', 'species'],
             right_on=['target_family', 'target_genus', 'target_species']
             )
+
+        df_inf = df[df['divergence_prct'] == np.inf]
+
+        # Combine both dataframes
+        df_filtered = pd.concat([df_filtered, df_inf], ignore_index=True).drop_duplicates()
 
         df_filtered = df_filtered.replace(
         {'nan': np.nan, 'inf': np.inf}
@@ -1885,8 +1901,8 @@ class TraitsAndResolution:
                 taxonomic_resolution_all_catnip = (taxa_considered_all_catnip / total_otl_taxa_count) * 100
 
                 ratio_taxonomic_resolution = (
-                    taxonomic_resolution_otl / taxonomic_resolution_all_catnip
-                ) * 100
+                    taxonomic_resolution_all_catnip / taxonomic_resolution_otl
+                )
 
                 taxonomic_resolution_results.append(
                     {
@@ -2127,7 +2143,7 @@ class MetricsSystemExecutor:
         if ref_qual is not None:
             binding_df = ref_qual.join(binding_df)
 
-        binding_df.rename(index=lambda x: x.replace("-", "_"), inplace=True)
+        # binding_df.rename(index=lambda x: x.replace("-", "_"), inplace=True)
         binding_df.index.name = "primer"
 
         binding_df = binding_df
