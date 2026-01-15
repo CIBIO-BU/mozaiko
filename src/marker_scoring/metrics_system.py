@@ -1587,6 +1587,7 @@ class TraitsAndResolution:
         # Step 4: Add taxa from mapping file that were not processed with bowtie (infs)
         df_inf = self.add_taxa_from_mapping(df_symm, folder_path, folder_name)
         df_inf = df_inf.drop(['query', 'target'], axis=1)
+        self.df_inf = df_inf.copy()
         processed_file_path = folder_path / f"df_inf_{folder_name}_{self.country_name}.tsv"
         df_inf.to_csv(processed_file_path, sep='\t', index=False, header=True)
 
@@ -1673,9 +1674,24 @@ class TraitsAndResolution:
             search_entry = search_entry[search_entry[target_col] != entry]
 
             if search_entry.empty:
-                otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
+                if rank == 'species':
+                    otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
                                             'divergence_prct']] = ['nan', 'nan', 'nan', np.nan]
-                continue
+                    continue
+
+                if rank == 'genus' or rank == 'family':
+                    # Filter df_inf for this entry
+                    search_entry_inf = self.df_inf[self.df_inf[query_col] == entry]
+                    # print(search_entry_inf)
+
+                    if not search_entry_inf.empty:
+                        otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
+                                                'divergence_prct']] = ['nan', 'nan', 'nan', np.inf]
+                    elif search_entry_inf.empty:
+                        otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
+                                                'divergence_prct']] = ['nan', 'nan', 'nan', np.nan]
+
+                    continue
 
             # Extract values as numpy array
             vals = search_entry['divergence_prct'].to_numpy()
@@ -2334,76 +2350,6 @@ class MetricsSystemExecutor:
         except Exception as e:
             raise Exception(f"mozaiko ERROR: Error in sort_otl_level_results: {str(e)}")
 
-    def rank_primers(self, save_intermediate_ranks: bool = False, output_path=None):
-        """
-        This method ranks the primers performance based on the results of the Metric System.
-
-        It assigns a ranking order for each relevant metric and sets the ranking order after
-        joining all the results. The final rank is the sum of the ranks for each metric. This
-        allows for a comprehensive ranking of the primers by setting the metric with the highest
-        rank as the one with the lowest value (is first in most of the ranking metrics).
-
-        Parameters:
-        - save_intermediate_ranks: bool
-            If True, the intermediate ranks will be saved to a TSV file. Default is False.
-        - output_path: str
-            Path to save the results. If None, the results will be saved to the results folder.
-        """
-        self.output_path = output_path
-        ranking_order = {
-            "barcoded_taxa": "desc",
-            "ratio_barcoded_taxa": "desc",
-            "normalized_mismatch_score": "asc",
-            "normalized_priming_ratio_sum": "asc",
-            "normalized_gc_matches_across_taxon": "desc",
-            "min_tm_cv": "asc",
-            "tm_score": "desc",
-            "amplification_success_percent": "desc",
-            "taxonomic_resolution": "desc",
-            "ratio_taxonomic_resolution": "desc",
-        }
-
-        metrics_df = self.join_analysis_results()
-
-        for column, order in ranking_order.items():
-            if order == "desc":
-                metrics_df[f"rank_{column}"] = metrics_df[column].rank(ascending=False)
-            elif order == "asc":
-                metrics_df[f"rank_{column}"] = metrics_df[column].rank(ascending=True)
-
-        # get rank rum and convert to final rank
-        rank_sum = metrics_df[[f"rank_{col}" for col in ranking_order]].sum(axis=1)
-        metrics_df["final_rank"] = rank_sum.rank(ascending=True).astype(int)
-        metrics_df_sorted = metrics_df.sort_values(
-            by="final_rank", ascending=True
-        ).reset_index(drop=False)
-        metrics_df_final = metrics_df_sorted[
-            ["primer"] + list(ranking_order.keys()) + ["final_rank"]
-        ]
-
-        if output_path is None:
-            output_path = Path(self.results_folder) / "ranked_primers.tsv"
-        metrics_df_final.to_csv(output_path, sep="\t", index=False)
-        print(f"mozaiko INFO: Primer Ranking results saved to {output_path}.")
-
-        # Save intermediate ranks if requested
-        if save_intermediate_ranks:
-            otl_name = Path(self.otl).stem
-            intermediate_ranks_path = (
-                Path(self.results_folder) / f"{otl_name}_intermediate_ranks.tsv"
-            )
-            metrics_df_intermediate = metrics_df_sorted[
-                ["primer"] + [f"rank_{col}" for col in ranking_order]
-            ]
-            metrics_df_intermediate.to_csv(
-                intermediate_ranks_path, sep="\t", index=False
-            )
-            print(
-                f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}."
-            )
-
-        return metrics_df_final
-
     def rank_primers_categorically_weighted(self,
                                             save_intermediate_ranks: bool = False,
                                             output_path=None,
@@ -2451,6 +2397,36 @@ class MetricsSystemExecutor:
                 "ratio_taxonomic_resolution": "desc"
             }
         }
+
+        # Validation checks
+        required_metrics = [
+            metric
+            for category_metrics in metric_system.values()
+            for metric in category_metrics.keys()
+        ]
+
+        # 1. Check for missing metric columns
+        missing_columns = [m for m in required_metrics if m not in metrics_df.columns]
+        if missing_columns:
+            raise ValueError(
+                f"Primer ranking aborted: missing required metric columns: {missing_columns}"
+            )
+
+        # 2. Check for empty values in metric columns
+        empty_metrics = {
+            metric: metrics_df[metric].isna().sum()
+            for metric in required_metrics
+            if metrics_df[metric].isna().any()
+        }
+
+        if empty_metrics:
+            details = ", ".join(
+                f"{metric} ({count} NA values)"
+                for metric, count in empty_metrics.items()
+            )
+            raise ValueError(
+                f"Primer ranking aborted: empty values detected in metrics: {details}"
+            )
 
         ranking_order = {}
         for category, metrics in metric_system.items():

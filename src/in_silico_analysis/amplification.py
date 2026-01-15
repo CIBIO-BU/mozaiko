@@ -882,6 +882,9 @@ class InSilicoAmplification:
             str(filter),
         ]
 
+        command_str = " ".join(pga_command)
+        print(command_str)
+
         try:
             # print(f"mozaiko INFO: Running CRABS command as '{' '.join(pga_command)}'")
             subprocess.run(

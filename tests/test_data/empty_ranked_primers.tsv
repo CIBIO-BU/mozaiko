@@ -1,0 +1,6 @@
+primer	barcoded_taxa	ratio_barcoded_taxa	normalized_mismatch_score	normalized_priming_ratio_sum	normalized_gc_matches_across_taxon	min_tm_cv	taxonomic_resolution	ratio_taxonomic_resolution
+rbcL_708F_R3	17.53	0.25	0.79	0.11	0	0.8		0.93
+rbcL_404F_646R	16.52	0.26	0.33	0.02	0	1.86	8.76	0.88
+rbcL_646F_998R	16.24	0.25		0.44	0	2.13	11.12	0.92
+rbcL_39F_404R	13.15	0.2	0.28	0.27	0	0.95	7.47	0.9
+rbcL_998F_1229R	14.38	0.21	2.48	0.49		2.06	8.65	0.9
