@@ -661,8 +661,8 @@ class Binding:
                         min_tm = min(pbs_fwd_tm, pbs_rev_tm)
                         min_tm = float(round(min_tm, 2))
                         substraction = pbs_fwd_tm - pbs_rev_tm
-                        delta_tm = abs(substraction)
-                        delta_tm = round(delta_tm, 2)
+                        # delta_tm = abs(substraction)
+                        # delta_tm = round(delta_tm, 2)
 
                         pbs_melting_temperature_data.append(
                             {
@@ -672,8 +672,7 @@ class Binding:
                                 "genus": genus,
                                 "species": species,
                                 "rank": rank,
-                                "min_tm": min_tm,
-                                "delta_tm": delta_tm,
+                                "min_tm": min_tm
                             }
                         )
 
@@ -780,7 +779,7 @@ class Binding:
 
                     required_columns = {
                         "three_end_df": ["seq_id", "taxon", "three_end_mismatch_sum"],
-                        "temp_df": ["seq_id", "taxon", "min_tm", "delta_tm"],
+                        "temp_df": ["seq_id", "taxon", "min_tm"],
                         "gc_matches_df": [
                             "seq_id",
                             "taxon",
@@ -808,7 +807,7 @@ class Binding:
 
                     comprehensive_df = comprehensive_df.merge(
                         pd.DataFrame(pbs_melting_temperature_data)[
-                            ["seq_id", "taxon", "min_tm", "delta_tm"]
+                            ["seq_id", "taxon", "min_tm"]
                         ],
                         on=["seq_id", "taxon"],
                     )
@@ -831,8 +830,7 @@ class Binding:
                         "three_end_mismatch_sum",
                         "gc_matches_fwd",
                         "gc_matches_rev",
-                        "min_tm",
-                        "delta_tm",
+                        "min_tm"
                     ]
 
                     comprehensive_df = comprehensive_df[column_order]
@@ -1136,40 +1134,40 @@ class Binding:
 
         return primer_pbs_df
 
-    def tm_score(self, primer_pbs_df: pd.DataFrame, temp_threshold: float = 2.0):
-        """
-        This method retrieves the percentage of entries whose variation of temperature between
-        the forward and reverse PBS sequence is lower than the temp_threshold.
+    # def tm_score(self, primer_pbs_df: pd.DataFrame, temp_threshold: float = 2.0):
+    #     """
+    #     This method retrieves the percentage of entries whose variation of temperature between
+    #     the forward and reverse PBS sequence is lower than the temp_threshold.
 
-        Parameters:
-        - primer_pbs_df: Dataframe
-            A dataframe containing the results from the comprehensive Primer-PBS analysis.
-        - temp_theresold: float
-            The temperature threshold to look for.
+    #     Parameters:
+    #     - primer_pbs_df: Dataframe
+    #         A dataframe containing the results from the comprehensive Primer-PBS analysis.
+    #     - temp_theresold: float
+    #         The temperature threshold to look for.
 
-        Return:
-        - tm_score: int
-        """
-        delta_col = primer_pbs_df["delta_tm"]
-        number_of_entries_passing_threshold = (delta_col < temp_threshold).sum()
-        total_count = delta_col.count()
+    #     Return:
+    #     - tm_score: int
+    #     """
+    #     delta_col = primer_pbs_df["delta_tm"]
+    #     number_of_entries_passing_threshold = (delta_col < temp_threshold).sum()
+    #     total_count = delta_col.count()
 
-        tm_score = (number_of_entries_passing_threshold / total_count) * 100
+    #     tm_score = (number_of_entries_passing_threshold / total_count) * 100
 
-        tm_score = float(round(tm_score, 2))
+    #     tm_score = float(round(tm_score, 2))
 
-        return tm_score
+    #     return tm_score
 
-    def count_unique_taxa(self, fasta_file):
-        unique_taxa = set()
+    # def count_unique_taxa(self, fasta_file):
+    #     unique_taxa = set()
 
-        for record in SeqIO.parse(fasta_file, "fasta"):
-            parts = record.description.split("|")
-            if len(parts) > 1:
-                taxonomy = parts[1].strip()
-                unique_taxa.add(taxonomy)
+    #     for record in SeqIO.parse(fasta_file, "fasta"):
+    #         parts = record.description.split("|")
+    #         if len(parts) > 1:
+    #             taxonomy = parts[1].strip()
+    #             unique_taxa.add(taxonomy)
 
-        return len(unique_taxa)
+    #     return len(unique_taxa)
 
     # def get_outputs_taxa_counts(self, results_folder):
     #     """
@@ -2112,8 +2110,8 @@ class MetricsSystemExecutor:
                 tax_lev_min_tm, operation="coef_var"
             )
 
-            # Tm Score
-            primer_metrics["tm_score"] = binding.tm_score(primer_pbs[primer])
+            # # Tm Score
+            # primer_metrics["tm_score"] = binding.tm_score(primer_pbs[primer])
 
             # # Amplification Success (if applicable)
             # try:
