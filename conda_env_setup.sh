@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ENV_NAME="mozaiko"
@@ -11,288 +13,326 @@ EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/${PACKAGE_DIR}/external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
 CRABS_DIR="reference_database_creator-0.1.7"
 
-# If a token argument is given, modify REPO_URL to use HTTPS with the token
-if [ $# -gt 0 ]; then
-    TOKEN="$1"
-    REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/mozaiko.git"
-    CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip.git"
-    echo "Using token-based repository URL."
-else
-    echo "Using default SSH repository URL."
-fi
+# Color codes for better output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Continue with the rest of your script
-echo "Repository URL: $REPO_URL"
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Parse command line arguments
+parse_args() {
+    if [ $# -gt 0 ]; then
+        TOKEN="$1"
+        REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/mozaiko.git"
+        CATNIP_REPO_URL="https://${TOKEN}@github.com/CIBIO-BU/catnip.git"
+        log_info "Using token-based repository URL"
+    else
+        log_info "Using default SSH repository URL"
+    fi
+    log_info "Repository URL: $REPO_URL"
+}
 
 # Check if Conda is installed
 check_conda() {
     if ! command -v conda &> /dev/null; then
-        echo "Conda could not be found. Please install Conda first."
+        log_error "Conda could not be found. Please install Conda first."
+        echo "Visit: https://docs.conda.io/en/latest/miniconda.html"
+        exit 1
+    fi
+    log_info "Conda found: $(conda --version)"
+}
+
+# Initialize conda for bash
+init_conda() {
+    log_info "Initializing Conda for current shell"
+
+    # Get conda base directory
+    CONDA_BASE=$(conda info --base)
+
+    # Source conda.sh to enable conda activate
+    if [ -f "${CONDA_BASE}/etc/profile.d/conda.sh" ]; then
+        source "${CONDA_BASE}/etc/profile.d/conda.sh"
+    else
+        log_error "Could not find conda.sh"
         exit 1
     fi
 }
 
-# Check if env already exists
+# Check if environment already exists
 check_env() {
-    if conda env list | grep -q "${ENV_NAME}"; then
-        echo "Conda environment '$ENV_NAME' already exists. Skipping environment creation."
-    else
-        echo "Creating Conda environment: $ENV_NAME"
-        conda env create -f environment.yml || { echo "Failed to create Conda environment"; exit 1; }
+    if conda env list | grep -q "^${ENV_NAME} "; then
+        log_warn "Conda environment '${ENV_NAME}' already exists"
+        read -p "Do you want to remove and recreate it? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Removing existing environment"
+            conda env remove -n "${ENV_NAME}" -y
+            return 1
+        else
+            log_info "Using existing environment"
+            return 0
+        fi
     fi
+    return 1
+}
+
+# Create Conda environment with all dependencies
+create_env() {
+    log_info "Creating Conda environment: ${ENV_NAME}"
+
+    conda create -y -n "${ENV_NAME}" \
+        -c bioconda -c conda-forge \
+        python=3.12 \
+        pip \
+        vsearch=2.13.3 \
+        cutadapt=4.9 \
+        biopython=1.84 \
+        numpy=2.0.0 \
+        pandas=2.2.2 \
+        matplotlib=3.9.1 \
+        tqdm \
+        pyyaml \
+        requests \
+        wget \
+        git || {
+            log_error "Failed to create Conda environment"
+            exit 1
+        }
+
+    log_info "Conda environment created successfully"
 }
 
 # Activate Environment
 activate_env() {
-    echo "Activating Conda environment: $ENV_NAME"
-
-    # Ensure Conda is initialized
-    # This step might be needed to properly configure the shell for Conda
-    CUR_SHELL=shell.$(basename -- "${SHELL}")
-    eval "$(conda "$CUR_SHELL" hook)"
-
-    set -e
-    conda activate "$ENV_NAME"
-    echo "INFO: conda environment $ENV_NAME created and activated"
+    log_info "Activating Conda environment: ${ENV_NAME}"
+    conda activate "${ENV_NAME}" || {
+        log_error "Failed to activate environment"
+        exit 1
+    }
+    log_info "Environment activated successfully"
 }
 
 # Clone repository
 clone_repo() {
-    if ! command -v git &> /dev/null; then
-        echo "Git is not installed. Attempting to install git..."
-        sudo apt-get update
-        sudo apt-get install -y git
-    fi
-
     if [ -d "$PACKAGE_DIR" ]; then
-        echo "Directory $PACKAGE_DIR already exists. Skipping repository cloning."
+        log_warn "Directory $PACKAGE_DIR already exists"
+        read -p "Do you want to update it? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Updating repository"
+            cd "$PACKAGE_DIR" || exit 1
+            git pull || {
+                log_error "Failed to update repository"
+                exit 1
+            }
+            cd "$SCRIPT_DIR"
+        else
+            log_info "Skipping repository update"
+        fi
     else
-        echo "Cloning repository from $REPO_URL."
-        git clone "$REPO_URL" || { echo "Failed to clone repository"; exit 1; }
+        log_info "Cloning repository from $REPO_URL"
+        git clone "$REPO_URL" || {
+            log_error "Failed to clone repository"
+            exit 1
+        }
     fi
 }
 
 # Install Package
 install_package() {
-    echo "Navigating to package directory: $PACKAGE_DIR"
-    cd "$PACKAGE_DIR" || { echo "Directory $PACKAGE_DIR does not exist"; exit 1; }
+    log_info "Installing mozaiko package"
+    cd "$PACKAGE_DIR" || {
+        log_error "Directory $PACKAGE_DIR does not exist"
+        exit 1
+    }
 
-    echo "Installing mozaiko package"
-    pip install . || { echo "Failed to install package"; exit 1; }
+    pip install -e . || {
+        log_error "Failed to install package"
+        exit 1
+    }
 
-    echo "Installation complete."
+    log_info "Mozaiko package installation complete"
 }
 
 # Install CRABS v0.1.7
 install_crabs_release() {
-    #echo "mozaiko requires CRABS v0.1.7 for downstream analysis"
-    echo "Checking if CRABS v0.1.7 is installed"
+    log_info "Checking CRABS installation"
 
-    crabs_output=$(crabs --version | tail -n 1)
-    crabs_version=${crabs_output##* }
+    if command -v crabs &> /dev/null; then
+        crabs_output=$(crabs --version 2>&1 | tail -n 1)
+        crabs_version=${crabs_output##* }
 
-    if [ "$crabs_version" != '0.1.7' ]; then
-        if [ -n "$crabs_version" ]; then
-            echo "CRABS is installed with the wrong version. Please remove current CRABS installation an install 0.1.7"
-        else
-            echo "CRABS is not installed. Installing CRABS v0.1.7..."
-
-            echo "Creating $EXTERNAL_SCRIPTS_DIR if it doesn't exist..."
-            mkdir -p "$EXTERNAL_SCRIPTS_DIR" || { echo "Failed to create directory $EXTERNAL_SCRIPTS_DIR"; exit 1; }
-
-            echo "Moving to $EXTERNAL_SCRIPTS_DIR..."
-            cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
-
-            echo "Downloading CRABS v0.1.7"
-            wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || { echo "Failed to download CRABS"; exit 1; }
-
-            echo "Unzipping CRABS"
-            tar -xzf "$CRABS_ARCHIVE" || { echo "Failed to unzip CRABS"; exit 1; }
-
-            echo "Navigating to CRABS directory"
-            cd "$CRABS_DIR" || { echo "Directory reference_database_creator-0.1.7 does not exist"; exit 1; }
-
-            echo "Installing CRABS"
-            pip install . || { echo "Failed to install CRABS"; exit 1; }
-
-            echo "Applying coverage calculation patch..."
-            CRABS_PATH=$(which crabs)
-            if [ -z "$CRABS_PATH" ]; then
-                echo "Error: Could not locate crabs executable after installation"
-                exit 1
-            fi
-
-            # Create backup
-            cp "$CRABS_PATH" "${CRABS_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
-
-            # Apply the patch
-            sed -i.bak '
-                /print(f'\''filtering alignments based on parameter settings'\'')/ a\    whole_percent = float(COV)*100
-                s/tcov >= float(COV) and/tcov >= whole_percent and/
-                s/tcov >= float(COV)"/tcov >= whole_percent"/
-            ' "$CRABS_PATH"
-
-            # Restore executable permissions
-            chmod +x "$CRABS_PATH"
-
-            echo "CRABS patch applied successfully"
-
-            echo "Deleting CRABS archive"
-            cd ..
-            rm -f "$CRABS_ARCHIVE"
-
-            echo "CRABS Installation complete."
-        fi
-    else
-        echo "CRABS is installed with version 0.1.7."
-    fi
-}
-
-install_cutadapt_package() {
-    #echo "mozaiko requires cutadapt for downstream analysis"
-    echo "checking if cutadapt is already installed"
-
-    if command -v cutadapt &> /dev/null; then
-        current_version=$(cutadapt --version | cut -d ' ' -f2)
-        required_version="4.9"
-
-        if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" = "$required_version" ]; then
-            echo "Cutadapt version $current_version is already installed and meets the minimum requirement."
+        if [ "$crabs_version" = "0.1.7" ]; then
+            log_info "CRABS v0.1.7 is already installed"
             return 0
         else
-            echo "Cutadapt is installed but version $current_version is outdated. Minimum required version is $required_version."
+            log_warn "CRABS version $crabs_version is installed, but v0.1.7 is required"
+            log_warn "Please manually remove CRABS and rerun this script"
+            return 1
         fi
-    else
-        echo "Cutadapt is not installed."
     fi
 
-    echo "Installing/Upgrading cutadapt package..."
+    log_info "Installing CRABS v0.1.7"
 
-    if ! pip install cutadapt; then
-        echo "Failed to install cutadapt. Please check the error messages and try again."
-        return 1
-    fi
+    mkdir -p "$EXTERNAL_SCRIPTS_DIR" || {
+        log_error "Failed to create directory $EXTERNAL_SCRIPTS_DIR"
+        exit 1
+    }
 
-    if command -v cutadapt &> /dev/null; then
-        echo "Cutadapt has been successfully installed."
-        cutadapt --version
-        return 0
-    else
-        echo "Cutadapt installation failed. Please check the error messages and try again."
-        return 1
-    fi
+    cd "$EXTERNAL_SCRIPTS_DIR" || {
+        log_error "Directory $EXTERNAL_SCRIPTS_DIR does not exist"
+        exit 1
+    }
+
+    log_info "Downloading CRABS v0.1.7"
+    wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || {
+        log_error "Failed to download CRABS"
+        exit 1
+    }
+
+    log_info "Extracting CRABS archive"
+    tar -xzf "$CRABS_ARCHIVE" || {
+        log_error "Failed to extract CRABS"
+        exit 1
+    }
+
+    cd "$CRABS_DIR" || {
+        log_error "Directory $CRABS_DIR does not exist"
+        exit 1
+    }
+
+    log_info "Installing CRABS package"
+    pip install . || {
+        log_error "Failed to install CRABS"
+        exit 1
+    }
+
+    cd "$EXTERNAL_SCRIPTS_DIR"
+    rm -f "$CRABS_ARCHIVE"
+
+    log_info "CRABS installation complete"
 }
 
-install_vsearch() {
-    #echo "mozaiko requires vsearch for downstream analysis"
-    echo "checking if vsearch is already installed"
+# Verify tools installation
+verify_tools() {
+    log_info "Verifying tool installations"
+
+    local all_good=true
+
+    if command -v cutadapt &> /dev/null; then
+        log_info "cutadapt: $(cutadapt --version)"
+    else
+        log_error "cutadapt not found"
+        all_good=false
+    fi
 
     if command -v vsearch &> /dev/null; then
-        current_version=$(vsearch --version | cut -d ' ' -f2)
-        required_version="2.13.3"
-
-        if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" = "$required_version" ]; then
-            echo "Vsearch version $current_version is already installed and meets the minimum requirement."
-            return 0
-        else
-            echo "Vsearch is installed but version $current_version is outdated. Minimum required version is $required_version."
-        fi
+        log_info "vsearch: $(vsearch --version 2>&1 | head -n1)"
     else
-        echo "Vsearch is not installed."
+        log_error "vsearch not found"
+        all_good=false
     fi
 
-    echo "Installing vsearch version 2.13.3 from source..."
-
-    arch=$(uname -m)
-    os=$(uname -s)
-
-    case "${os}_${arch}" in
-        "Linux_x86_64")
-            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-linux-x86_64.tar.gz"
-            ;;
-        "Linux_aarch64")
-            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-linux-aarch64.tar.gz"
-            ;;
-        "Linux_ppc64le")
-            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-linux-ppc64le.tar.gz"
-            ;;
-        "Darwin_x86_64")
-            url="https://github.com/torognes/vsearch/releases/download/v2.13.3/vsearch-2.13.3-macos-x86_64.tar.gz"
-            ;;
-        *)
-            echo "Unsupported system architecture: ${os}_${arch}"
-            return 1
-            ;;
-    esac
-
-    temp_dir=$(mktemp -d)
-    cd "$temp_dir" || return 1
-
-    if ! wget "$url"; then
-        echo "Failed to download vsearch binary. Please check your internet connection and try again."
-        return 1
-    fi
-
-    tar_file=$(basename "$url")
-    tar xzf "$tar_file"
-
-    vsearch_binary=$(find . -name "vsearch" -type f -executable)
-
-    if [ -z "$vsearch_binary" ]; then
-        echo "Could not find the vsearch binary in the extracted files."
-        return 1
-    fi
-
-    if sudo cp "$vsearch_binary" /usr/local/bin/vsearch; then
-        echo "Vsearch has been successfully installed."
-        vsearch --version
-        return 0
+    if command -v crabs &> /dev/null; then
+        log_info "crabs: $(crabs --version 2>&1 | tail -n1)"
     else
-        echo "Failed to install vsearch. Please check the error messages and try again."
+        log_warn "crabs not found (optional)"
+    fi
+
+    if [ "$all_good" = false ]; then
+        log_error "Some required tools are missing"
         return 1
     fi
+
+    log_info "All required tools verified successfully"
+    return 0
 }
 
+# Install catnip
 install_catnip() {
-    echo "Checking if catnip environment exists..."
+    log_info "Checking catnip installation"
 
     if conda env list | grep -q "^catnip "; then
-        echo "catnip environment already exists."
-    else
-        echo "Creating catnip environment..."
-        cd "$EXTERNAL_SCRIPTS_DIR" || { echo "Directory $EXTERNAL_SCRIPTS_DIR does not exist"; exit 1; }
-
-        git clone "$CATNIP_REPO_URL" || { echo "Failed to clone catnip repository"; exit 1; }
-
-        cd catnip || { echo "Directory catnip does not exist"; exit 1; }
-        conda env create -f catnip-env.yml || { echo "Failed to create catnip Conda environment"; exit 1; }
-
-        # Install in the environment directly without activating
-        conda run -n catnip pip install -e . || { echo "Failed to install catnip package"; exit 1; }
-
-        echo "catnip installation complete."
-        echo "To use catnip, run: conda activate catnip"
+        log_info "catnip environment already exists"
+        return 0
     fi
+
+    log_info "Creating catnip environment"
+
+    mkdir -p "$EXTERNAL_SCRIPTS_DIR"
+    cd "$EXTERNAL_SCRIPTS_DIR" || {
+        log_error "Directory $EXTERNAL_SCRIPTS_DIR does not exist"
+        exit 1
+    }
+
+    if [ ! -d "catnip" ]; then
+        log_info "Cloning catnip repository"
+        git clone "$CATNIP_REPO_URL" || {
+            log_error "Failed to clone catnip repository"
+            exit 1
+        }
+    fi
+
+    cd catnip || {
+        log_error "Directory catnip does not exist"
+        exit 1
+    }
+
+    conda env create -f catnip-env.yml || {
+        log_error "Failed to create catnip Conda environment"
+        exit 1
+    }
+
+    conda run -n catnip pip install -e . || {
+        log_error "Failed to install catnip package"
+        exit 1
+    }
+
+    log_info "catnip installation complete"
+    log_info "To use catnip, run: conda activate catnip"
 }
 
-install_entry_points() {
-    echo "Installing CLI commands."
-    pip install -e .
-}
-
+# Main installation function
 main() {
+    log_info "Starting mozaiko installation"
+
+    parse_args "$@"
     check_conda
-    check_env
+    init_conda
+
+    local env_exists=false
+    if check_env; then
+        env_exists=true
+    fi
+
+    if [ "$env_exists" = false ]; then
+        create_env
+    fi
+
     activate_env
     clone_repo
     install_package
-    install_entry_points
-    echo "mozaiko requires CRABS (v0.1.7), cutadapt and vsearch for downstream analysis."
-    echo "Proceeding with installation..."
+
+    log_info "Installing additional dependencies"
     install_crabs_release
-    install_cutadapt_package
     install_catnip
-    echo "Instalation complete"
+
+    verify_tools
+
+    log_info "Installation complete!"
+    log_info "To use mozaiko, run: conda activate ${ENV_NAME}"
 }
 
-main
+main "$@"

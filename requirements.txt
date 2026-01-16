@@ -1,5 +1,0 @@
-biopython==1.84
-numpy==2.0.0
-pandas==2.2.2
-matplotlib==3.9.1.post1
-tqdm
