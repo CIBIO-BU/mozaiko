@@ -40,5 +40,10 @@ pipeline_dia_test_inters.ipynb
 test-bf3-mismatches-dystera.ipynb
 data/input_data/test-bf3
 data/input_data/BMI/bmi-jh.tsv
+data/input_data/BMI/bmi_database_harmonize-update_processed.fasta
+data/input_data/BMI/bmi_database_harmonize-update_processed.tsv
+data/input_data/BMI/bmi_database_harmonize-update.fasta
+
+
 
 

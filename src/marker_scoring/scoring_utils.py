@@ -11,6 +11,10 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 
+from src.reference_database.sequence_import import *
+from src.marker_scoring.metrics_system import *
+import pandas as pd
+
 # IUPAC Dictionary: Based on Johnson, A. D. (2010).
 # An extended IUPAC nomenclature code for polymorphic nucleic acids.
 # Bioinformatics, 26(10), 1386-1389.
@@ -515,3 +519,97 @@ def rename_analysis_folder(analysis_folder):
 
     if filtered_folder3.exists() and not renamed_folder3.exists():
         filtered_folder3.rename(renamed_folder3)
+
+
+def compute_pbs_stats(input_A_file, input_B_file, input_ABC_file, otl, output_dir):
+    """
+    Process input files and compute taxonomic coverage statistics.
+    """
+    input_A_df = _process_fasta_file(input_A_file, output_dir)
+    input_B_df = _process_fasta_file(input_B_file, output_dir)
+    input_ABC_df = _process_fasta_file(input_ABC_file, output_dir)
+
+    # Create A+B input
+    merged_AB = pd.concat([input_A_df, input_B_df], ignore_index=True).drop_duplicates()
+
+    # Calculate coverage metrics
+    AB_tax_coverage = _calculate_tax_coverage(merged_AB, otl)
+    A_tax_coverage = _calculate_tax_coverage(input_A_df, otl)
+    ABC_tax_coverage = _calculate_tax_coverage(input_ABC_df, otl)
+
+    # Compute percentages
+    prcnt_pbs = round((AB_tax_coverage / ABC_tax_coverage) * 100, 2) if ABC_tax_coverage > 0 else 0
+    prcnt_amplified_with_pbs = round((A_tax_coverage / AB_tax_coverage) * 100, 2) if AB_tax_coverage > 0 else 0
+
+    return {
+        'AB_tax_coverage': float(AB_tax_coverage),
+        'A_tax_coverage': float(A_tax_coverage),
+        'ABC_tax_coverage': float(ABC_tax_coverage),
+        'prcnt_pbs': prcnt_pbs,
+        'prcnt_amplified_with_pbs': prcnt_amplified_with_pbs
+    }
+
+
+def _process_fasta_file(input_file, output_dir):
+    """
+    Convert FASTA file to DataFrame with taxonomic information.
+    """
+    file_name = input_file.split('/')[-1].strip('.fasta')
+    step_name = input_file.split('/')[-2]
+    output_file_name = file_name + '_' + step_name + '.tsv'
+    output_file = os.path.join(output_dir, output_file_name)
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    if os.path.exists(output_file):
+        df = pd.read_csv(output_file, sep='\t', usecols=['taxa_info'])
+        df[['family', 'genus', 'species']] = df['taxa_info'].str.split('|', expand=True).iloc[:, -3:]
+        return df[['family', 'genus', 'species']]
+
+    custom_fasta_import = CustomFastaImport(input_file)
+    custom_fasta_import.read_fasta(input_file, check_taxid=False)
+    custom_fasta_import.df2csv(output_file)
+
+    df = pd.read_csv(output_file, sep='\t', usecols=['taxa_info'])
+    df[['family', 'genus', 'species']] = df['taxa_info'].str.split('|', expand=True).iloc[:, -3:]
+
+    return df[['family', 'genus', 'species']]
+
+
+def _calculate_tax_coverage(input_df, otl, cutff_val: int = 1):
+    """
+    Calculate taxonomic coverage percentage for a given dataset.
+    """
+    otl_handler = OtlHandler(otl)
+    otl_handler.import_otl()
+    total_taxa = otl_handler.total_taxa
+
+    otl_df = otl_handler.otl[['family', 'genus', 'species', 'rank']].drop_duplicates().reset_index(drop=True)
+
+    # Count matching taxa
+    def count_taxa_matches(row):
+        rank = row['rank']
+        entry = row[rank]
+        return (input_df[rank] == entry).sum()
+
+    otl_df['tax_count'] = otl_df.apply(count_taxa_matches, axis=1)
+
+    cutoff_num = (otl_df['tax_count'] >= cutff_val).sum()
+    tax_coverage = round((cutoff_num / total_taxa) * 100, 2)
+    tax_coverage = float(tax_coverage)
+
+    return tax_coverage
+
+def compute_pbs_stats_multiple_otls(input_A_file, input_B_file, input_ABC_file, otl_path, output_dir):
+    for otl_file in os.listdir(otl_path):
+        otl_file_p = os.path.join(otl_path, otl_file)
+        country = otl_file.split('_')[0]
+        country_stats = compute_pbs_stats(input_A_file, input_B_file, input_ABC_file, otl_file_p, output_dir)
+
+        print(f"{country} stats: {country_stats}")
+
+def barcoded_taxa(input_ABC_file, otl, output_dir):
+    input_ABC_df = _process_fasta_file(input_ABC_file, output_dir)
+
+    _calculate_tax_coverage(input_ABC_df, otl, cutff_val=1)

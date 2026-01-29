@@ -268,7 +268,6 @@ class ReferenceDatabaseQuality:
 
                 mapping_key = (primer, family, genus, species)
                 taxa_counts_mapping[mapping_key] = count
-        # print(taxa_counts_mapping)
 
         def update_counts(primer_otl_hierarchy, taxa_counts_mapping, primer):
             """
@@ -2433,9 +2432,9 @@ class MetricsSystemExecutor:
 
         for metric, order in ranking_order.items():
             if order == "desc":
-                    metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=False)
+                metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=False)
             elif order == "asc":
-                    metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=True)
+                metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=True)
 
 
         # Calculate rank sum for each category
@@ -2478,7 +2477,7 @@ class MetricsSystemExecutor:
                 category_columns.append(f"category_rank_{category}")
 
             metrics_df_intermediate = metrics_df_sorted[
-                ["primer"] + metric_rank_columns + category_columns
+                ["primer"] + metric_rank_columns + category_columns + ["final_score", "final_rank"]
             ]
 
             metrics_df_intermediate.to_csv(
