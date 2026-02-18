@@ -43,7 +43,10 @@ data/input_data/BMI/bmi-jh.tsv
 data/input_data/BMI/bmi_database_harmonize-update_processed.fasta
 data/input_data/BMI/bmi_database_harmonize-update_processed.tsv
 data/input_data/BMI/bmi_database_harmonize-update.fasta
-
+data/input_data/BMI/ref_bd_bf2.fasta
+data/input_data/BMI/ref_bd_bf2_processed.fasta
+data/input_data/BMI/bmi_database_processed_processed.fasta
+data/input_data/BMI/bmi_database_processed.tsv
 
 
 

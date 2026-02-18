@@ -346,13 +346,13 @@ class ReferenceDatabaseQuality:
 
         return primer_taxa_data
 
-    def calculate_percentage_of_taxa_w_x_barcodes(
+    def calculate_proportion_of_taxa_w_x_barcodes(
         self,
         total_taxa_count: int,
         barcode_threshold: int = 1,
     ):
         """
-        Calculates the percentage of taxa with more than X barcodes.
+        Calculates the proportion of taxa with more than X barcodes.
         """
         barcodes_per_entry = self.calculate_number_of_barcodes_per_fasta_entry()
         barcodes_per_species = self.calculate_number_of_barcodes_per_otl_taxonomy(
@@ -408,9 +408,9 @@ class ReferenceDatabaseQuality:
         results = {}
         for primer_pair, taxa_data in barcodes_per_species.items():
             taxa_meeting_threshold = count_qualifying_taxa(taxa_data, barcode_threshold)
-            percentage = (taxa_meeting_threshold / total_taxa_count) * 100
-            results[primer_pair] = round(percentage, 2)
-            # print(f"mozaiko INFO: Calculated percentage for {primer_pair}.")
+            proportion = round(taxa_meeting_threshold / total_taxa_count, 2)
+            results[primer_pair] = proportion
+            # print(f"mozaiko INFO: Calculated proportion for {primer_pair}.")
 
         return results
 
@@ -426,12 +426,12 @@ class ReferenceDatabaseQuality:
 
         Output:
         - barcoded_taxa_ratio: Dict
-            A dictionary containing the raatio of barcoded taxa and the percentage of taxa with more than five barcodes per primer pair.
+            A dictionary containing the ratio of barcoded taxa and the proportion of taxa with more than five barcodes per primer pair.
         """
-        barcoded_taxa_five_plus = self.calculate_percentage_of_taxa_w_x_barcodes(
+        barcoded_taxa_five_plus = self.calculate_proportion_of_taxa_w_x_barcodes(
             total_taxa_count, barcode_threshold=5
         )
-        barcoded_taxa = self.calculate_percentage_of_taxa_w_x_barcodes(
+        barcoded_taxa = self.calculate_proportion_of_taxa_w_x_barcodes(
             total_taxa_count, barcode_threshold=1
         )
 
@@ -1905,13 +1905,13 @@ class TraitsAndResolution:
 
                 taxa_considered_otl = df_otl_on_target.shape[0]
 
-                taxonomic_resolution_otl = (taxa_considered_otl / total_otl_taxa_count) * 100
+                taxonomic_resolution_otl = taxa_considered_otl / total_otl_taxa_count
 
                 # Metric 2: Ratio between Taxonomic resolution considering only OTL entries and Taxonomic resolution considering all taxa from catnipt
 
                 taxa_considered_all_catnip = df_catnipt_all_on_target.shape[0]
 
-                taxonomic_resolution_all_catnip = (taxa_considered_all_catnip / total_otl_taxa_count) * 100
+                taxonomic_resolution_all_catnip = taxa_considered_all_catnip / total_otl_taxa_count
 
                 ratio_taxonomic_resolution = (
                     taxonomic_resolution_all_catnip / taxonomic_resolution_otl
@@ -2347,6 +2347,128 @@ class MetricsSystemExecutor:
         except Exception as e:
             raise Exception(f"mozaiko ERROR: Error in sort_otl_level_results: {str(e)}")
 
+    def rank_primers_flat(self,
+                     save_intermediate_ranks: bool = False,
+                     output_path=None,
+                     metrics_results_path=None
+                     ):
+        """
+        This method ranks the primers performance based on the results of the Metric System.
+
+        It assigns a ranking order for each relevant metric and sets the ranking order after
+        joining all the results. The final rank is the sum of the ranks for each metric. This
+        allows for a comprehensive ranking of the primers by setting the metric with the highest
+        rank as the one with the lowest value (is first in most of the ranking metrics).
+
+        Parameters:
+        - save_intermediate_ranks: bool
+            If True, the intermediate ranks will be saved to a TSV file. Default is False.
+        - output_path: str
+            Path to save the results. If None, the results will be saved to the results folder.
+        - metrics_results_path: str
+            Path to the dataframe containing the metrics values results. If None, all steps of the
+        ranking process will be ran. If a path is provided, the primer ranking will be done using
+        the provided dataframe as metrics values.
+        """
+        self.output_path = output_path
+
+        if metrics_results_path:
+            metrics_df = pd.read_csv(metrics_results_path, sep='\t')
+            original_metrics = metrics_df.copy()
+        else:
+            metrics_df = self.join_analysis_results()
+
+        metric_system = {
+            "ref_db_qual": {
+                "barcoded_taxa": "desc",
+                "ratio_barcoded_taxa": "desc"
+            },
+            "binding_capacity": {
+                "normalized_mismatch_score": "asc",
+                "normalized_priming_ratio_sum": "asc",
+                "normalized_gc_matches_across_taxon": "desc",
+                "min_tm_cv": "asc"
+            },
+            "tax_res": {
+                "taxonomic_resolution": "desc",
+                "ratio_taxonomic_resolution": "desc"
+            }
+        }
+
+        # Validation checks
+        required_metrics = [
+            metric
+            for category_metrics in metric_system.values()
+            for metric in category_metrics.keys()
+        ]
+
+        # 1. Check for missing metric columns
+        missing_columns = [m for m in required_metrics if m not in metrics_df.columns]
+        if missing_columns:
+            raise ValueError(
+                f"Primer ranking aborted: missing required metric columns: {missing_columns}"
+            )
+
+        # 2. Check for empty values in metric columns
+        empty_metrics = {
+            metric: metrics_df[metric].isna().sum()
+            for metric in required_metrics
+            if metrics_df[metric].isna().any()
+        }
+
+        if empty_metrics:
+            details = ", ".join(
+                f"{metric} ({count} NA values)"
+                for metric, count in empty_metrics.items()
+            )
+            raise ValueError(
+                f"Primer ranking aborted: empty values detected in metrics: {details}"
+            )
+
+        ranking_order = {}
+        for category, metrics in metric_system.items():
+            for metric, order in metrics.items():
+                ranking_order[metric] = order
+
+        for metric, order in ranking_order.items():
+            if order == "desc":
+                metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=False)
+            elif order == "asc":
+                metrics_df[f"rank_{metric}"] = metrics_df[metric].rank(ascending=True)
+
+        # get rank rum and convert to final rank
+        rank_sum = metrics_df[[f"rank_{col}" for col in ranking_order]].sum(axis=1)
+        metrics_df["final_rank"] = rank_sum.rank(ascending=True).astype(int)
+        metrics_df_sorted = metrics_df.sort_values(
+            by="final_rank", ascending=True
+        ).reset_index(drop=False)
+        metrics_df_final = metrics_df_sorted[
+            ["primer"] + list(ranking_order.keys()) + ["final_rank"]
+        ]
+
+        if output_path is None:
+            output_path = Path(self.results_folder) / "ranked_primers.tsv"
+        metrics_df_final.to_csv(output_path, sep="\t", index=False)
+        print(f"mozaiko INFO: Primer Ranking results saved to {output_path}.")
+
+        # Save intermediate ranks if requested
+        if save_intermediate_ranks:
+            otl_name = Path(self.otl).stem
+            intermediate_ranks_path = (
+                Path(self.results_folder) / f"{otl_name}_intermediate_ranks.tsv"
+            )
+            metrics_df_intermediate = metrics_df_sorted[
+                ["primer"] + [f"rank_{col}" for col in ranking_order]
+            ]
+            metrics_df_intermediate.to_csv(
+                intermediate_ranks_path, sep="\t", index=False
+            )
+            print(
+                f"mozaiko INFO: Intermediate ranks saved to {intermediate_ranks_path}."
+            )
+
+        return metrics_df_final
+
     def rank_primers_categorically_weighted(self,
                                             save_intermediate_ranks: bool = False,
                                             output_path=None,
@@ -2495,7 +2617,8 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            thresholds: list | float = None):
+                            thresholds: list | float = None,
+                            ranking_mode: str = 'category'):
         """
         Evaluate a single OTL file and generate primer rankings.
 
@@ -2510,11 +2633,21 @@ class MetricsSystemExecutor:
             Whether to save intermediate ranking files
         - run_catnip: bool
             Whether to run catnip analysis
+        - ranking_mode: str
+
+        Ranking strategy to use. Options:
+        - "category": category-weighted ranking
+        - "flat": equally weighted per-metric ranking
 
         Returns:
         - ranked_df: pd.DataFrame
             Ranked primers results
         """
+        if ranking_mode not in {"category", "flat"}:
+            raise ValueError(
+                "ranking_mode must be one of {'category', 'flat'}"
+            )
+
         country_name = Path(otl_path).stem.split('_')[0]
         print("---------------------")
         print(f"mozaiko INFO: Starting evaluating process for {country_name} OTL.")
@@ -2559,10 +2692,16 @@ class MetricsSystemExecutor:
             primer_table=primer_table
         )
 
-        ranked_df = executor.rank_primers_categorically_weighted(
-            save_intermediate_ranks=save_intermediate_ranks,
-            output_path=output_path
-        )
+        if ranking_mode == "category":
+            ranked_df = executor.rank_primers_categorically_weighted(
+                save_intermediate_ranks=save_intermediate_ranks,
+                output_path=output_path
+            )
+        else:  # "flat"
+            ranked_df = executor.rank_primers(
+                save_intermediate_ranks=save_intermediate_ranks,
+                output_path=output_path
+            )
 
         executor.sort_otl_level_results(subdirectory_name=country_name)
 
