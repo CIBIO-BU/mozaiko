@@ -2698,7 +2698,7 @@ class MetricsSystemExecutor:
                 output_path=output_path
             )
         else:  # "flat"
-            ranked_df = executor.rank_primers(
+            ranked_df = executor.rank_primers_flat(
                 save_intermediate_ranks=save_intermediate_ranks,
                 output_path=output_path
             )
@@ -2713,7 +2713,8 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            thresholds: list | float = None):
+                            thresholds: list | float = None,
+                            ranking_mode: str = 'category'):
         """
         Evaluate multiple OTL files in a folder.
 
@@ -2728,6 +2729,11 @@ class MetricsSystemExecutor:
             Whether to save intermediate ranking files
         - run_catnip: bool
             Whether to run catnip analysis
+        - ranking_mode: str
+            Ranking strategy to use. Options:
+            - "category": category-weighted ranking (default)
+            - "flat": equally weighted per-metric ranking
+
 
         Returns:
         - results: dict
@@ -2754,7 +2760,8 @@ class MetricsSystemExecutor:
                     primer_table=primer_table,
                     save_intermediate_ranks=save_intermediate_ranks,
                     run_catnip=run_catnip,
-                    thresholds=thresholds
+                    thresholds=thresholds,
+                    ranking_mode=ranking_mode
                 )
 
                 country_name = Path(otl_path).stem.split('_')[0]
