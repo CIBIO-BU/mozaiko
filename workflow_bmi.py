@@ -8,9 +8,9 @@ from src.in_silico_analysis.amplification import InSilicoAmplification
 from src.marker_scoring.metrics_system import *
 
 # Files
-database_file = "data/input_data/BMI/ref_bd_bf2.fasta"
+database_file = "data/input_data/BMI/bmi_database.fasta"
 primer_table = "data/input_data/BMI/bmi-primers.tsv"
-run_name = 'BMI-test-bf2br2-input'
+run_name = 'BMI-lastest-version-test-rounding-ranks-flat-refdb'
 otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl"
 output_folder = 'data/output_data/' + run_name
 
@@ -29,7 +29,8 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
                       primer_table=primer_table,
                       save_intermediate_ranks=True,
                       run_catnip=True,
-                      thresholds = [10.0, 5.0, 2.0])
+                      thresholds = [10.0, 5.0, 2.0],
+                      ranking_mode='flat')
 
 # otl_path = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl/Germany_taxonlist_bmi_harmonized_harmonized.tsv"
 # MetricsSystemExecutor.evaluate_single_OTL(

@@ -563,7 +563,7 @@ class InSilicoAmplification:
                   f" {(self.number_of_mismatches * 2)} combined mismatches from {fasta_file}: {e}")
 
     def run_in_silico_analysis(
-        self, primer_table=None, max_len_according_to_ilumina: bool = True, minimum_percentage_identity=0.75, minimum_alignment_coverage=99
+        self, primer_table=None, max_len_according_to_ilumina: bool = True, minimum_percentage_identity=0.75, minimum_alignment_coverage=99, max_ambiguous_percentage=0.05
     ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
@@ -578,6 +578,9 @@ class InSilicoAmplification:
         calculated according to Illumina's formula
         - taxa_column_number: Number of the column in the fasta file that contains the information
         for the taxa-level we want the analysis to be performed. The count starts from 0.
+        - minimum_percentage_identity: Minimum percentage identity to be used as a threshold in the PGA step (default: 0.75)
+        - minimum_alignment_coverage: Minimum alignment coverage to be used as a threshold in the PGA step (default: 99)
+        - max_ambiguous_percentage: Maximum percentage of ambiguous bases allowed in sequences for PGA database (default: 0.05)
         """
 
         self._check_if_cutadapt_installed()
@@ -611,7 +614,7 @@ class InSilicoAmplification:
 
             for index, row in self.primer_table.iterrows():
                 if self.database_fasta_file:
-                    self.process_commands(row, self.database_fasta_file, minimum_percentage_identity, minimum_alignment_coverage)
+                    self.process_commands(row, self.database_fasta_file, minimum_percentage_identity, minimum_alignment_coverage, max_ambiguous_percentage)
                 else:
                     raise ValueError("mozaiko ERROR: No input data was found.")
                 print(
@@ -630,6 +633,8 @@ class InSilicoAmplification:
                     input_path = self.output_dirs[dir_name]
                     filter_sequences_by_ambiguity(
                         input_path=input_path,
+                        max_ambiguous_percentage=max_ambiguous_percentage
+
                     )
                 except Exception as e:
                     print(f"mozaiko ERROR: Error filtering {dir_name} directory: {str(e)}")
@@ -653,7 +658,7 @@ class InSilicoAmplification:
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
 
-    def process_commands(self, row: dict, input_fasta: Path, minimum_percentage_identity, minimum_alignment_coverage):
+    def process_commands(self, row: dict, input_fasta: Path, minimum_percentage_identity, minimum_alignment_coverage, max_ambiguous_percentage=0.05):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
@@ -701,7 +706,7 @@ class InSilicoAmplification:
             filter_sequences_by_ambiguity(
                 input_path=output_dirs["insert"],
                 output_dir=output_dirs["insert"] / "filtered",
-                max_ambiguous_percentage=0.05,
+                max_ambiguous_percentage=max_ambiguous_percentage,
             )
         except Exception as e:
             print(f"Error filtering insert directory: {str(e)}")
