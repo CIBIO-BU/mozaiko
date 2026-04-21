@@ -118,6 +118,9 @@ def filter_sequences_by_ambiguity(
     if not input_files:
         raise ValueError(f"mozaiko ERROR: No FASTA files found in {input_path}")
 
+    if not (0.0 <= max_ambiguous_percentage <= 1.0):
+        raise ValueError("mozaiko ERROR: max_ambiguous_percentage must be between 0.0 and 1.0")
+
     if output_dir is None:
         if input_path.is_dir():
             output_dir = input_path / "filtered"
