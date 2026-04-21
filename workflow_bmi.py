@@ -3,9 +3,9 @@ import time
 start_time = time.time()
 
 # Imports
-from src.reference_database.sequence_import import *
-from src.in_silico_analysis.amplification import InSilicoAmplification
-from src.marker_scoring.metrics_system import *
+from mozaiko.src.mozaiko.reference_database.sequence_import import *
+from mozaiko.src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
+from mozaiko.src.mozaiko.marker_scoring.metrics_system import *
 
 # Files
 database_file = "data/input_data/BMI/bmi_database.fasta"

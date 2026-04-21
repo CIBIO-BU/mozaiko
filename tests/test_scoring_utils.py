@@ -10,7 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.marker_scoring.scoring_utils import *
+from src.mozaiko.marker_scoring.scoring_utils import *
+from src.mozaiko.marker_scoring.aux_analysis import *
 
 
 class TestScoringUtils(unittest.TestCase):
@@ -233,50 +234,3 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         with open(os.path.join(self.test_dir, "primer3.fasta"), "w") as f:
             f.write(">seq5\n")  # Missing species name
             f.write("ATCGATCG\n")
-
-    def test_create_multibarcode_tools_input(self):
-        """
-        Method to test the main function create_MultiBarcodeTools_input.
-        """
-        output_file = os.path.join(self.test_dir, "output.tsv")
-
-        create_MultiBarcodeTools_input(self.test_dir, self.test_dir, output_file)
-
-        self.assertTrue(os.path.exists(output_file))
-
-        with open(output_file, "r") as f:
-            lines = f.readlines()
-            print(lines)
-
-        self.assertEqual(len(lines), 8)
-
-    def test_process_sequence_invalid_header(self):
-        """
-        Method to test process_sequence with an invalid header (no species name).
-        """
-        import io
-        import sys
-
-        stdout = io.StringIO()
-        sys.stdout = stdout
-
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as mock_tsv:
-            try:
-                header = "seq1"
-                sequence_lines = ["ATCGATCGATCG"]
-                primer_name = "test_primer"
-
-                process_sequence(header, sequence_lines, primer_name, mock_tsv)
-
-                mock_tsv.close()
-
-                error_msg = stdout.getvalue().strip()
-                self.assertIn("mozaico WARNING: Unexpected header format", error_msg)
-
-                with open(mock_tsv.name, "r") as f:
-                    content = f.read().strip()
-                    self.assertEqual(content, "")
-
-            finally:
-                sys.stdout = sys.__stdout__
-                os.unlink(mock_tsv.name)

@@ -16,7 +16,7 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-from src.in_silico_analysis.amplification import InSilicoAmplification
+from mozaiko.src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
 
 
 class TestInSilicoAmplification(unittest.TestCase):

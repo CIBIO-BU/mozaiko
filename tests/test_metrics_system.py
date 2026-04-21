@@ -15,8 +15,8 @@ from Bio.SeqRecord import SeqRecord
 from pandas._testing import assert_frame_equal
 
 import src
-from src.marker_scoring.metrics_system import *
-from src.marker_scoring.scoring_utils import *
+from mozaiko.src.mozaiko.marker_scoring.metrics_system import *
+from mozaiko.src.mozaiko.marker_scoring.scoring_utils import *
 
 
 class TestOtlHandler(unittest.TestCase):

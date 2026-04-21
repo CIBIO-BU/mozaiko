@@ -7,9 +7,9 @@ This module contains the command line interface for mozaiko.
 import argparse
 import logging
 
-from src.in_silico_analysis.amplification import InSilicoAmplification
-from src.reference_database.db_curation import CrabsScriptGenerator
-from src.reference_database.sequence_import import CustomFastaImport
+from in_silico_analysis.amplification import InSilicoAmplification
+from reference_database.db_curation import CrabsScriptGenerator
+from reference_database.sequence_import import CustomFastaImport
 
 
 def create_parser():

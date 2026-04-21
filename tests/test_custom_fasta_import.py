@@ -10,7 +10,7 @@ from Bio.Seq import Seq
 
 import pandas as pd
 
-from src.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
+from mozaiko.src.mozaiko.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
 
 class TestCustomFastaImport(unittest.TestCase):

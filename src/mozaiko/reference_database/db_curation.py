@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 
-from src.reference_database.sequence_import import CustomFastaImport
+from reference_database.sequence_import import CustomFastaImport
 
 
 class CrabsScriptGenerator:

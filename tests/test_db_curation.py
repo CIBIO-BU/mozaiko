@@ -8,7 +8,7 @@ import subprocess
 import unittest
 from unittest.mock import mock_open, patch
 
-from src.reference_database.db_curation import CrabsScriptGenerator
+from mozaiko.src.mozaiko.reference_database.db_curation import CrabsScriptGenerator
 
 
 class TestCrabsScriptGenerator(unittest.TestCase):

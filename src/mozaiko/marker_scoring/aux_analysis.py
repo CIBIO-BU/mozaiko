@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 import os
+import subprocess
 from pathlib import Path
 
-from src.reference_database.sequence_import import CustomFastaImport
-from src.marker_scoring.metrics_system import OtlHandler
+from reference_database.sequence_import import CustomFastaImport
+from marker_scoring.metrics_system import OtlHandler
 
 def sequence_count_tracking(original_database, analysis_folder, save_results: bool = True):
     """
