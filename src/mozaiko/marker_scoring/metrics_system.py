@@ -22,9 +22,9 @@ import pandas as pd
 from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 
-from in_silico_analysis.amplification import InSilicoAmplification
-from marker_scoring.scoring_utils import *
-from reference_database.sequence_import import CustomFastaImport
+from mozaiko.in_silico_analysis.amplification import InSilicoAmplification
+from mozaiko.marker_scoring.scoring_utils import *
+from mozaiko.reference_database.sequence_import import CustomFastaImport
 
 
 class OtlHandler:

@@ -3,14 +3,14 @@ import time
 start_time = time.time()
 
 # Imports
-from mozaiko.src.mozaiko.reference_database.sequence_import import *
-from mozaiko.src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
-from mozaiko.src.mozaiko.marker_scoring.metrics_system import *
+from src.mozaiko.reference_database.sequence_import import *
+from src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
+from src.mozaiko.marker_scoring.metrics_system import *
 
 # Files
 database_file = "data/input_data/DIA/diat_barcode_hrm_dreped.fasta"
 primer_table = "data/input_data/DIA/diat-barcode-primers.tsv"
-run_name = 'DIA-latest-version'
+run_name = 'DIA-test-package'
 otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia"
 output_folder = 'data/output_data/' + run_name
 
@@ -30,7 +30,8 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
                       primer_table=primer_table,
                       save_intermediate_ranks=True,
                       run_catnip=True,
-                      thresholds = [10.0, 5.0, 2.0])
+                      thresholds = [10.0, 5.0, 2.0],
+                      ranking_mode='flat')
 
 # Log time
 end_time = time.time()

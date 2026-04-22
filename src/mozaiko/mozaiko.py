@@ -7,9 +7,11 @@ This module contains the command line interface for mozaiko.
 import argparse
 import logging
 
-from in_silico_analysis.amplification import InSilicoAmplification
-from reference_database.db_curation import CrabsScriptGenerator
-from reference_database.sequence_import import CustomFastaImport
+from mozaiko.in_silico_analysis.amplification import InSilicoAmplification
+from mozaiko.reference_database.db_curation import CrabsScriptGenerator
+from mozaiko.reference_database.sequence_import import CustomFastaImport
+
+__version__ = "0.1.0"
 
 
 def create_parser():
@@ -37,7 +39,23 @@ Examples:
 
 For more information, visit: https://github.com/CIBIO-BU/mozaiko
         """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        add_help=False  # We'll add a custom help group below
+    )
+
+    # Help & Version options (shown first in --help output)
+    info_group = parser.add_argument_group('Information Options')
+    info_group.add_argument(
+        "-h", "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit"
+    )
+    info_group.add_argument(
+        "-v", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show program version number and exit"
     )
 
     # Input/Output options
@@ -98,7 +116,7 @@ For more information, visit: https://github.com/CIBIO-BU/mozaiko
     config_group = parser.add_argument_group('Configuration Options')
     config_group.add_argument(
         "--json_file",
-        help="Path to JSON configuration file with parameters for CRABS operations (--dereplicate)",
+        help="Path to JSON configuration file with parameters for CRABS operations (--assign_tax, --dereplicate)",
         metavar="FILE"
     )
     config_group.add_argument(
@@ -108,6 +126,7 @@ For more information, visit: https://github.com/CIBIO-BU/mozaiko
     )
 
     return parser
+
 
 def database_pre_process(args):
     """
@@ -168,6 +187,12 @@ def main():
     """
     parser = create_parser()
     args = parser.parse_args()
+
+    # Print help if no arguments are provided
+    if not any(vars(args).values()):
+        parser.print_help()
+        return
+
     print(f"Parsed args: {args}")
 
     if args.pre_process_db and args.dereplicate:

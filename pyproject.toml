@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mozaiko"
+version = "0.1.0"
+
+authors = [
+  { name = "Camila Babo", email = "camila.babo@cibio.up.pt" },
+]
+
+description = "Piecing together complete genetic coverage for biomonitoring."
+readme = "README.md"
+requires-python = ">=3.9"
+
+license = { text = "GPL-3.0-or-later" }
+
+dependencies = [
+    "numpy==2.0.0",
+    "pandas==2.2.2",
+    "matplotlib==3.9.1.post1",
+    "biopython==1.84",
+    "tqdm",
+]
+
+[project.urls]
+Homepage = "https://github.com/CIBIO-BU/mozaiko"
+Issues = "https://github.com/CIBIO-BU/mozaiko/issues"
+
+[project.scripts]
+mozaiko = "mozaiko:mozaiko.main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mozaiko = ["*.sh", "*.json", "**/*.sh", "**/*.json"]
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+license-files = ["LICEN[CS]E*"]

@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 
-from reference_database.sequence_import import CustomFastaImport
+from mozaiko.reference_database.sequence_import import CustomFastaImport
 
 
 class CrabsScriptGenerator:

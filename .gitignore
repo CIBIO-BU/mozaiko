@@ -47,6 +47,8 @@ data/input_data/BMI/ref_bd_bf2.fasta
 data/input_data/BMI/ref_bd_bf2_processed.fasta
 data/input_data/BMI/bmi_database_processed_processed.fasta
 data/input_data/BMI/bmi_database_processed.tsv
+__pycache__/
+.pytest_cache/*
 
 
 

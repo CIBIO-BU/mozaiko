@@ -1,0 +1,23 @@
+name: mozaiko-env
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - python=3.11
+  - pip
+  - vsearch=2.13.3
+  - cutadapt=4.9
+  - numpy
+  - pandas
+  - matplotlib
+  - biopython
+  - tqdm
+  - pyyaml
+  - requests
+  - wget
+  - git
+
+  - pip:
+      - catnip-seq==0.1.9

@@ -3,9 +3,9 @@ import time
 start_time = time.time()
 
 # Imports
-from mozaiko.src.mozaiko.reference_database.sequence_import import *
-from mozaiko.src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
-from mozaiko.src.mozaiko.marker_scoring.metrics_system import *
+from src.mozaiko.reference_database.sequence_import import *
+from src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
+from src.mozaiko.marker_scoring.metrics_system import *
 
 # Files
 database_file = "data/input_data/BMI/bmi_database.fasta"
@@ -39,7 +39,8 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
 #                     primer_table=primer_table,
 #                     save_intermediate_ranks=True,
 #                     run_catnip=False,
-#                     thresholds=[10.0, 5.0, 2.0]
+#                     thresholds=[10.0, 5.0, 2.0],
+#                     ranking_mode='flat'
 #                 )
 
 

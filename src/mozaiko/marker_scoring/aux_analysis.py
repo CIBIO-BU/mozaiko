@@ -4,8 +4,8 @@ import os
 import subprocess
 from pathlib import Path
 
-from reference_database.sequence_import import CustomFastaImport
-from marker_scoring.metrics_system import OtlHandler
+from mozaiko.reference_database.sequence_import import CustomFastaImport
+from mozaiko.marker_scoring.metrics_system import OtlHandler
 
 def sequence_count_tracking(original_database, analysis_folder, save_results: bool = True):
     """
