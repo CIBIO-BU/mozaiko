@@ -1,0 +1,30 @@
+{
+  "run_name": "DIA-test",
+
+  "paths": {
+    "input_fasta": "data/input_data/DIA/diat_barcode_hrm_dreped.fasta",
+    "primer_table": "data/input_data/DIA/diat-barcode-primers.tsv",
+    "otl_folder": "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia",
+    "output_root": "data/output_data/"
+  },
+
+  "steps": {
+    "preprocess": {
+      "enabled": true,
+      "harmonized": true
+    },
+
+    "insilico": {
+      "enabled": true,
+      "minimum_percentage_identity": 0.5
+    },
+
+    "evaluate_multiple_otl": {
+      "enabled": true,
+      "run_catnip": true,
+      "save_intermediate_ranks": true,
+      "thresholds": [10.0, 5.0, 2.0],
+      "ranking_mode": "flat"
+    }
+  }
+}

@@ -416,7 +416,7 @@ class InSilicoAmplification:
                 self._process_fasta_file(fasta_file, taxonomy_dict)
 
     def sanity_check_on_mismatches(self, output_dir, testing = False):
-        from src.mozaiko.marker_scoring.scoring_utils import (
+        from mozaiko.marker_scoring.scoring_utils import (
             calculate_iupac_mismatches
         )
         if not output_dir:
@@ -431,7 +431,7 @@ class InSilicoAmplification:
         amplicon_folder = output_dir / "amplicon"
         insert_folder = output_dir / "insert"
 
-        from src.mozaiko.marker_scoring.metrics_system import (
+        from mozaiko.marker_scoring.metrics_system import (
             Binding
         )
         matching_files = Binding.parse_files_with_same_extension_in_folders(
@@ -657,6 +657,7 @@ class InSilicoAmplification:
         # )
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
+        print(f"mozaiko INFO: You can find the results in your current working directory under the folder {self.run_dir}.")
 
     def process_commands(self, row: dict, input_fasta: Path, minimum_percentage_identity, minimum_alignment_coverage, max_ambiguous_percentage=0.05):
         """

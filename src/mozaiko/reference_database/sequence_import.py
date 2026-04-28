@@ -74,7 +74,7 @@ class CustomFastaImport:
             taxids = []
 
             for record in records:
-                match = re.search(r"taxid(\d+)", record.description)
+                match = re.search(r"taxid=(\d+)", record.description)
                 if match:
                     taxids.append(match.group(1))
 
@@ -95,6 +95,8 @@ class CustomFastaImport:
         """
         Checks if fasta file contains TaxIDs.
         """
+        print("mozaiko INFO: Checking for TaxIDs in the FASTA file...")
+        print("mozaiko INFO: TaxIDs should be identified with 'taxid=' in the sequence header. For example: 'CM074756.1|taxid=8481'.")
         with open(input_file, "r", encoding="UTF-8") as fasta_file:
             taxid_found = False
             for record in SeqIO.parse(fasta_file, "fasta"):
@@ -116,6 +118,7 @@ class CustomFastaImport:
         sep="|",
         overide_validation=False,
         check_taxid=False,
+        verbose: bool = False,
         taxa_column_start: int = 1,
         taxa_column_end: int = 11,
     ):
@@ -137,7 +140,7 @@ class CustomFastaImport:
         if overide_validation is False:
             self._validate_input(fasta_file)
 
-        self.clean_fasta_headers(fasta_file, fasta_file)
+        self.clean_fasta_headers(fasta_file, fasta_file, verbose=verbose)
 
         # Set defaults if parameters are None
         if taxa_column_start is None:
@@ -251,9 +254,10 @@ class CustomFastaImport:
                     print(f"Original: {orig}")
                     print(f"Cleaned: {clean}\n")
 
-    def pre_process_harmonized_fasta_database(self, overwrite: bool = True):
+    def pre_process_harmonized_fasta_database(self):
         """
-        Pre-processes the harmonized fasta file to:
+        Processes the FASTA and updates self.database_fasta_file
+        to point to the processed FASTA file used in downstream steps, by:
         1) Split taxonomic information into separate columns.
         2) Rename columns.
         3) Refactor '-' entries to NaN.
@@ -317,15 +321,17 @@ class CustomFastaImport:
             {"form": "species", "variety": "species", "subspecies": "species"}
         )
 
-        if overwrite:  # Overwrite the original fasta to save the pre-processed data
-            processed_file_name = self.database_fasta_file.replace(
-            ".fasta", "_processed.fasta"
+        processed_file_name = self.database_fasta_file.replace(
+        ".fasta", "_processed.fasta"
         )
-            self.df2fasta(
-                output_name=processed_file_name, write_harmonized_headers=True
-            )
 
-        return self.data
+        processed_file = self.df2fasta(
+            output_name=processed_file_name, write_harmonized_headers=True
+        )
+
+        self.database_fasta_file = processed_file
+
+        return processed_file
 
     def get_taxids(self):
         """
@@ -432,9 +438,7 @@ class CustomFastaImport:
                 else:
                     file.write(f">{row['seq_id']}\n{row['sequence']}\n")
 
-        self.database_fasta_file = output_name
-
-        return self.database_fasta_file
+        return output_name
 
     def get_mapping_between_seq_id_taxonomy(self):
         """
