@@ -1,4 +1,4 @@
-name: mozaiko-env
+name: mozaiko
 
 channels:
   - conda-forge

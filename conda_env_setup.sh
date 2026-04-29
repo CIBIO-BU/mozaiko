@@ -2,15 +2,15 @@
 
 set -euo pipefail
 
-# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ENV_NAME="mozaiko"
 REPO_URL="git@github.com:CIBIO-BU/mozaiko.git"
 PACKAGE_DIR="mozaiko"
-# CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
-# EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/${PACKAGE_DIR}/external_scripts"
-# CRABS_ARCHIVE="crabs.tar.gz"
-# CRABS_DIR="reference_database_creator-0.1.7"
+CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
+EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/${PACKAGE_DIR}/external_scripts"
+CRABS_ARCHIVE="crabs.tar.gz"
+CRABS_DIR="reference_database_creator-0.1.7"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -40,6 +40,16 @@ check_conda() {
     }
 }
 
+# Check if env already exists
+check_env() {
+    if conda env list | grep -q "${ENV_NAME}"; then
+        echo "Conda environment '$ENV_NAME' already exists. Skipping environment creation."
+        return 0
+    else
+        return 1
+    fi
+}
+
 init_conda() {
     source "$(conda info --base)/etc/profile.d/conda.sh"
 }
@@ -58,15 +68,31 @@ create_env() {
 
 activate_env() {
     log_info "Activating environment: $ENV_NAME"
-    conda activate "$ENV_NAME"
+    conda activate "$ENV_NAME" || true
+
+    # Verify activation actually worked
+    if [ "${CONDA_DEFAULT_ENV:-}" != "$ENV_NAME" ]; then
+        log_error "Failed to activate conda environment '$ENV_NAME'"
+        exit 1
+    fi
+
+    log_info "Environment '$ENV_NAME' activated successfully"
 }
 
 # Clone repository
 clone_repo() {
     if [ -d "$PACKAGE_DIR" ]; then
         log_warn "Directory $PACKAGE_DIR already exists"
-        read -p "Do you want to update it? (y/N): " -n 1 -r
-        echo
+
+        # Check if running interactively
+        if [ -t 0 ]; then
+            read -p "Do you want to update it? (y/N): " -n 1 -r
+            echo
+        else
+            log_warn "Non-interactive shell detected, skipping update"
+            REPLY="n"
+        fi
+
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             log_info "Updating repository"
             cd "$PACKAGE_DIR" || exit 1
@@ -208,8 +234,7 @@ verify_tools() {
 main() {
     log_info "Starting mozaiko installation"
 
-    parse_args "$@"
-    check_conda
+    # parse_args "$@"
     init_conda
 
     local env_exists=false
@@ -233,5 +258,3 @@ main() {
     log_info "Installation complete!"
     log_info "To use mozaiko, run: conda activate ${ENV_NAME}"
 }
-
-main "$@"
