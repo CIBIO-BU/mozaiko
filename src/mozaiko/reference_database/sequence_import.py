@@ -96,7 +96,8 @@ class CustomFastaImport:
         Checks if fasta file contains TaxIDs.
         """
         print("mozaiko INFO: Checking for TaxIDs in the FASTA file...")
-        print("mozaiko INFO: TaxIDs should be identified with 'taxid=' in the sequence header. For example: 'CM074756.1|taxid=8481'.")
+        print("mozaiko INFO: TaxIDs should be identified with 'taxid=' in the sequence header.")
+        print("              For example: 'CM074756.1|taxid=8481'.")
         with open(input_file, "r", encoding="UTF-8") as fasta_file:
             taxid_found = False
             for record in SeqIO.parse(fasta_file, "fasta"):
@@ -107,9 +108,8 @@ class CustomFastaImport:
                     break
 
             if not taxid_found:
-                print(
-                    "mozaiko INFO: No TaxIDs found in the FASTA file. Starting lineage file upload process."
-                )
+                print("mozaiko INFO: No TaxIDs found in the FASTA file.")
+                print("mozaiko INFO: Starting lineage file upload process.")
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
     def read_fasta(
@@ -132,9 +132,8 @@ class CustomFastaImport:
         pd.DataFrame
         """
         if fasta_file is None:
-            print(
-                f"mozaico INFO: No FASTA file attributed to read_fasta. Reading {self.database_fasta_file}."
-            )
+            print(f"mozaico INFO: No FASTA file attributed to read_fasta."
+                  f"Reading {self.database_fasta_file}.")
             fasta_file = self.database_fasta_file
 
         if overide_validation is False:
@@ -194,6 +193,16 @@ class CustomFastaImport:
         return self.data
 
     def clean_header(self, header):
+        """
+        Cleans a FASTA header by:
+        1. Removing non-ASCII characters
+        2. Replacing them with ASCII equivalents where possible
+        3. Removing any remaining problematic characters
+        Parameters:
+        - header (str): The original FASTA header to be cleaned.
+        Returns:
+        - str: The cleaned FASTA header.
+        """
         if pd.isna(header):
             return header
         normalized = unicodedata.normalize("NFKD", header)
@@ -217,7 +226,7 @@ class CustomFastaImport:
         Returns:
         int: Number of processed sequences
         """
-        if verbose == True:
+        if verbose is True:
             print(
                 f"mozaiko INFO: Cleaning FASTA headers in {input_file} and saving to {output_file}"
             )
@@ -244,10 +253,10 @@ class CustomFastaImport:
             for record in cleaned_records:
                 handle.write(f">{record.description}\n{record.seq}\n")
 
-        if verbose == True:
+        if verbose is True:
             print(f"mozaiko INFO: Processed {len(cleaned_records)} sequence headers.")
 
-        if verbose == True:
+        if verbose is True:
             if problematic_headers:
                 print("\nModified Headers:")
                 for orig, clean in problematic_headers:
@@ -398,8 +407,8 @@ class CustomFastaImport:
         """
         if not output_name.lower().endswith((".tsv")):
             raise ValueError(
-                f"mozaiko ERROR: Invalid output file name. File must have a '.tsv' extension."
-            )
+                "mozaiko ERROR: Invalid output file name. File must have a '.tsv' extension."
+)
 
         output_dir = os.path.dirname(output_name) or "."
 
@@ -419,7 +428,7 @@ class CustomFastaImport:
 
         if not output_name.lower().endswith((".fasta", ".fa")):
             raise ValueError(
-                f"mozaiko ERROR: Invalid output file name. File must have a '.fasta' extension."
+                "mozaiko ERROR: Invalid output file name. File must have a '.fasta' extension."
             )
 
         output_dir = os.path.dirname(output_name) or "."
@@ -429,11 +438,17 @@ class CustomFastaImport:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        with open(output_name, "w") as file:
-            for index, row in self.data.iterrows():
+        with open(output_name, "w", encoding="utf-8") as file:
+            for _, row in self.data.iterrows():
                 if write_harmonized_headers:
                     file.write(
-                        f">{row['seq_id']}|{row['original_taxa_info']}|{row['scientificName']}|{row['rank']}|{row['kingdom']}|{row['phylum']}|{row['class']}|{row['order']}|{row['family']}|{row['genus']}|{row['species']}\n{row['sequence']}\n"
+                        (
+                            f">{row['seq_id']}|{row['original_taxa_info']}|"
+                            f"{row['scientificName']}|{row['rank']}|{row['kingdom']}|"
+                            f"{row['phylum']}|{row['class']}|{row['order']}|"
+                            f"{row['family']}|{row['genus']}|{row['species']}\n"
+                            f"{row['sequence']}\n"
+                        )
                     )
                 else:
                     file.write(f">{row['seq_id']}\n{row['sequence']}\n")

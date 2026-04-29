@@ -5,12 +5,10 @@ PBS: Primer Binding Site
 """
 
 import os
-import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
 import pandas as pd
 from Bio import SeqIO
@@ -19,7 +17,6 @@ from pandas import DataFrame
 
 from mozaiko.marker_scoring.scoring_utils import *
 from mozaiko.reference_database.db_curation import CrabsScriptGenerator
-from mozaiko.reference_database.sequence_import import CustomFastaImport
 
 
 class InSilicoAmplification:
@@ -159,13 +156,15 @@ class InSilicoAmplification:
         listed_required_fields = list(required_fields)
         if primer_table[listed_required_fields].isnull().any().any():
             print(
-                "mozaiko INFO: The primer table contains rows with missing values. Please fill in all required columns."
+                "mozaiko INFO: The primer table contains rows with missing values. " \
+                "Please fill in all required columns."
             )
             sys.exit(1)
 
         if not primer_table["assay_name"].is_unique:
             print(
-                "mozaiko INFO: The 'assay_name' column contains duplicate values. Each assay name must be unique."
+                "mozaiko INFO: The 'assay_name' column contains duplicate values. " \
+                "Each assay name must be unique."
             )
             sys.exit(1)
 
@@ -224,7 +223,9 @@ class InSilicoAmplification:
                     and "max_read_length" not in self.primer_table_columns
                 ):
                     raise ValueError(
-                        "mozaiko ERROR: When max_len_according_to_ilumina is False, the primer table must contain 'min_read_length' and 'max_read_length' columns."
+                        "mozaiko ERROR: When max_len_according_to_ilumina is False, " \
+                        "the primer table must contain 'min_read_length' "
+                        "and 'max_read_length' columns."
                     )
 
             # primer_table.at[index, "min_fwd_overlap"] = min_fwd_overlap
@@ -270,7 +271,8 @@ class InSilicoAmplification:
         complete PBS that were not in-silico amplified (> 3 mismatches)".
 
         Filter sequences present in the filter file out of the input file(s).
-        Creates a directory with the specified name in self.run_dir and saves filtered sequences there.
+        Creates a directory with the specified name in self.run_dir and saves filtered sequences
+        there.
         Filtering is based on sequence IDs found in filter files.
 
         Args:
@@ -308,7 +310,8 @@ class InSilicoAmplification:
         # Process each input file
         for input_file in input_files:
             if input_file.stem not in filter_primer_mapping:
-                print(f"mozaiko INFO: No incomplete PBSs found for {input_file}, all PBS are complete.")
+                print(f"mozaiko INFO: No incomplete PBSs found for {input_file}, "
+                      "all PBS are complete.")
                 continue
 
             # Get matching filter file and set up output file
@@ -420,7 +423,7 @@ class InSilicoAmplification:
             calculate_iupac_mismatches
         )
         if not output_dir:
-            raise ValueError("mozaiko ERROR: Output directory not specified for mismatch sanity check.")
+            raise ValueError("mozaiko ERROR: Output directory not specified for mismatch check.")
 
         if not isinstance(output_dir, Path):
             output_dir = Path(output_dir)
@@ -442,7 +445,8 @@ class InSilicoAmplification:
         mismatch_per_seq_id = {}
 
         if not matching_files:
-            print("mozaiko ERROR: No matching primer files found between the insert and amplicon folders.")
+            print("mozaiko ERROR: No matching primer files found between insert "
+            "and amplicon folders.")
             return None, None
 
         for _primer_ind, primer_row in self.primer_table.iterrows():
@@ -467,7 +471,7 @@ class InSilicoAmplification:
                             seq_header = pbs_row["header"].replace(">", "")
                             seq_id = seq_header.split("|")[0].replace(" ", "")
                             print(
-                                f"mozaiko WARNING: Skipping entry with empty PBS sequence(s): {seq_id}"
+                                f"mozaiko WARNING: Skipping empty PBS sequence(s): {seq_id}"
                             )
                             continue
 
@@ -537,7 +541,6 @@ class InSilicoAmplification:
         Returns:
         None
         """
-        # print(f"mozaiko INFO: Removing sequences with more than {self.number_of_mismatches} mismatches from {fasta_file}...")
         try:
             records_to_keep = []
             number_sequences_with_mismatches = 0
@@ -556,14 +559,16 @@ class InSilicoAmplification:
                 for record in records_to_keep:
                     output_handle.write(f">{record.description}\n{record.seq}\n")
 
-            # print(f"mozaiko INFO: Removed {number_sequences_with_mismatches} sequences from {fasta_file}")
-
         except Exception as e:
             print(f"mozaiko ERROR: Sanity Check Error. Could not remove sequences with more than"
                   f" {(self.number_of_mismatches * 2)} combined mismatches from {fasta_file}: {e}")
 
     def run_in_silico_analysis(
-        self, primer_table=None, max_len_according_to_ilumina: bool = True, minimum_percentage_identity=0.75, minimum_alignment_coverage=99, max_ambiguous_percentage=0.05
+        self, primer_table=None,
+        max_len_according_to_ilumina: bool = True,
+        minimum_percentage_identity=0.75,
+        minimum_alignment_coverage=99,
+        max_ambiguous_percentage=0.05
     ):
         """
         This methods initiates the in-silico analysis. It does so by first veryfing if all required
@@ -578,9 +583,12 @@ class InSilicoAmplification:
         calculated according to Illumina's formula
         - taxa_column_number: Number of the column in the fasta file that contains the information
         for the taxa-level we want the analysis to be performed. The count starts from 0.
-        - minimum_percentage_identity: Minimum percentage identity to be used as a threshold in the PGA step (default: 0.75)
-        - minimum_alignment_coverage: Minimum alignment coverage to be used as a threshold in the PGA step (default: 99)
-        - max_ambiguous_percentage: Maximum percentage of ambiguous bases allowed in sequences for PGA database (default: 0.05)
+        - minimum_percentage_identity: Minimum percentage identity to be used as a threshold
+        in the PGA step (default: 0.75)
+        - minimum_alignment_coverage: Minimum alignment coverage to be used as a threshold
+        in the PGA step (default: 99)
+        - max_ambiguous_percentage: Maximum percentage of ambiguous bases allowed in sequences
+        for PGA database (default: 0.05)
         """
 
         self._check_if_cutadapt_installed()
@@ -601,11 +609,12 @@ class InSilicoAmplification:
                 raise ValueError("Run name cannot be empty")
 
         # Setup directories and check if they already exist
-        output_dirs, already_exists = self._setup_output_directories(self.run_name)
+        _, already_exists = self._setup_output_directories(self.run_name)
 
         if already_exists:
             print("mozaiko INFO: Amplification folders already exist. Skipping amplification.")
-            print("             If you want to repeat amplification, please delete these folders and run again.")
+            print("             If you want to repeat amplification, please delete these folders "
+            "and run again.")
         else:
             if self.primer_table is None:
                 raise ValueError("Primer table not initialized")
@@ -614,7 +623,10 @@ class InSilicoAmplification:
 
             for index, row in self.primer_table.iterrows():
                 if self.database_fasta_file:
-                    self.process_commands(row, self.database_fasta_file, minimum_percentage_identity, minimum_alignment_coverage, max_ambiguous_percentage)
+                    self.process_commands(row, self.database_fasta_file,
+                                          minimum_percentage_identity,
+                                          minimum_alignment_coverage,
+                                          max_ambiguous_percentage)
                 else:
                     raise ValueError("mozaiko ERROR: No input data was found.")
                 print(
@@ -657,9 +669,14 @@ class InSilicoAmplification:
         # )
 
         print("mozaiko INFO: In-silico amplification analysis completed.")
-        print(f"mozaiko INFO: You can find the results in your current working directory under the folder {self.run_dir}.")
+        print(f"mozaiko INFO: Results can be found in working dir under the folder {self.run_dir}.")
 
-    def process_commands(self, row: dict, input_fasta: Path, minimum_percentage_identity, minimum_alignment_coverage, max_ambiguous_percentage=0.05):
+    def process_commands(self,
+                         row: dict,
+                         input_fasta: Path,
+                           minimum_percentage_identity,
+                           minimum_alignment_coverage,
+                           max_ambiguous_percentage=0.05):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
@@ -672,6 +689,9 @@ class InSilicoAmplification:
         max_length = int(row["max_read_length"])
         if "min_read_length" in row.keys():
             min_length = int(row["min_read_length"])
+        else:
+            print("mozaiko INFO: No minimum read length found in primer table. Setting to 0.")
+            min_length = 0
         # min_fwd_overlap = int(row["min_fwd_overlap"])
         # min_rev_overlap = int(row["min_rec_overlap"])
         forward_primer = row["fwd_seq"]
@@ -862,7 +882,8 @@ class InSilicoAmplification:
             minimum_alignment_coverage = 99  # Whole Percentage [0 - 100]
 
         print(
-            f"mozaiko INFO: Running PGA with {minimum_alignment_coverage} coverage and {minimum_percentage_identity} identity."
+            f"mozaiko INFO: Running PGA with {minimum_alignment_coverage} coverage and "
+            f"{minimum_percentage_identity} identity."
         )
 
         pga_command = [
@@ -903,11 +924,3 @@ class InSilicoAmplification:
         except subprocess.CalledProcessError as e:
             print(f"mozaiko ERROR: CRABS PGA command failed: {e}")
             sys.exit(1)
-
-
-# if __name__ == "__main__":
-#     data = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-taxa_harmonized.fasta"
-#     primer_table = "/home/camilababo/Documents/coding-projects/DNAquaIMG-tool/mozaico/data/input_data/diat-barcode-primers.tsv"
-#     run_name = "diat-barcode-test-check-headers"
-#     cutadapt = InSilicoAmplification(data, run_name=run_name)
-#     cutadapt.run_in_silico_analysis(primer_table=primer_table)

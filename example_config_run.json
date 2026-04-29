@@ -4,7 +4,7 @@
   "paths": {
     "input_fasta": "data/input_data/DIA/diat_barcode_hrm_dreped.fasta",
     "primer_table": "data/input_data/DIA/diat-barcode-primers.tsv",
-    "otl_folder": "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia",
+    "otl_folder": "data/input_data/DIA/OTL",
     "output_root": "data/output_data/"
   },
 

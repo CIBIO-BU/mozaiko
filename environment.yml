@@ -9,7 +9,7 @@ dependencies:
   - pip
   - vsearch=2.13.3
   - cutadapt=4.9
-  - catnip
+  - catnip-seq
   - numpy
   - pandas
   - matplotlib

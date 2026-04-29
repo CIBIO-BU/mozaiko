@@ -52,7 +52,8 @@ class CrabsScriptGenerator:
                 + "https://github.com/gjeunen/reference_database_creator/tree/main"
             )
             sys.exit(1)
-        except Exception as e:
+
+        except Exception as e: # pylint: disable=broad-exception-caught
             print(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
@@ -137,7 +138,6 @@ class CrabsScriptGenerator:
 
         if os.path.exists("taxonomy_files"):
             print("mozaiko INFO: Taxonomy files found. Proceeding with the analysis.")
-            return
 
         else:
             print(
