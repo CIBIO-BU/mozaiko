@@ -8,7 +8,7 @@ ENV_NAME="mozaiko"
 REPO_URL="git@github.com:CIBIO-BU/mozaiko.git"
 PACKAGE_DIR="mozaiko"
 CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/refs/tags/v0.1.7.tar.gz"
-EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/${PACKAGE_DIR}/external_scripts"
+EXTERNAL_SCRIPTS_DIR="${SCRIPT_DIR}/external_scripts"
 CRABS_ARCHIVE="crabs.tar.gz"
 CRABS_DIR="reference_database_creator-0.1.7"
 
@@ -79,47 +79,47 @@ activate_env() {
     log_info "Environment '$ENV_NAME' activated successfully"
 }
 
-# Clone repository
-clone_repo() {
-    if [ -d "$PACKAGE_DIR" ]; then
-        log_warn "Directory $PACKAGE_DIR already exists"
+# # Clone repository
+# clone_repo() {
+#     if [ -d "$PACKAGE_DIR" ]; then
+#         log_warn "Directory $PACKAGE_DIR already exists"
 
-        # Check if running interactively
-        if [ -t 0 ]; then
-            read -p "Do you want to update it? (y/N): " -n 1 -r
-            echo
-        else
-            log_warn "Non-interactive shell detected, skipping update"
-            REPLY="n"
-        fi
+#         # Check if running interactively
+#         if [ -t 0 ]; then
+#             read -p "Do you want to update it? (y/N): " -n 1 -r
+#             echo
+#         else
+#             log_warn "Non-interactive shell detected, skipping update"
+#             REPLY="n"
+#         fi
 
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            log_info "Updating repository"
-            cd "$PACKAGE_DIR" || exit 1
-            git pull || {
-                log_error "Failed to update repository"
-                exit 1
-            }
-            cd "$SCRIPT_DIR"
-        else
-            log_info "Skipping repository update"
-        fi
-    else
-        log_info "Cloning repository from $REPO_URL"
-        git clone "$REPO_URL" || {
-            log_error "Failed to clone repository"
-            exit 1
-        }
-    fi
-}
+#         if [[ $REPLY =~ ^[Yy]$ ]]; then
+#             log_info "Updating repository"
+#             cd "$PACKAGE_DIR" || exit 1
+#             git pull || {
+#                 log_error "Failed to update repository"
+#                 exit 1
+#             }
+#             cd "$SCRIPT_DIR"
+#         else
+#             log_info "Skipping repository update"
+#         fi
+#     else
+#         log_info "Cloning repository from $REPO_URL"
+#         git clone "$REPO_URL" || {
+#             log_error "Failed to clone repository"
+#             exit 1
+#         }
+#     fi
+# }
 
 # Install Package
 install_package() {
     log_info "Installing mozaiko package"
-    cd "$PACKAGE_DIR" || {
-        log_error "Directory $PACKAGE_DIR does not exist"
-        exit 1
-    }
+    # cd "$PACKAGE_DIR" || {
+    #     log_error "Directory $PACKAGE_DIR does not exist"
+    #     exit 1
+    # }
 
     pip install -e . || {
         log_error "Failed to install package"
@@ -247,7 +247,7 @@ main() {
     fi
 
     activate_env
-    clone_repo
+    # clone_repo
     install_package
 
     log_info "Installing additional dependencies"
@@ -258,3 +258,5 @@ main() {
     log_info "Installation complete!"
     log_info "To use mozaiko, run: conda activate ${ENV_NAME}"
 }
+
+main
