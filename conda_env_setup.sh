@@ -254,4 +254,6 @@ main() {
     log_info "To use mozaiko, run: conda activate ${ENV_NAME}"
 }
 
-main
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

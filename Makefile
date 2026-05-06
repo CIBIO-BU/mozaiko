@@ -1,5 +1,5 @@
 ## mozaiko
-VERSION=0.1.0
+VERSION=0.1.1
 
 release:
 	# Update version in pyproject.toml
@@ -22,5 +22,10 @@ release:
 	# Upload to PyPI (will prompt for API token)
 	twine upload dist/*
 
-install:
-	# unzips and installs crabs
+setup:
+	# run whole setup process
+	bash conda_env_setup.sh
+
+install-crabs:
+	# run only the CRABS installation step
+	bash -c "source conda_env_setup.sh && activate_env && install_crabs_release"
