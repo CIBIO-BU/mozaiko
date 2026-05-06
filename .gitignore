@@ -50,6 +50,8 @@ data/input_data/BMI/bmi_database_processed.tsv
 __pycache__/
 .pytest_cache/*
 .pylintrc
+dist/*
+
 
 
 

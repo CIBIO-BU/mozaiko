@@ -8,7 +8,7 @@
 
 ![alt text](data/images/mozaiko-logo.png)
 
-mozaiko is a bioinformatics tool designed to help researchers select optimized sets of primers for complete coverage in biomonitoring studies. Taking inspiration from mosaic art, where small pieces fit together to form a whole, mozaiko supports comprehensive genetic marker analysis by suggesting a fitting combination of primers.
+mozaiko is a bioinformatics tool designed to help researchers select optimized sets of primers for complete coverage in biomonitoring studies. Taking inspiration from mosaics, where small pieces fit together to form a whole, mozaiko supports comprehensive genetic marker analysis by ranking primers' fitness.
 
 The name comes from the Esperanto word 'Mozaiko', reflecting the idea of bringing different elements together. With mozaiko, researchers can efficiently select primer sets for a range of applications, making biomonitoring and ecological studies more reliable and comparable.
 
@@ -46,10 +46,10 @@ The name comes from the Esperanto word 'Mozaiko', reflecting the idea of bringin
    conda activate mozaiko
    ```
 
-3. Install mozaiko:
+3. Run mozaiko:
 
       ```bash
-   pip install -e .
+   mozaiko --help
    ```
 
 Th installation script will:
@@ -57,7 +57,6 @@ Th installation script will:
 - Check if Conda is installed;
 - Create a new Conda environment named "mozaiko", if it does not yet exist;
 - Activate the Conda environment;
-- Clone the mozaiko repository, if not already cloned;
 - Install the mozaiko package;
 - Install required dependencies and tools.
 
@@ -82,7 +81,10 @@ mozaiko contains three main categories to evaluate and rank primer sets:
 ### **Module 3:** Traits and Resolution
 
 - **_taxonomic_resolution_**: percentage of taxa whose genetic divergence is higher than 2%. Higher values are preferable as they indicate an increased possibility of distinguishing between closely related taxa.
-- **_final_rank_**: the final ranking position is determined based on the individual ranking scores for each metric, presented in the output file intermediate_ranks, with all metrics weighted equally. Each metric is ranked based on whether higher or lower values are more desirable:
+
+
+
+The final ranking position is determined based on the individual ranking scores for each metric, presented in the output file intermediate_ranks, with all metrics weighted equally. Each metric is ranked based on whether higher or lower values are more desirable:
    - Descending (higher is better):
       - barcoded_taxa_one_plus
       - ratio_barcoded_taxa

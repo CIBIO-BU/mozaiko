@@ -147,32 +147,30 @@ install_crabs_release() {
         fi
     fi
 
-    log_info "Installing CRABS v0.1.7"
-
-    mkdir -p "$EXTERNAL_SCRIPTS_DIR" || {
-        log_error "Failed to create directory $EXTERNAL_SCRIPTS_DIR"
-        exit 1
-    }
+    log_info "Installing CRABS v0.1.7 from local archive"
 
     cd "$EXTERNAL_SCRIPTS_DIR" || {
         log_error "Directory $EXTERNAL_SCRIPTS_DIR does not exist"
         exit 1
     }
 
-    log_info "Downloading CRABS v0.1.7"
-    wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE" || {
-        log_error "Failed to download CRABS"
+    CRABS_ARCHIVE="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7.zip"
+
+    if [ ! -f "$CRABS_ARCHIVE" ]; then
+        log_error "CRABS archive not found at $CRABS_ARCHIVE"
+        exit 1
+    fi
+
+    log_info "Unzipping CRABS archive"
+    unzip -o "$CRABS_ARCHIVE" || {
+        log_error "Failed to unzip CRABS archive"
         exit 1
     }
 
-    log_info "Extracting CRABS archive"
-    tar -xzf "$CRABS_ARCHIVE" || {
-        log_error "Failed to extract CRABS"
-        exit 1
-    }
+    CRABS_DIR="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7"
 
     cd "$CRABS_DIR" || {
-        log_error "Directory $CRABS_DIR does not exist"
+        log_error "Directory $CRABS_DIR does not exist after unzipping."
         exit 1
     }
 
@@ -182,10 +180,7 @@ install_crabs_release() {
         exit 1
     }
 
-    cd "$EXTERNAL_SCRIPTS_DIR"
-    rm -f "$CRABS_ARCHIVE"
-
-    log_info "CRABS installation complete"
+    log_info "CRABS installation complete."
 }
 
 # Verify tools installation

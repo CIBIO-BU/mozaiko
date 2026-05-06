@@ -21,3 +21,6 @@ release:
 
 	# Upload to PyPI (will prompt for API token)
 	twine upload dist/*
+
+install:
+	# unzips and installs crabs
