@@ -10,7 +10,7 @@ from Bio.Seq import Seq
 
 import pandas as pd
 
-from mozaiko.src.mozaiko.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
+from src.mozaiko.reference_database.sequence_import import CustomFastaImport, LineageFileLoader
 
 
 class TestCustomFastaImport(unittest.TestCase):
@@ -117,14 +117,15 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         self.fasta_import.read_fasta(self.fasta_taxid_file, check_taxid=True)
         self.fasta_import.df2csv()
-        example_file = "data/input_data/processed_input_fasta.csv"
+        example_file = "data/input_data/processed_input_fasta.tsv"
         with open(example_file, "r", encoding="UTF-8") as f:
             lines = f.readlines()
-            self.assertEqual(lines[0], "seq_id,sequence,length,taxid\n")
-            self.assertEqual(lines[1], "CM074756.1,GTTATTGTAGCTTATC,16,8481\n")
-            self.assertEqual(lines[2], "NC_088426.1,GCATAAAGCATGGCACTGA,19,12345\n")
-            self.assertEqual(lines[3], "PP475397.1,GTTATTGA,8,106731\n")
+            self.assertEqual(lines[0], "seq_id\tsequence\tlength\ttaxid\n")
+            self.assertEqual(lines[1], "CM074756.1\tGTTATTGTAGCTTATC\t16\t8481\n")
+            self.assertEqual(lines[2], "NC_088426.1\tGCATAAAGCATGGCACTGA\t19\t12345\n")
+            self.assertEqual(lines[3], "PP475397.1\tGTTATTGA\t8\t106731\n")
         os.remove(example_file)
+        os.rmdir("data/input_data")
 
     def test_get_taxids(self):
         """
@@ -166,9 +167,8 @@ class TestCustomFastaImport(unittest.TestCase):
 
                 mock_add_taxids.assert_not_called()
 
-        mock_print.assert_called_once_with(
-            "mozaiko INFO: No TaxIDs found in the FASTA file. "
-            + "Starting lineage file upload process."
+        mock_print.assert_called_with(
+            "mozaiko INFO: No TaxIDs found in the FASTA file. Starting lineage file upload process."
         )
 
         mock_load_lineage_file.assert_called_once()

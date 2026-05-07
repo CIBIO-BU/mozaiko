@@ -102,14 +102,13 @@ class CustomFastaImport:
             taxid_found = False
             for record in SeqIO.parse(fasta_file, "fasta"):
 
-                if "taxid" in record.description.lower():
+                if re.search(r"taxid=\d+", record.description.lower()):
                     self.add_taxids(input_file)
                     taxid_found = True
                     break
 
             if not taxid_found:
-                print("mozaiko INFO: No TaxIDs found in the FASTA file.")
-                print("mozaiko INFO: Starting lineage file upload process.")
+                print("mozaiko INFO: No TaxIDs found in the FASTA file. Starting lineage file upload process.")
                 self.lineage_file = self.lineage_file_loader.load_lineage_file()
 
     def read_fasta(
@@ -207,7 +206,7 @@ class CustomFastaImport:
             return header
         normalized = unicodedata.normalize("NFKD", header)
         ascii_text = normalized.encode("ASCII", "ignore").decode()
-        clean_text = re.sub(r"[^\w\s|.-]", "", ascii_text)
+        clean_text = re.sub(r"[^\w\s|.=:-]", "", ascii_text)
         return clean_text
 
     def clean_fasta_headers(self, input_file, output_file, verbose: bool = False):

@@ -8,7 +8,7 @@ import subprocess
 import unittest
 from unittest.mock import mock_open, patch
 
-from mozaiko.src.mozaiko.reference_database.db_curation import CrabsScriptGenerator
+from src.mozaiko.reference_database.db_curation import CrabsScriptGenerator
 
 
 class TestCrabsScriptGenerator(unittest.TestCase):
@@ -108,9 +108,9 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
     @patch("subprocess.run")
     @patch(
-        "src.reference_database.db_curation.CrabsScriptGenerator._download_taxonomy_files"
+        "src.mozaiko.reference_database.db_curation.CrabsScriptGenerator._download_taxonomy_files"
     )
-    @patch("src.reference_database.db_curation.CrabsScriptGenerator._load_parameters")
+    @patch("src.mozaiko.reference_database.db_curation.CrabsScriptGenerator._load_parameters")
     def test_run_assign_tax_command(
         self, mock_load_params, mock_download_files, mock_run
     ):
@@ -142,9 +142,9 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
     @patch("subprocess.run")
     @patch(
-        "src.reference_database.db_curation.CrabsScriptGenerator.check_if_crabs_installed"
+        "src.mozaiko.reference_database.db_curation.CrabsScriptGenerator.check_if_crabs_installed"
     )
-    @patch("src.reference_database.db_curation.CrabsScriptGenerator._load_parameters")
+    @patch("src.mozaiko.reference_database.db_curation.CrabsScriptGenerator._load_parameters")
     def test_run_dereplicate_command(
         self, mock_load_params, mock_check_if_crabs_installed, mock_run
     ):
