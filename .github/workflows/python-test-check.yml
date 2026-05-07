@@ -18,7 +18,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install pytest pytest-cov setuptools pandas tqdm
+        pip install pytest pytest-cov setuptools pandas tqdm matplotlib
 
     - name: Install CRABS v0.1.7
       run: |
