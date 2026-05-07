@@ -16,7 +16,7 @@ import pandas as pd
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-from mozaiko.src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
+from src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
 
 
 class TestInSilicoAmplification(unittest.TestCase):
@@ -31,7 +31,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         self.data_dir = "data/test_data"
         self.primer_list = self.data_dir + "/test_primer_table.tsv"
         self.input_data = self.data_dir + "/fasta_example_file_taxid.fasta"
-        self.amplification = InSilicoAmplification(self.input_data)
+        self.amplification = InSilicoAmplification(self.input_data, run_name="test_run")
 
     @patch("subprocess.run")
     def test_check_if_cutadapt_installed(self, mock_subprocess):
@@ -155,22 +155,22 @@ class TestInSilicoAmplification(unittest.TestCase):
 
     @patch("shutil.copytree")
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification._check_if_cutadapt_installed"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification._check_if_cutadapt_installed"
     )
     @patch(
-        "src.reference_database.db_curation.CrabsScriptGenerator.check_if_crabs_installed"
+    "src.mozaiko.in_silico_analysis.amplification.CrabsScriptGenerator.check_if_crabs_installed"
     )
-    @patch("src.in_silico_analysis.amplification.InSilicoAmplification._validate_fasta")
+    @patch("src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification._validate_fasta")
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
-    )
-    @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.add_taxonomy_to_pga_outputs"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
     )
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.remove_intersection_sequences"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.add_taxonomy_to_pga_outputs"
     )
-    @patch("builtins.input", side_effect=["test_output_folder"])
+    @patch(
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.intersect_PGA_relaxed_and_strict"
+    )
+    @patch("builtins.input", side_effect=["test_run"])
     @patch("pathlib.Path.is_dir", return_value=True)
     @patch("pathlib.Path.glob", return_value=[Path("dummy.fasta")])
     @patch(
@@ -197,6 +197,10 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         self.amplification.primer_table = MagicMock()
 
+        self.amplification.run_dir = self.amplification.base_output_dir / self.amplification.run_name
+        if self.amplification.run_dir.exists():
+            shutil.rmtree(self.amplification.run_dir)
+
         self.amplification.run_in_silico_analysis()
 
         mock_check_cutadapt.assert_called_once()
@@ -204,17 +208,17 @@ class TestInSilicoAmplification(unittest.TestCase):
         mock_validate_fasta.assert_called_once()
         mock_read_tables.assert_called_once()
         mock_taxonomy_add.assert_called_once()
-        self.assertEqual(mock_intersection.call_count, 3)
-        self.assertEqual(self.amplification.run_name, "test_output_folder")
+        mock_intersection.assert_called_once()
+        self.assertEqual(self.amplification.run_name, "test_run")
         self.assertIsNotNone(self.amplification.output_dirs)
 
     @patch("shutil.copytree")
-    @patch("builtins.input", side_effect=["test_folder"])
+    @patch("builtins.input", side_effect=["test_run"])
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.process_commands"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.process_commands"
     )
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.read_primer_tables"
     )
     @patch("pathlib.Path.is_dir", return_value=True)
     @patch("pathlib.Path.glob", return_value=[Path("dummy.fasta")])
@@ -239,6 +243,10 @@ class TestInSilicoAmplification(unittest.TestCase):
         Test that run_in_silico_analysis calls the process_commands the correct number of times and
         with the correct arguments.
         """
+        self.amplification.run_dir = self.amplification.base_output_dir / self.amplification.run_name
+        if self.amplification.run_dir.exists():
+            shutil.rmtree(self.amplification.run_dir)
+
         self.amplification.primer_table = MagicMock()
         self.amplification.primer_table.iterrows.return_value = [
             (
@@ -274,6 +282,9 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "rev_seq": "CATGTTACGACTTGCCTCCTC",
             },
             self.amplification.database_fasta_file,
+            0.75,
+            99,
+            0.05,
         )
         mock_process_commands.assert_any_call(
             {
@@ -283,12 +294,15 @@ class TestInSilicoAmplification(unittest.TestCase):
                 "rev_seq": "TCGTTGAACAAACGAACC",
             },
             self.amplification.database_fasta_file,
+            0.75,
+            99,
+            0.05,
         )
 
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.run_cutadapt_command"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.run_cutadapt_command"
     )
-    @patch("src.in_silico_analysis.amplification.InSilicoAmplification.run_pga_command")
+    @patch("src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.run_pga_command")
     def test_process_commands(self, mock_run_pga_command, mock_run_cutadapt_command):
         row = {
             "target_group": "Chondrichthyes",
@@ -303,11 +317,11 @@ class TestInSilicoAmplification(unittest.TestCase):
         }
 
         self.amplification.run_name = "test_run"
-        self.amplification.output_dirs = self.amplification._setup_output_directories(
+        self.amplification.output_dirs, _ = self.amplification._setup_output_directories(
             "test_run"
         )
 
-        self.amplification.process_commands(row, self.input_data)
+        self.amplification.process_commands(row, self.input_data, 0.75, 99, 0.05)
 
         self.assertEqual(mock_run_cutadapt_command.call_count, 2)
         self.assertEqual(mock_run_pga_command.call_count, 2)
@@ -598,9 +612,9 @@ class TestInSilicoAmplification(unittest.TestCase):
             # open() should never be called
             mock_file.assert_not_called()
 
-    def test_remove_intersection_sequences_single_file(self):
+    def test_filter_intersection_sequences_single_file(self):
         """
-        Test remove_intersection_sequences with a single input file
+        Test filter_intersection_sequences with a single input file
         """
         input_dir = Path("data/test_data/amplicon-test")
         filter_dir = Path("data/test_data/insert-test")
@@ -608,10 +622,11 @@ class TestInSilicoAmplification(unittest.TestCase):
         input_file = input_dir / "primerA.fasta"
         filter_file = filter_dir / "primerA.fasta"
 
-        self.amplification.remove_intersection_sequences(input_file, filter_file)
+        self.amplification.run_dir = self.amplification.base_output_dir / self.amplification.run_name
 
-        filtered_dir = input_file.parent / "filtered_intersection"
-        filtered_file = filtered_dir / "primerA.fasta"
+        self.amplification.intersect_PGA_relaxed_and_strict(input_file, filter_file)
+
+        filtered_file = str(self.amplification.run_dir) + "/input_B/primerA.fasta"
 
         output_records = list(SeqIO.parse(filtered_file, "fasta"))
         output_ids = [record.id for record in output_records]

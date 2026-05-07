@@ -672,11 +672,11 @@ class InSilicoAmplification:
         print(f"mozaiko INFO: Results can be found in working dir under the folder {self.run_dir}.")
 
     def process_commands(self,
-                         row: dict,
-                         input_fasta: Path,
-                           minimum_percentage_identity,
-                           minimum_alignment_coverage,
-                           max_ambiguous_percentage=0.05):
+                        row: dict,
+                        input_fasta: Path,
+                        minimum_percentage_identity=0.75,
+                        minimum_alignment_coverage=99,
+                        max_ambiguous_percentage=0.05):
         """
         This method creates variables from the user-inputted primer table to process commands for
         the in-silico ammplication.
@@ -863,8 +863,8 @@ class InSilicoAmplification:
         output_dir,
         database_dir,
         filter,
-        minimum_percentage_identity,
-        minimum_alignment_coverage,
+        minimum_percentage_identity=0.75,
+        minimum_alignment_coverage=99,
     ):
         """
         This method designs the command to run Pairwise Global Alignment (PGA) with CRABS
