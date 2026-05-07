@@ -23,38 +23,47 @@ jobs:
 
     - name: Install CRABS v0.1.7
       run: |
-        set -e
-
-        CRABS_VERSION="0.1.7"
-        EXTERNAL_SCRIPTS_DIR="$(pwd)/external_scripts"
-
-        CRABS_ARCHIVE="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7.zip"
-        CRABS_DIR="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7"
-
         echo "Checking CRABS installation"
 
         if command -v crabs &> /dev/null; then
-          crabs_output=$(crabs --version 2>&1 | tail -n 1)
-          crabs_version=${crabs_output##* }
+            crabs_output=$(crabs --version 2>&1 | tail -n 1)
+            crabs_version=${crabs_output##* }
 
-          if [ "$crabs_version" = "$CRABS_VERSION" ]; then
-            echo "CRABS v0.1.7 already installed"
-            exit 0
-          fi
+            if [ "$crabs_version" = "0.1.7" ]; then
+                echo "CRABS v0.1.7 is already installed"
+                exit 0
+            else
+                echo "CRABS version $crabs_version is installed, but v0.1.7 is required"
+                exit 1
+            fi
         fi
 
-        echo "Installing CRABS v0.1.7 from local archive"
+        EXTERNAL_SCRIPTS_DIR="$(pwd)/external_scripts"
+        CRABS_ARCHIVE="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7.zip"
 
         if [ ! -f "$CRABS_ARCHIVE" ]; then
-          echo "CRABS archive not found at $CRABS_ARCHIVE"
-          exit 1
+            echo "CRABS archive not found at $CRABS_ARCHIVE"
+            exit 1
         fi
 
+        cd "$EXTERNAL_SCRIPTS_DIR"
+
+        echo "Unzipping CRABS archive"
         unzip -o "$CRABS_ARCHIVE"
+
+        CRABS_DIR="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7"
+
+        if [ ! -d "$CRABS_DIR" ]; then
+            echo "CRABS directory not found after unzip"
+            exit 1
+        fi
 
         cd "$CRABS_DIR"
 
+        echo "Installing CRABS package"
         pip install .
+
+        echo "CRABS installation complete"
 
         crabs --version
 
