@@ -18,7 +18,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install pytest pytest-cov setuptools pandas tqdm matplotlib numpy biopython pyyaml
+        pip install pytest pytest-cov setuptools pandas tqdm matplotlib numpy pyyaml
+        pip install "biopython<1.82"
 
     - name: Install CRABS v0.1.7
       run: |
