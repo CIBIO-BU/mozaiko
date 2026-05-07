@@ -23,24 +23,39 @@ jobs:
 
     - name: Install CRABS v0.1.7
       run: |
+        set -e
+
         CRABS_VERSION="0.1.7"
-        CRABS_RELEASE="https://github.com/gjeunen/reference_database_creator/archive/v${CRABS_VERSION}.tar.gz"
-        CRABS_ARCHIVE="crabs-${CRABS_VERSION}.tar.gz"
-        CRABS_DIR="reference_database_creator-${CRABS_VERSION}"
+        EXTERNAL_SCRIPTS_DIR="$(pwd)/external_scripts"
 
-        # Download specific version
-        wget "$CRABS_RELEASE" -O "$CRABS_ARCHIVE"
+        CRABS_ARCHIVE="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7.zip"
+        CRABS_DIR="$EXTERNAL_SCRIPTS_DIR/crabs-0.1.7"
 
-        # Extract and install
-        tar -xzf "$CRABS_ARCHIVE"
+        echo "Checking CRABS installation"
+
+        if command -v crabs &> /dev/null; then
+          crabs_output=$(crabs --version 2>&1 | tail -n 1)
+          crabs_version=${crabs_output##* }
+
+          if [ "$crabs_version" = "$CRABS_VERSION" ]; then
+            echo "CRABS v0.1.7 already installed"
+            exit 0
+          fi
+        fi
+
+        echo "Installing CRABS v0.1.7 from local archive"
+
+        if [ ! -f "$CRABS_ARCHIVE" ]; then
+          echo "CRABS archive not found at $CRABS_ARCHIVE"
+          exit 1
+        fi
+
+        unzip -o "$CRABS_ARCHIVE"
+
         cd "$CRABS_DIR"
+
         pip install .
-        cd ..
 
-        # Cleanup
-        rm -f "$CRABS_ARCHIVE"
-
-        # Verify installation
         crabs --version
 
     - name: Install cutadapt
