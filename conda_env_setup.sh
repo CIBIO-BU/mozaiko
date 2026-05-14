@@ -42,7 +42,7 @@ check_conda() {
 
 # Check if env already exists
 check_env() {
-    if conda env list | grep -q "${ENV_NAME}"; then
+    if conda env list | awk '{print $1}' | grep -qx "${ENV_NAME}"; then
         echo "Conda environment '$ENV_NAME' already exists. Skipping environment creation."
         return 0
     else

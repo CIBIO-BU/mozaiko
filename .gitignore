@@ -51,6 +51,8 @@ __pycache__/
 .pytest_cache/*
 .pylintrc
 dist/*
+external_scripts/crabs-0.1.7
+
 
 
 

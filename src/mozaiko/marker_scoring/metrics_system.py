@@ -2156,7 +2156,6 @@ class MetricsSystemExecutor:
         if ref_qual is not None:
             binding_df = ref_qual.join(binding_df)
 
-        # binding_df.rename(index=lambda x: x.replace("-", "_"), inplace=True)
         binding_df.index.name = "primer"
 
         binding_df = binding_df
@@ -2293,7 +2292,6 @@ class MetricsSystemExecutor:
                     primer_name = (
                         file.replace("otl_level_results_", "")
                         .replace(".tsv", "")
-                        .replace("-", "_")
                     )
 
                     if primer_name not in taxonomic_resolution_df.columns:

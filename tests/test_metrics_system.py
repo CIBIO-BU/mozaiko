@@ -14,9 +14,8 @@ from unittest.mock import MagicMock, Mock, call, mock_open, patch
 from Bio.SeqRecord import SeqRecord
 from pandas._testing import assert_frame_equal
 
-import src
-from mozaiko.src.mozaiko.marker_scoring.metrics_system import *
-from mozaiko.src.mozaiko.marker_scoring.scoring_utils import *
+from src.mozaiko.marker_scoring.metrics_system import *
+from src.mozaiko.marker_scoring.scoring_utils import *
 
 
 class TestOtlHandler(unittest.TestCase):
