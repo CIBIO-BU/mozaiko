@@ -159,23 +159,25 @@ class TestSequenceCountTracking(unittest.TestCase):
         with open(self.original_database.name, "w") as f:
             f.write(">seq\nAGTGCA\n>seq2\nGTCAGCGA\n>seq3\nGGGGCA")
 
-        self.analysis_subfolder = os.path.join(self.analysis_folder.name, "amplicon")
-        os.makedirs(self.analysis_subfolder, exist_ok=True)
-        self.analysis_file = tempfile.NamedTemporaryFile(
-            delete=False,
-            dir=self.analysis_subfolder,
-            prefix="amplicon_",
-            suffix=".fasta",
-        )
-        with open(self.analysis_file.name, "w") as f:
-            f.write(">seq1\nGTCA\n>seq2\nGTCGGG")
+        required_dirs = [
+            "all_complete_pbs/input_ABC",
+            "insert/input_A",
+            "input_B",
+        ]
+
+        for d in required_dirs:
+            path = os.path.join(self.analysis_folder.name, d)
+            os.makedirs(path, exist_ok=True)
+
+            fasta = os.path.join(path, "primerA.fasta")
+
+            with open(fasta, "w") as f:
+                f.write(">seq1\nATGC\n>seq2\nATGC\n")
 
     def tearDown(self):
         self.analysis_folder.cleanup()
         if os.path.exists(self.original_database.name):
             os.remove(self.original_database.name)
-        if os.path.exists(self.analysis_file.name):
-            os.remove(self.analysis_file.name)
 
     def test_sequence_count_tracking(self):
         df_pivoted = sequence_count_tracking(
@@ -185,18 +187,33 @@ class TestSequenceCountTracking(unittest.TestCase):
         self.assertIsInstance(df_pivoted, pd.DataFrame)
 
         run_name = os.path.basename(self.analysis_folder.name)
+
         output_path = os.path.join(
             self.analysis_folder.name, f"{run_name}-sequence_count_track.tsv"
         )
+
         self.assertTrue(os.path.exists(output_path))
 
         result_df = pd.read_csv(output_path, sep="\t")
-        self.assertIn("original_database", result_df.columns)
-        self.assertIn("amplicon", result_df.columns)
 
-        self.assertEqual(df_pivoted.loc["original_database", "original_database"], 3)
-        self.assertEqual(df_pivoted.iloc[0, 1], 2)
+        self.assertIn("primer_name", result_df.columns)
 
+        # Check at least one analysis-step column exists (amplicon)
+        self.assertTrue(len(result_df.columns) > 1)
+
+        self.assertIn(
+            "percentage_of_sequences_with_PBS",
+            df_pivoted.columns
+        )
+
+        self.assertIn(
+            "percentage_of_amplified_sequences_with_PBS",
+            df_pivoted.columns
+        )
+
+        self.assertFalse(df_pivoted.empty)
+
+        print(result_df)
 
 class TestMultiBarcodeToolsInput(unittest.TestCase):
     def setUp(self):

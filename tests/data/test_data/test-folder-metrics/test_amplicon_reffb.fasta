@@ -1,26 +1,26 @@
->ABC.1|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.1|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 CGTAGCATCAGCTAGCAT
->ABC.2|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.2|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GTGCTAGC
->ABC.3|species B|species B|species|kingdomB|phylumB|classB|orderB|familyB|genusB|species B
+>ABC.3|species B|species B|species|kingdomB|phylumB|classB|orderB|familyB|genusB|speciesB
 GTGGGGGACGT
->DEF.3|species C|species C|species|kingdomC|phylumC|classC|orderC|familyC|genusC|species C
+>DEF.3|species C|species C|species|kingdomC|phylumC|classC|orderC|familyC|genusC|speciesC
 GACGGCCGC
->ZYX.1|species D|species D|species|kingdomD|phylumD|classD|orderD|familyD|genusD|species D
+>ZYX.1|species D|species D|species|kingdomD|phylumD|classD|orderD|familyD|genusD|speciesD
 GGGTAGA
->GHI.1|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>GHI.1|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GATGCA
->ABC.7|species D|species D|species|kingdomD|phylumD|classD|orderD|familyD|genusD|species D
+>ABC.7|species D|species D|species|kingdomD|phylumD|classD|orderD|familyD|genusD|speciesD
 GTCAGCAT
->ABC.4|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.4|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GTGCTAGT
->ABC.5|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.5|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GTGCTAGG
->ABC.6|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.6|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GTGCTAGA
->ABC.7|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.7|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GTGCTAGCC
->ABC.8|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|species A
+>ABC.8|species A|species A|species|kingdomA|phylumA|classA|orderA|familyA|genusA|speciesA
 GTGCTAGCCACGT
->DEF.6|species B|species B|species|kingdomB|phylumB|classB|orderB|familyB|genusB|species B
+>DEF.6|species B|species B|species|kingdomB|phylumB|classB|orderB|familyB|genusB|speciesB
 GTGGGGGACGTACG

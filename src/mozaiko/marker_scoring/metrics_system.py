@@ -1,5 +1,5 @@
 """
-This module implements the metrics system for the MOZAICO pipeline.
+This module implements the metrics system for the mozaiko pipeline.
 
 It includes classes and methods for handling Operational Taxonomic Lists (OTL),
 calculating primer binding sites (PBS), and evaluating the quality of reference databases.
@@ -142,7 +142,7 @@ class OtlHandler:
         required_cols = ["family", "genus", "species"]
         if not all(col in otl.columns for col in required_cols):
             raise ValueError(
-                "mozaico INFO: OTL must contain family, genus, and species columns."
+                "mozaiko INFO: OTL must contain family, genus, and species columns."
             )
 
         # group by family and genus to create the hierarchy
@@ -1001,9 +1001,9 @@ class Binding:
                 {analysis_name: getattr(grouped_taxa[analysis_name], operation)()}
             )
         elif operation == "coef_var":
-            mean = grouped_taxa[analysis_name].mean()
-            std = grouped_taxa[analysis_name].std()
-            result = pd.DataFrame({analysis_name: (std / mean) * 100})
+            result = primer_df[
+                ["family", "genus", "species", analysis_name]
+            ].copy()
         else:
             raise ValueError(
                 f"mozaiko ERROR: Unrecognized operation: '{operation}'. "
@@ -1011,7 +1011,8 @@ class Binding:
             )
 
         # Reset index to get family, genus, species as columns
-        result.reset_index(inplace=True)
+        if "family" not in result.columns:
+            result.reset_index(inplace=True)
         result = result.replace("nan", np.nan)
         hierarchical_result = self.fill_hierarchical_values(result, operation)
 
@@ -1071,8 +1072,8 @@ class Binding:
             across the 3'end length.
 
         Output:
-        - priming_ratio: float
-            The value for the priming ratio.
+        - ratio_df: DataFrame
+            A DataFrame containing the priming ratio for each taxon, calculated as the sum of
         """
         merged_df = pd.merge(
             max_mismatch_three_end,
@@ -1220,24 +1221,6 @@ class Binding:
     #     insert_taxa_counts_df["taxa_with_pbs"] = (
     #         insert_taxa_counts_df["taxa_in_silico_amplified"]
     #         + insert_taxa_counts_df["taxa_with_pbs"]
-    #     )
-
-    #     return insert_taxa_counts_df
-
-    # def calculate_amplification_success_score(self, results_folder):
-    #     """
-    #     This method calculates the percentage of successfully amplified taxa, computed by divinding
-    #     the number of in-silico amplified taxa by taxa with PBS.
-    #     """
-    #     insert_taxa_counts_df = self.get_outputs_taxa_counts(results_folder)
-
-    #     amplification_score = (
-    #         insert_taxa_counts_df["taxa_in_silico_amplified"]
-    #         / insert_taxa_counts_df["taxa_with_pbs"]
-    #         * 100
-    #     )
-    #     insert_taxa_counts_df["amplification_sucess_percent"] = round(
-    #         amplification_score, 2
     #     )
 
     #     return insert_taxa_counts_df
@@ -2125,7 +2108,7 @@ class MetricsSystemExecutor:
 
             # except Exception as e:
             #     print(
-            #         f"mozaico WARNING: Amplification success calculation failed for {primer}: {e}"
+            #         f"mozaiko WARNING: Amplification success calculation failed for {primer}: {e}"
             #     )
             #     primer_metrics["amplification_success_percent"] = None
 

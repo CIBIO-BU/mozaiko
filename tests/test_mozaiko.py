@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from src.mozaiko.mozaiko import (
     create_parser,
-    handle_custom_fasta_import,
+    database_pre_process,
     handle_dereplication,
     handle_taxonomic_assignment,
     main,
@@ -33,24 +33,35 @@ class Testmozaiko(unittest.TestCase):
         self.assertIsInstance(parser, argparse.ArgumentParser)
         self.assertEqual(
             parser.description,
-            "mozaiko: Piecing Together Complete Genetic Coverage for Biomonitoring",
+            "mozaiko CLI",
         )
 
-    @patch("builtins.open", mock_open(read_data=""))
-    @patch("os.path.exists", return_value=True)
-    @patch("os.path.getsize", return_value=100)
-    @patch("builtins.input", return_value="exit")
-    def test_handle_custom_fasta_import(self, _mock_exists, _mock_getsize, _mock_input):
+    @patch("src.mozaiko.mozaiko.CustomFastaImport")
+    def test_database_pre_process(self, mock_fasta_import):
         """
-        Test that the handle_custom_fasta_import function reads a FASTA file and asks for a lineage
-        file.
+        Test database preprocessing for harmonized databases.
         """
-        args = argparse.Namespace(input="input.fasta", output="output.fasta")
-        handle_custom_fasta_import(args)
+        mock_fasta = MagicMock()
+        mock_fasta_import.return_value = mock_fasta
 
-    @patch(
-        "src.reference_database.db_curation.CrabsScriptGenerator.run_assign_tax_command"
-    )
+        args = argparse.Namespace(
+            input="data/test_data/fasta_example_file.fasta",
+            output="output.tsv",
+            harmonized=True,
+        )
+
+        database_pre_process(args)
+
+        mock_fasta.read_fasta.assert_called_once_with(
+            "data/test_data/fasta_example_file.fasta"
+        )
+        mock_fasta.pre_process_harmonized_fasta_database.assert_called_once()
+        mock_fasta.df2csv.assert_called_once_with("output.tsv")
+
+        if Path("output.tsv").exists():
+            Path("output.tsv").unlink()
+
+    @patch("src.mozaiko.mozaiko.CrabsScriptGenerator.run_assign_tax_command")
     def test_handle_taxonomic_assignment(self, mock_run_assign_tax_command):
         """
         Test to check if the handle_taxonomic_assignment function runs the assign_tax command with
@@ -60,9 +71,14 @@ class Testmozaiko(unittest.TestCase):
         handle_taxonomic_assignment(args)
         mock_run_assign_tax_command.assert_called_with("dummy.json")
 
-    @patch(
-        "src.reference_database.db_curation.CrabsScriptGenerator.run_dereplicate_command"
-    )
+        # remove 'taxonomy_files' folder if it was created
+        taxonomy_folder = Path("taxonomy_files")
+        if taxonomy_folder.exists() and taxonomy_folder.is_dir():
+            for file in taxonomy_folder.iterdir():
+                file.unlink()
+            taxonomy_folder.rmdir()
+
+    @patch("src.mozaiko.mozaiko.CrabsScriptGenerator.run_dereplicate_command")
     def test_handle_dereplication(self, mock_run_dereplicate_command):
         """
         Test to check if the handle_dereplication function runs the dereplication command with the
@@ -72,71 +88,62 @@ class Testmozaiko(unittest.TestCase):
         handle_dereplication(args)
         mock_run_dereplicate_command.assert_called_with("dummy.json")
 
-    @patch("argparse.ArgumentParser.parse_args")
-    @patch("src.mozaiko.CustomFastaImport")
-    def test_main_load_custom_fasta(self, mock_custom_fasta_import, mock_parse_args):
-        mock_fasta_instance = MagicMock()
-        mock_custom_fasta_import.return_value = mock_fasta_instance
+    @patch("src.mozaiko.mozaiko.create_parser")
+    def test_main_without_subcommand(self, mock_create_parser):
+        """
+        Test main() when no subcommand is provided.
+        """
+        mock_parser = MagicMock()
+        mock_args = MagicMock()
 
-        mock_args = MagicMock(
-            load_custom_fasta=True,
-            input="data/test_data/fasta_example_file_taxid.fasta",
-            assign_tax=False,
-            dereplicate=False,
-            json_file=None,
-            verbose=False,
-            in_silico_analysis=False,
-            output=None,
-        )
-        mock_parse_args.return_value = mock_args
+        del mock_args.func
+
+        mock_parser.parse_args.return_value = mock_args
+        mock_create_parser.return_value = mock_parser
 
         main()
 
-        mock_custom_fasta_import.assert_called_once()
-        mock_fasta_instance.read_fasta.assert_called_once_with(mock_args.input)
-        mock_fasta_instance.get_number_of_sequences.assert_called_once()
+        mock_parser.print_help.assert_called_once()
 
-    @patch("argparse.ArgumentParser.parse_args")
-    @patch("src.mozaiko.handle_taxonomic_assignment")
-    def test_main_assign_tax_without_json(
-        self, mock_taxonomic_assignment, mock_parse_args
-    ):
-        mock_parse_args.return_value = MagicMock(
-            load_custom_fasta=False,
-            input=None,
-            assign_tax=True,
-            json_file=None,
+    @patch("src.mozaiko.mozaiko.create_parser")
+    def test_main_dispatches_function(self, mock_create_parser):
+        """
+        Test that main dispatches to the selected subcommand function.
+        """
+        mock_parser = MagicMock()
+
+        mock_func = MagicMock()
+
+        mock_args = argparse.Namespace(
             verbose=False,
+            func=mock_func,
         )
 
-        with self.assertLogs(level="ERROR") as log:
+        mock_parser.parse_args.return_value = mock_args
+        mock_create_parser.return_value = mock_parser
+
+        main()
+
+        mock_func.assert_called_once_with(mock_args)
+
+    @patch("src.mozaiko.mozaiko.create_parser")
+    def test_main_sets_verbose_logging(self, mock_create_parser):
+        """
+        Test verbose logging activation.
+        """
+        mock_parser = MagicMock()
+
+        mock_func = MagicMock()
+
+        mock_args = argparse.Namespace(
+            verbose=True,
+            func=mock_func,
+        )
+
+        mock_parser.parse_args.return_value = mock_args
+        mock_create_parser.return_value = mock_parser
+
+        with patch("logging.getLogger") as mock_get_logger:
             main()
 
-        mock_taxonomic_assignment.assert_not_called()
-        self.assertIn(
-            "mozaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file.",
-            log.output[0],
-        )
-        self.assertIn("Exiting...", log.output[1])
-
-    @patch("argparse.ArgumentParser.parse_args")
-    @patch("src.mozaiko.handle_dereplication")
-    def test_main_dereplicate_without_json(self, mock_dereplication, mock_parse_args):
-        mock_parse_args.return_value = MagicMock(
-            load_custom_fasta=False,
-            input=None,
-            assign_tax=False,
-            dereplicate=True,
-            json_file=None,
-            verbose=False,
-        )
-
-        with self.assertLogs(level="ERROR") as log:
-            main()
-
-        mock_dereplication.assert_not_called()
-        self.assertIn(
-            "mozaiko INFO: No JSON file specified. Please specify a JSON file with parameter --json_file.",
-            log.output[0],
-        )
-        self.assertIn("Exiting...", log.output[1])
+            mock_get_logger.return_value.setLevel.assert_called_once()

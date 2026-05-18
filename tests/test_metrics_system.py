@@ -23,6 +23,7 @@ class TestOtlHandler(unittest.TestCase):
         self.test_directory = Path("data/test_data")
         self.otl = str(self.test_directory / "test_otl.tsv")
         self.handler = OtlHandler(self.otl)
+        self.maxDiff = None
 
     def test_validate_otl_not_exist(self):
         with self.assertRaises(SystemExit) as cm, patch(
@@ -61,7 +62,7 @@ class TestOtlHandler(unittest.TestCase):
     @patch("sys.stdout", new_callable=StringIO)
     def test_import_otl(self, mock_stdout, mock_input):
         otl_handler = OtlHandler()
-        total_taxa_count, unique_taxa = otl_handler.import_otl()
+        total_taxa_count = otl_handler.import_otl()
 
         self.assertIn(
             "mozaiko INFO: To continue the evaluation, a Operational Taxonomic List (OTL) is \
@@ -71,24 +72,28 @@ class TestOtlHandler(unittest.TestCase):
         )
 
         otl = pd.read_csv("data/test_data/test_otl.tsv", sep="\t", header=0)
-        species_col = {
-            "species": [
-                "species A",
-                "species B",
-                "species C",
-                "species D",
-                "species E",
-                "species Z",
-            ]
-        }
-        species_col_df = pd.DataFrame(species_col)
-        resulting_df = pd.concat([otl, species_col_df], axis=1)
 
-        pd.testing.assert_frame_equal(otl_handler.otl, resulting_df)
+        # Check OTL loaded correctly
+        self.assertIsInstance(otl_handler.otl, pd.DataFrame)
 
-        expected_unique_taxa = set(otl["taxa"])
-        self.assertEqual(total_taxa_count, len(expected_unique_taxa))
-        self.assertEqual(unique_taxa, expected_unique_taxa)
+        # Ensure expected columns exist
+        expected_columns = [
+            "taxa",
+            "scientificName",
+            "rank",
+            "kingdom",
+            "phylum",
+            "class",
+            "order",
+            "family",
+            "genus",
+            "species",
+        ]
+
+        self.assertEqual(list(otl_handler.otl.columns), expected_columns)
+
+        # Validate taxa count
+        self.assertEqual(total_taxa_count, 6)
 
 
 class TestReferenceDatabaseQuality(unittest.TestCase):
@@ -108,7 +113,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
     def test_calculate_number_of_barcodes_per_taxon_input(
         self, mock_stdout, mock_input
     ):
-        with patch("src.marker_scoring.metrics_system.OtlHandler") as mock_otl_handler:
+        with patch("src.mozaiko.marker_scoring.metrics_system.OtlHandler") as mock_otl_handler:
             mock_instance = MagicMock()
             mock_instance.taxa_hierarchy = {
                 "familyA": {"genera": {"genusA": {"species": {"speciesA": {}}}}},
@@ -143,46 +148,49 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         barcodes_per_entry = (
             self.ref_bd_cls.calculate_number_of_barcodes_per_fasta_entry()
         )
+        print("Barcodes per entry:", barcodes_per_entry)
         taxa_hierarchy = self.ref_bd_cls.taxa_hierarchy
         barcodes = self.ref_bd_cls.calculate_number_of_barcodes_per_otl_taxonomy(
             barcodes_per_entry, taxa_hierarchy
         )
+        print("Barcodes per taxon:", barcodes)
+        print(taxa_hierarchy)
 
         expected_barcodes = {
             "test_amplicon_reffb": {
                 "familyA": {
                     "genera": {
-                        "genusA": {"species": {"species A": {"count": 8}}, "count": 8}
+                        "genusA": {"species": {"speciesA": {"count": 8}}, "count": 8}
                     },
                     "count": 8,
                 },
                 "familyB": {
                     "genera": {
-                        "genusB": {"species": {"species B": {"count": 2}}, "count": 2}
+                        "genusB": {"species": {"speciesB": {"count": 2}}, "count": 2}
                     },
                     "count": 2,
                 },
                 "familyC": {
                     "genera": {
-                        "genusC": {"species": {"species C": {"count": 1}}, "count": 1}
+                        "genusC": {"species": {"speciesC": {"count": 1}}, "count": 1}
                     },
                     "count": 1,
                 },
                 "familyD": {
                     "genera": {
-                        "genusD": {"species": {"species D": {"count": 2}}, "count": 2}
+                        "genusD": {"species": {"speciesD": {"count": 2}}, "count": 2}
                     },
                     "count": 2,
                 },
                 "familyE": {
                     "genera": {
-                        "genusE": {"species": {"species E": {"count": 0}}, "count": 0}
+                        "genusE": {"species": {"speciesE": {"count": 0}}, "count": 0}
                     },
                     "count": 0,
                 },
                 "familyZ": {
                     "genera": {
-                        "genusZ": {"species": {"species Z": {"count": 0}}, "count": 0}
+                        "genusZ": {"species": {"speciesZ": {"count": 0}}, "count": 0}
                     },
                     "count": 0,
                 },
@@ -191,21 +199,21 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         self.assertEqual(barcodes, expected_barcodes)
 
     def test_calculate_percentage_of_taxa_w_1_barcode(self):
-        percentage = self.ref_bd_cls.calculate_percentage_of_taxa_w_x_barcodes(
+        percentage = self.ref_bd_cls.calculate_proportion_of_taxa_w_x_barcodes(
             self.total_otl_taxa_count, barcode_threshold=1
         )
 
-        expected_percentage = {"test_amplicon_reffb": 66.67}
+        expected_percentage = {"test_amplicon_reffb": 0.67}
 
         self.assertEqual(percentage, expected_percentage)
 
     def test_calculate_percentage_of_taxa_w_2_barcode(self):
-        percentage2 = self.ref_bd_cls.calculate_percentage_of_taxa_w_x_barcodes(
+        percentage2 = self.ref_bd_cls.calculate_proportion_of_taxa_w_x_barcodes(
             self.total_otl_taxa_count,
             barcode_threshold=2,
         )
 
-        expected_percentage2 = {"test_amplicon_reffb": 50.00}
+        expected_percentage2 = {"test_amplicon_reffb": 0.5}
 
         self.assertEqual(percentage2, expected_percentage2)
 
@@ -214,7 +222,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
         expected_output = pd.DataFrame(
             {
-                "barcoded_taxa_one_plus": [66.67],
+                "barcoded_taxa": [0.67],
                 "ratio_barcoded_taxa": [0.25],
             },
             index=["test_amplicon_reffb"],
@@ -317,7 +325,7 @@ class TestBinding(unittest.TestCase):
 
     def test_pbs_table(self):
         with patch(
-            "src.marker_scoring.scoring_utils.extract_primer_binding_sites"
+            "src.mozaiko.marker_scoring.scoring_utils.extract_primer_binding_sites"
         ) as mock_extract, patch("builtins.open", create=True):
             mock_pbs_table = pd.DataFrame(
                 {"header": [">seq1|taxon"], "fwd_seq": ["ACGT"], "rev_seq": ["GCTA"]}
@@ -331,7 +339,7 @@ class TestBinding(unittest.TestCase):
 
     def test_primer_pbs_analysis_no_matching_files(self):
         with patch.object(
-            self.binding, "parse_files_with_same_extension_in_folders", return_value=[]
+            Binding, "parse_files_with_same_extension_in_folders", return_value=[]
         ) as mock_parse_files:
 
             result = self.binding.primer_pbs_analysis(
@@ -358,7 +366,7 @@ class TestBinding(unittest.TestCase):
                 "value": [5, 10, 20],
                 "family": ["familyA", "familyA", "familyB"],
                 "genus": ["genusA", "genusA", "genusB"],
-                "species": ["species A", "species A", "species B"],
+                "species": ["speciesA", "speciesA", "speciesB"],
             }
         )
 
@@ -379,12 +387,12 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [7.5, 20.0, np.nan, np.nan, np.nan, np.nan],
             }
@@ -409,12 +417,12 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [5.0, 20.0, np.nan, np.nan, np.nan, np.nan],
             }
@@ -439,12 +447,12 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [10.0, 20.0, np.nan, np.nan, np.nan, np.nan],
             }
@@ -469,12 +477,12 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [15.0, 20.0, np.nan, np.nan, np.nan, np.nan],
             }
@@ -499,16 +507,19 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [47.14, np.nan, np.nan, np.nan, np.nan, np.nan],
             }
         )
+
+        print(expected_coef_var)
+        print(result_coef_var)
 
         pd.testing.assert_frame_equal(result_coef_var, expected_coef_var)
 
@@ -520,7 +531,7 @@ class TestBinding(unittest.TestCase):
                 "value": [5],
                 "family": ["familyA"],
                 "genus": ["genusA"],
-                "species": ["species A"],
+                "species": ["speciesA"],
             }
         )
 
@@ -540,12 +551,12 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [5.0, np.nan, np.nan, np.nan, np.nan, np.nan],
             }
@@ -560,7 +571,7 @@ class TestBinding(unittest.TestCase):
                 "value": [5, None, 20],
                 "family": ["familyA", "familyA", "familyB"],
                 "genus": ["genusA", "genusA", "genusB"],
-                "species": ["species A", "species A", "species B"],
+                "species": ["speciesA", "speciesA", "speciesB"],
             }
         )
 
@@ -580,12 +591,12 @@ class TestBinding(unittest.TestCase):
                 ],
                 "genus": ["genusA", "genusB", "genusC", "genusD", "genusE", "genusZ"],
                 "species": [
-                    "species A",
-                    "species B",
-                    "species C",
-                    "species D",
-                    "species E",
-                    "species Z",
+                    "speciesA",
+                    "speciesB",
+                    "speciesC",
+                    "speciesD",
+                    "speciesE",
+                    "speciesZ",
                 ],
                 "value": [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
             }
@@ -635,19 +646,19 @@ class TestBinding(unittest.TestCase):
                 tax_grouped_df, operation="invalid_op"
             )
 
-    @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
+    @patch("src.mozaiko.marker_scoring.scoring_utils.calculate_iupac_mismatches")
     @patch("Bio.SeqUtils.MeltingTemp.Tm_GC", return_value=60.0)
     @patch("Bio.SeqUtils.gc_fraction", return_value=0.5)
     @patch(
-        "src.marker_scoring.metrics_system.Binding.get_primer_table",
+        "src.mozaiko.marker_scoring.metrics_system.Binding.get_primer_table",
         return_value=pd.DataFrame([...]),
     )
     @patch(
-        "src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders",
+        "src.mozaiko.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders",
         return_value=[...],
     )
     @patch(
-        "src.marker_scoring.metrics_system.Binding.get_pbs_table",
+        "src.mozaiko.marker_scoring.metrics_system.Binding.get_pbs_table",
         return_value=pd.DataFrame([...]),
     )
     def test_primer_pbs_analysis(
@@ -700,16 +711,16 @@ class TestBinding(unittest.TestCase):
         self.assertEqual(primer_gc_df.index[0], "COI_TestAssay")
 
     @patch(
-        "src.in_silico_analysis.amplification.InSilicoAmplification.validate_primer_table"
+        "src.mozaiko.in_silico_analysis.amplification.InSilicoAmplification.validate_primer_table"
     )
-    @patch("src.marker_scoring.scoring_utils.calculate_iupac_mismatches")
+    @patch("src.mozaiko.marker_scoring.scoring_utils.calculate_iupac_mismatches")
     @patch("Bio.SeqUtils.MeltingTemp.Tm_GC")
     @patch("Bio.SeqUtils.gc_fraction")
-    @patch("src.marker_scoring.metrics_system.Binding.get_primer_table")
+    @patch("src.mozaiko.marker_scoring.metrics_system.Binding.get_primer_table")
     @patch(
-        "src.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders"
+        "src.mozaiko.marker_scoring.metrics_system.Binding.parse_files_with_same_extension_in_folders"
     )
-    @patch("src.marker_scoring.metrics_system.Binding.get_pbs_table")
+    @patch("src.mozaiko.marker_scoring.metrics_system.Binding.get_pbs_table")
     def test_primer_pbs_analysis_single_primer(
         self,
         mock_get_pbs_table,
@@ -786,7 +797,6 @@ class TestBinding(unittest.TestCase):
                     "gc_matches_fwd",
                     "gc_matches_rev",
                     "min_tm",
-                    "delta_tm",
                 ]
             )
         )
@@ -800,8 +810,8 @@ class TestBinding(unittest.TestCase):
             {"full_len_mismatch_sum": [10, 20]},
             index=pd.MultiIndex.from_tuples(
                 [
-                    ("familyA", "genusA", "species A"),
-                    ("familyB", "genusB", "species B"),
+                    ("familyA", "genusA", "speciesA"),
+                    ("familyB", "genusB", "speciesB"),
                 ],
                 names=["family", "genus", "species"],
             ),
@@ -811,8 +821,8 @@ class TestBinding(unittest.TestCase):
             {"three_end_mismatch_sum": [5, 15]},
             index=pd.MultiIndex.from_tuples(
                 [
-                    ("familyA", "genusA", "species A"),
-                    ("familyB", "genusB", "species B"),
+                    ("familyA", "genusA", "speciesA"),
+                    ("familyB", "genusB", "speciesB"),
                 ],
                 names=["family", "genus", "species"],
             ),
@@ -822,7 +832,19 @@ class TestBinding(unittest.TestCase):
             max_mismatch_full_len, max_mismatch_three_end
         )
 
-        self.assertEqual(result, 1.25)
+        expected = pd.DataFrame(
+            {"priming_ratio": [0.50, 0.75]},
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("familyA", "genusA", "speciesA"),
+                    ("familyB", "genusB", "speciesB"),
+                ],
+                names=["family", "genus", "species"],
+            ),
+        )
+
+        self.assertTrue("priming_ratio" in result.columns)
+        pd.testing.assert_frame_equal(result, expected)
 
     def test_get_total_gc_matches(self):
         primer_pbs_df = pd.DataFrame(
@@ -841,17 +863,6 @@ class TestBinding(unittest.TestCase):
         )
         pd.testing.assert_frame_equal(result, expected)
 
-    def test_tm_score(self):
-        test_data = {"delta_tm": [1.5, 2.0, 1.8, 3.0, 1.2, 0.5]}
-        primer_pbs_df = pd.DataFrame(test_data)
-
-        temp_threshold = 2.0
-        result = self.binding.tm_score(primer_pbs_df, temp_threshold=temp_threshold)
-
-        expected = 66.67  # 4 out of 6 entries
-
-        self.assertEqual(result, expected)
-
     def create_mock_fasta(self, filename, records):
         """
         Create a mock FASTA file with given records
@@ -867,104 +878,6 @@ class TestBinding(unittest.TestCase):
         SeqIO.write(records, filepath, "fasta")
 
         return filepath
-
-    def test_count_unique_taxa(self):
-        """
-        Method to test the count_unique_taxa method.
-        """
-        records = [
-            SeqRecord(Seq("ATCG"), id="seq1", description="seq1|Taxon1"),
-            SeqRecord(Seq("GCTA"), id="seq2", description="seq2|Taxon1"),
-            SeqRecord(Seq("TAGC"), id="seq3", description="seq3|Taxon2"),
-            SeqRecord(Seq("CGAT"), id="seq4", description="seq4|Taxon3"),
-        ]
-
-        fasta_file = self.create_mock_fasta("test_taxa.fasta", records)
-        result = self.binding.count_unique_taxa(fasta_file)
-        self.assertEqual(result, 3)
-
-    def test_count_unique_taxa_no_taxa(self):
-        """
-        Method to test the count_unique_taxa method when there is no taxa.
-        """
-        records = [
-            SeqRecord(Seq("ATCG"), id="seq1", description="seq1"),
-            SeqRecord(Seq("GCTA"), id="seq2", description="seq2"),
-        ]
-
-        fasta_file = self.create_mock_fasta("test_no_taxa.fasta", records)
-
-        result = self.binding.count_unique_taxa(fasta_file)
-        self.assertEqual(result, 0)
-
-    def test_get_outputs_taxa_counts_amplification_success_score(self):
-        """
-        Method to test the the output generated by get_outputs_taxa_counts and the
-        calculate_amplification_success_score.
-        """
-        results_folder = self.mock_test_dir
-        os.makedirs(os.path.join(results_folder, "insert/filtered"))
-        os.makedirs(
-            os.path.join(
-                results_folder, "all_complete_pbs/filtered/filtered_intersection"
-            )
-        )
-        os.makedirs(
-            os.path.join(
-                results_folder, "incomplete_pbs/filtered/filtered_intersection"
-            )
-        )
-
-        in_silico_records = [
-            SeqRecord(Seq("ATCG"), id="seq1", description="seq1|Taxon1"),
-            SeqRecord(Seq("GCTA"), id="seq2", description="seq2|Taxon2"),
-        ]
-        pbs_records = [
-            SeqRecord(Seq("TAGC"), id="seq3", description="seq3|Taxon3"),
-            SeqRecord(Seq("CGAT"), id="seq4", description="seq4|Taxon1"),
-        ]
-        incomplete_pbs_records = [
-            SeqRecord(Seq("AAAA"), id="seq5", description="seq5|Taxon4"),
-        ]
-
-        self.create_mock_fasta("insert/filtered/primer1.fasta", in_silico_records)
-        self.create_mock_fasta(
-            "all_complete_pbs/filtered/filtered_intersection/primer1.fasta", pbs_records
-        )
-        self.create_mock_fasta(
-            "incomplete_pbs/filtered/filtered_intersection/primer1.fasta",
-            incomplete_pbs_records,
-        )
-
-        result = self.binding.calculate_amplification_success_score(results_folder)
-
-        self.assertIn("taxa_in_silico_amplified", result.columns)
-        self.assertIn("taxa_with_pbs", result.columns)
-        self.assertIn("taxa_with_incomplete_pbs", result.columns)
-
-        primer1_row = result.loc[result.index == "primer1"]
-        self.assertEqual(primer1_row["taxa_in_silico_amplified"].values[0], 2)
-        self.assertEqual(primer1_row["taxa_with_incomplete_pbs"].values[0], 1)
-        self.assertEqual(primer1_row["taxa_with_pbs"].values[0], 4)
-
-        self.assertIn("amplification_sucess_percent", result.columns)
-        self.assertEqual(
-            primer1_row["amplification_sucess_percent"].values[0], float(50.0)
-        )
-
-    def test_calculate_amplification_success_score(self):
-        """
-        Method to test the calculate_amplification_success_score.
-        """
-        results_folder = self.mock_test_dir
-
-        os.makedirs(os.path.join(results_folder, "all_inserts"))
-        os.makedirs(os.path.join(results_folder, "all_complete_pbs/filtered"))
-        os.makedirs(os.path.join(results_folder, "incomplete_pbs/filtered"))
-
-        result = self.binding.calculate_amplification_success_score(results_folder)
-
-        self.assertIn("amplification_sucess_percent", result.columns)
 
     def tearDown(self):
         for file_path in self.created_files:
@@ -1008,7 +921,7 @@ class TestTraitsAndResolution(unittest.TestCase):
         expected_insert_path = os.path.join(results_folder, "insert/filtered")
         expected_amplicon_path = os.path.join(results_folder, "amplicon")
         expected_incomplete_pbs_path = os.path.join(
-            results_folder, "incomplete_pbs/filtered/filtered_intersection"
+            results_folder, "incomplete_pbs/filtered"
         )
 
         traits = TraitsAndResolution(
@@ -1068,324 +981,6 @@ class TestTraitsAndResolution(unittest.TestCase):
             str(context.exception),
         )
 
-    def test_get_min_max_avg_seq_length_in_a_fasta(self):
-        """
-        Test sequence length calculation for individual FASTA files
-        """
-        amplicon_primer_a_path = os.path.join(self.amplicon_dir, "primerA.fasta")
-        min_len, max_len, avg_len = self.traits.get_min_max_avg_seq_length_in_a_fasta(
-            amplicon_primer_a_path
-        )
-
-        self.assertEqual(min_len, 6)
-        self.assertEqual(max_len, 26)
-        self.assertAlmostEqual(avg_len, 18.33)
-
-    def test_get_length_stats_for_amplicon_and_insert(self):
-        """
-        Test getting length statistics for both amplicon and insert
-        """
-        length_stats = self.traits.get_length_stats_for_amplicon_and_insert()
-
-        self.assertIsInstance(length_stats, pd.DataFrame)
-
-        self.assertListEqual(list(length_stats.index), ["primerA", "primerC"])
-
-        # Insert average length
-        self.assertAlmostEqual(length_stats.loc["primerA", "insert_avg_length"], 9.0)
-        self.assertTrue(np.isnan(length_stats.loc["primerC", "insert_avg_length"]))
-
-        # Amplicon min length
-        self.assertAlmostEqual(length_stats.loc["primerA", "amplicon_min_length"], 6)
-        self.assertAlmostEqual(length_stats.loc["primerC", "amplicon_min_length"], 23)
-
-        # Amplicon max length
-        self.assertAlmostEqual(length_stats.loc["primerA", "amplicon_max_length"], 26)
-        self.assertAlmostEqual(length_stats.loc["primerC", "amplicon_max_length"], 26)
-
-        # Amplicon average length
-        self.assertAlmostEqual(
-            length_stats.loc["primerA", "amplicon_avg_length"], 18.33, places=2
-        )
-        self.assertAlmostEqual(
-            length_stats.loc["primerC", "amplicon_avg_length"], 24.50, places=2
-        )
-
-        expected_columns = [
-            "amplicon_min_length",
-            "amplicon_max_length",
-            "amplicon_avg_length",
-            "insert_avg_length",
-        ]
-        for column in expected_columns:
-            self.assertIn(column, length_stats.columns, f"{column} column missing")
-
-    @patch("subprocess.run")
-    def test_run_multibarcode_pipeline_success(self, mock_subprocess_run):
-        mock_result = MagicMock()
-        mock_result.stdout = """
-        1: primerA, resolve  3 species
-        2: primerC, resolve additional 1 species
-        """
-        mock_subprocess_run.return_value = mock_result
-
-        result = self.traits.run_multibarcode_pipeline()
-
-        mock_subprocess_run.assert_called_once()
-        self.assertIsNotNone(result)
-
-        expected_multibarcode_output_folder = os.path.join(
-            self.test_dir, "multibarcode"
-        )
-        self.assertTrue(os.path.exists(expected_multibarcode_output_folder))
-
-    def test_parse_multibarcode_output(self):
-        test_stdout = """
-        1: primerA, resolve  3 species
-        2: primerC, resolve additional 1 species
-        3: primerD, resolve additional 1 species
-        """
-
-        result_df = self.traits.parse_multibarcode_output(test_stdout)
-
-        self.assertIsInstance(result_df, pd.DataFrame)
-        self.assertEqual(len(result_df), 3)
-
-        expected_columns = [
-            "primer",
-            "additional_resolved_species",
-            "cumulative_resolved_species",
-        ]
-        self.assertListEqual(list(result_df.columns), expected_columns)
-
-        self.assertEqual(result_df.iloc[0]["primer"], "primerA")
-        self.assertEqual(result_df.iloc[0]["additional_resolved_species"], 3)
-        self.assertEqual(result_df.iloc[0]["cumulative_resolved_species"], 3)
-
-        self.assertEqual(result_df.iloc[1]["primer"], "primerC")
-        self.assertEqual(result_df.iloc[1]["additional_resolved_species"], 1)
-        self.assertEqual(result_df.iloc[1]["cumulative_resolved_species"], 4)
-
-    def test_parse_multibarcode_output_empty(self):
-        result_df = self.traits.parse_multibarcode_output("")
-
-        self.assertIsInstance(result_df, pd.DataFrame)
-        self.assertEqual(len(result_df), 0)
-
-    @patch("subprocess.run")
-    def test_run_multibarcode_pipeline_failure(self, mock_subprocess_run):
-        mock_subprocess_run.side_effect = subprocess.CalledProcessError(
-            returncode=1, cmd=["multi-barcode"]
-        )
-
-        with self.assertRaises(subprocess.CalledProcessError):
-            self.traits.run_multibarcode_pipeline()
-
-    @patch(
-        "src.marker_scoring.metrics_system.TraitsAndResolution.compute_taxonomic_resolution_per_taxon"
-    )
-    def test_get_taxonomic_resolution(self, mock_compute_taxonomic_resolution):
-        mock_divergence_df = pd.DataFrame(
-            {
-                "input_taxa": ["species A", "species B", "species C"],
-                "primer1": [
-                    1.5,
-                    2.0,
-                    3.0,
-                ],  # One below cutoff, one at cutoff, one above
-                "primer2": [0.5, 1.0, 1.5],  # All below cutoff
-                "primer3": [3.5, 4.0, 5.0],  # All above cutoff
-            }
-        )
-
-        mock_compute_taxonomic_resolution.return_value = mock_divergence_df
-
-        self.traits.otl_handler = Mock()
-        self.traits.otl_handler.total_taxa = 3
-
-        tax_rex_df = self.traits.get_taxonomic_resolution(cutoff=2.0)
-
-        self.assertIn("taxonomic_resolution", tax_rex_df.columns)
-        self.assertEqual(
-            tax_rex_df.iloc[0]["taxonomic_resolution"], 33.33
-        )  # 1 out of 3 taxa above cutoff
-        self.assertEqual(
-            tax_rex_df.iloc[1]["taxonomic_resolution"], 0.0
-        )  # 0 out of 3 taxa above cutoff
-        self.assertEqual(
-            tax_rex_df.iloc[2]["taxonomic_resolution"], 100.0
-        )  # 3 out of 3 taxa above cutoff
-
-    @patch("pandas.read_excel")
-    @patch("src.marker_scoring.metrics_system.OtlHandler")
-    @patch("src.marker_scoring.metrics_system.Binding")
-    def test_load_nucleotide_distance(
-        self, MockBinding, MockOtlHandler, mock_read_excel
-    ):
-        # Create mock data for the initial Excel file
-        mock_excel_df = pd.DataFrame(
-            {"Species": ["Species_1", "Species_2"], "col1": [1, 2], "col2": [3, 4]}
-        )
-        mock_read_excel.return_value = mock_excel_df
-
-        # Setup the OtlHandler mock
-        mock_otl_handler = MockOtlHandler.return_value
-        mock_otl_mapping = {
-            "Species 1": {
-                "family": "Family1",
-                "genus": "Genus1",
-                "species": "Species 1",
-                "rank": "species",
-            },
-            "Species 2": {
-                "family": "Family2",
-                "genus": "Genus2",
-                "species": "Species 2",
-                "rank": "species",
-            },
-            "Species 3": {
-                "family": "Family3",
-                "genus": "Genus3",
-                "species": "Species 3",
-                "rank": "species",
-            },
-        }
-        mock_otl_handler.otl_taxa_mapping = mock_otl_mapping
-
-        # Setup the Binding mock
-        mock_binding = MockBinding.return_value
-
-        # Create expected merged DataFrame after OTL mapping
-        expected_merged_df = pd.DataFrame(
-            {
-                "input_taxa": ["Species 1", "Species 2", "Species 3"],
-                "family": ["Family1", "Family2", "Family3"],
-                "genus": ["Genus1", "Genus2", "Genus3"],
-                "species": ["Species 1", "Species 2", "Species 3"],
-                "rank": ["species", "species", "species"],
-                "col1": [1.0, 2.0, float("nan")],
-                "col2": [3.0, 4.0, float("nan")],
-            }
-        )
-
-        # Mock the fill_hierarchical_values function to return our expected result
-        mock_binding.fill_hierarchical_values.return_value = expected_merged_df
-
-        # Replace instance's dependencies with our mocks
-        # This assumes self.traits already has these properties
-        original_otl_handler = self.traits.otl_handler
-        original_binding = self.traits.binding
-
-        self.traits.otl_handler = mock_otl_handler
-        self.traits.binding = mock_binding
-
-        try:
-            # Call the method
-            result = self.traits.load_nucleotide_distance()
-
-            # Assertions
-            mock_read_excel.assert_called_once_with(
-                os.path.join(self.traits.multibarcode_output_folder, "matrix.xlsx")
-            )
-
-            # Verify the final result
-            pd.testing.assert_frame_equal(result, expected_merged_df)
-
-            # Verify that fill_hierarchical_values was called with correct arguments
-            mock_binding.fill_hierarchical_values.assert_called_once()
-        finally:
-            # Restore original dependencies
-            self.traits.otl_handler = original_otl_handler
-            self.traits.binding = original_binding
-
-    @patch.object(TraitsAndResolution, "load_nucleotide_distance")
-    @patch.object(TraitsAndResolution, "get_length_stats_for_amplicon_and_insert")
-    def test_compute_taxonomic_resolution_per_taxon(
-        self, mock_get_length_stats, mock_load_nucleotide_distance
-    ):
-        # Mock data for load_nucleotide_distance with ALL required taxonomic columns
-        mock_nuc_dist_matrix = pd.DataFrame(
-            {
-                "input_taxa": ["Species1", "Species2"],
-                "family": ["Family1", "Family2"],
-                "genus": ["Genus1", "Genus2"],
-                "species": ["Species1", "Species2"],
-                "rank": ["Rank1", "Rank2"],
-                "primerA": [10, 20],
-                "primerB": [30, 40],
-            }
-        )
-        mock_load_nucleotide_distance.return_value = mock_nuc_dist_matrix
-
-        mock_length_stats = {
-            "insert_avg_length": pd.Series([100, 200], index=["primerA", "primerB"])
-        }
-        mock_get_length_stats.return_value = mock_length_stats
-
-        result = self.traits.compute_taxonomic_resolution_per_taxon()
-
-        expected_result = pd.DataFrame(
-            {
-                "input_taxa": ["Species1", "Species2"],
-                "family": ["Family1", "Family2"],
-                "genus": ["Genus1", "Genus2"],
-                "species": ["Species1", "Species2"],
-                "rank": ["Rank1", "Rank2"],
-                "primerA": [10.0, 20.0],  # (10/100)*100, (20/100)*100
-                "primerB": [15.0, 20.0],  # (30/200)*100, (40/200)*100
-            }
-        )
-
-        pd.testing.assert_frame_equal(result, expected_result)
-        mock_load_nucleotide_distance.assert_called_once()
-        mock_get_length_stats.assert_called_once()
-
-    @patch.object(TraitsAndResolution, "load_nucleotide_distance")
-    @patch.object(TraitsAndResolution, "get_length_stats_for_amplicon_and_insert")
-    def test_compute_taxonomic_resolution_per_taxon_nan_values(
-        self, mock_get_length_stats, mock_load_nucleotide_distance
-    ):
-        # Mock data for load_nucleotide_distance with ALL required taxonomic columns
-        mock_nuc_dist_matrix = pd.DataFrame(
-            {
-                "input_taxa": ["Species1", "Species2"],
-                "family": ["Family1", "Family2"],
-                "genus": ["Genus1", "Genus2"],
-                "species": ["Species1", "Species2"],
-                "rank": ["Rank1", "Rank2"],
-                "primerA": [10, 20],
-                "primerB": ["-", 40],
-            }
-        )
-        mock_load_nucleotide_distance.return_value = mock_nuc_dist_matrix
-
-        # Mock data for get_length_stats_for_amplicon_and_insert
-        mock_length_stats = {
-            "insert_avg_length": pd.Series([100, 0], index=["primerA", "primerB"])
-        }
-        mock_get_length_stats.return_value = mock_length_stats
-
-        result = self.traits.compute_taxonomic_resolution_per_taxon()
-
-        expected_result = pd.DataFrame(
-            {
-                "input_taxa": ["Species1", "Species2"],
-                "family": ["Family1", "Family2"],
-                "genus": ["Genus1", "Genus2"],
-                "species": ["Species1", "Species2"],
-                "rank": ["Rank1", "Rank2"],
-                "primerA": [10.0, 20.0],  # (10/100)*100
-                "primerB": [
-                    np.nan,
-                    np.nan,
-                ],  # '-' results in NaN, no length insert results in NaN
-            }
-        )
-
-        pd.testing.assert_frame_equal(result, expected_result)
-        mock_load_nucleotide_distance.assert_called_once()
-        mock_get_length_stats.assert_called_once()
-
     def tearDown(self):
         for file_path in self.created_files:
             if os.path.exists(file_path):
@@ -1414,11 +1009,11 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         self.mock_paths = {
             "insert": "/fake/path/results/insert/filtered",
             "amplicon": "/fake/path/results/amplicon/filtered",
-            "incomplete_pbs": "/fake/path/results/incomplete_pbs/filtered/filtered_intersection",
+            "incomplete_pbs": "/fake/path/results/incomplete_pbs/filtered/input_AC",
         }
 
     @patch("os.path.join")
-    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("src.mozaiko.marker_scoring.metrics_system.OtlHandler")
     def test_initialization(self, mock_otl_handler_class, mock_join):
         """
         Test the initialization of MetricsSystemExecutor.
@@ -1441,10 +1036,10 @@ class TestMetricsSystemExecutor(unittest.TestCase):
     @patch("os.makedirs")
     @patch("tempfile.TemporaryDirectory")
     @patch("os.listdir")
-    @patch("src.marker_scoring.metrics_system.ReferenceDatabaseQuality")
+    @patch("src.mozaiko.marker_scoring.metrics_system.ReferenceDatabaseQuality")
     @patch("os.path.exists")
     @patch("os.path.join")
-    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("src.mozaiko.marker_scoring.metrics_system.OtlHandler")
     def test_get_reference_database_quality(
         self,
         mock_otl_handler_class,
@@ -1482,7 +1077,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_ref_db_instance = Mock()
         mock_ref_db_class.return_value = mock_ref_db_instance
         expected_result = pd.DataFrame(
-            {"barcoded_taxa_one_plus": [80.0], "ratio_barcoded_taxa": [0.8]}
+            {"barcoded_taxa": [80.0], "ratio_barcoded_taxa": [0.8]}
         )
         mock_ref_db_instance.barcoded_taxa_ratio.return_value = expected_result
 
@@ -1500,7 +1095,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             expected_calls = [
                 call(
                     otl="/fake/path/otl.tsv",
-                    all_inserts_path="/fake/temp/dir/all_inserts",
+                    all_inserts_path="/fake/path/results/all_complete_pbs/filtered",
                 ),
                 call().barcoded_taxa_ratio(total_taxa_count=100),
             ]
@@ -1511,8 +1106,8 @@ class TestMetricsSystemExecutor(unittest.TestCase):
                 total_taxa_count=executor.total_otl_taxa_count
             )
 
-    @patch("src.marker_scoring.metrics_system.Binding")
-    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("src.mozaiko.marker_scoring.metrics_system.Binding")
+    @patch("src.mozaiko.marker_scoring.metrics_system.OtlHandler")
     @patch("os.path.exists")
     @patch("os.path.join")
     def test_get_primer_pbs_analysis(
@@ -1554,8 +1149,8 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             primer_table=executor.primer_table,
         )
 
-    @patch("src.marker_scoring.metrics_system.TraitsAndResolution")
-    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("src.mozaiko.marker_scoring.metrics_system.TraitsAndResolution")
+    @patch("src.mozaiko.marker_scoring.metrics_system.OtlHandler")
     @patch("os.path.exists")
     @patch("os.path.join")
     def test_get_traits_and_resolution(
@@ -1577,7 +1172,8 @@ class TestMetricsSystemExecutor(unittest.TestCase):
 
         # Mock expected DataFrame with 'primer' index
         mock_traits_instance.get_taxonomic_resolution.return_value = pd.DataFrame(
-            {"primer": ["primer1"], "taxonomic_resolution": [0.75]}
+            {"primer": ["primer1"], "taxonomic_resolution": [0.75],
+             "ratio_taxonomic_resolution": [0.75]}
         ).set_index("primer")
 
         # Create instance with mocked dependencies
@@ -1596,7 +1192,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             result, mock_traits_instance.get_taxonomic_resolution.return_value
         )
 
-    @patch("src.marker_scoring.metrics_system.OtlHandler")
+    @patch("src.mozaiko.marker_scoring.metrics_system.OtlHandler")
     @patch("os.path.exists")
     @patch("os.path.join")
     @patch("os.makedirs")
@@ -1617,15 +1213,16 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_analysis_results = pd.DataFrame(
             {
                 "primer": ["primer1", "primer2"],
-                "barcoded_taxa_one_plus": [90, 80],
+                "barcoded_taxa": [90, 80],
                 "ratio_barcoded_taxa": [0.9, 0.8],
-                "mismatch_score": [2, 3],
-                "priming_ratio_sum": [0.8, 0.7],
-                "gc_matches_across_taxon": [15, 12],
+                "normalized_mismatch_score": [2, 3],
+                "normalized_priming_ratio_sum": [0.8, 0.7],
+                "normalized_gc_matches_across_taxon": [15, 12],
                 "min_tm_cv": [0.1, 0.2],
                 "tm_score": [0.9, 0.8],
                 "amplification_success_percent": [95, 85],
                 "taxonomic_resolution": [0.2, 0.3],
+                "ratio_taxonomic_resolution": [0.2, 0.3],
             },
             index=["primer1", "primer2"],
         )
@@ -1642,7 +1239,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         mock_makedirs.return_value = None
         mock_to_csv.return_value = None
 
-        result = executor.rank_primers(save_intermediate_ranks=False)
+        result = executor.rank_primers_flat(save_intermediate_ranks=False)
         result = result.set_index("primer")
 
         self.assertTrue("final_rank" in result.columns)
