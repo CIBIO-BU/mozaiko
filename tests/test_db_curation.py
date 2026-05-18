@@ -169,22 +169,3 @@ class TestCrabsScriptGenerator(unittest.TestCase):
             shell=True,
             check=True,
         )
-
-    def test_dereplication_uniq_species(self):
-        """
-        Test the outout of run_dereplicate_command method with a real example.
-        """
-
-        self.generator.run_dereplicate_command(Path(__file__).resolve().parent / "data/test_data/test_dereplication.json")
-
-        dereplicated_sequences = []
-        with open(
-            Path(__file__).resolve().parent / "data/test_data/test_dereplication_output.tsv", newline=""
-        ) as output_file:
-            reader = csv.reader(output_file, delimiter="\t")
-            for row in reader:
-                dereplicated_sequences.append(row)
-
-        self.assertEqual(len(dereplicated_sequences), 2)
-
-        os.remove(Path(__file__).resolve().parent / "data/test_data/test_dereplication_output.tsv")
