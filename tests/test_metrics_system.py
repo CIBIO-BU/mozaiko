@@ -58,7 +58,7 @@ class TestOtlHandler(unittest.TestCase):
         otl_table = pd.read_csv(self.otl, sep="\t", header=0)
         self.assertEqual(len(otl_table), len(otl_table.dropna(subset=["taxa"])))
 
-    @patch("builtins.input", return_value="data/test_data/test_otl.tsv")
+    @patch("builtins.input", return_value=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv")
     @patch("sys.stdout", new_callable=StringIO)
     def test_import_otl(self, mock_stdout, mock_input):
         otl_handler = OtlHandler()
@@ -71,7 +71,7 @@ class TestOtlHandler(unittest.TestCase):
             mock_stdout.getvalue(),
         )
 
-        otl = pd.read_csv("data/test_data/test_otl.tsv", sep="\t", header=0)
+        otl = pd.read_csv((Path(__file__).resolve().parent / "data/test_data/test_otl.tsv"), sep="\t", header=0)
 
         # Check OTL loaded correctly
         self.assertIsInstance(otl_handler.otl, pd.DataFrame)
@@ -108,7 +108,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         self.handler.import_otl()
         self.total_otl_taxa_count = self.handler.total_taxa
 
-    @patch("builtins.input", return_value="data/test_data/test-folder-metrics")
+    @patch("builtins.input", return_value=Path(__file__).resolve().parent / "data/test_data/test-folder-metrics")
     @patch("sys.stdout", new_callable=StringIO)
     def test_calculate_number_of_barcodes_per_taxon_input(
         self, mock_stdout, mock_input
@@ -121,7 +121,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
             }
             mock_otl_handler.return_value = mock_instance
 
-            no_file_class = ReferenceDatabaseQuality(otl="data/test_data/test_otl.tsv")
+            no_file_class = ReferenceDatabaseQuality(otl=(Path(__file__).resolve().parent / "data/test_data/test_otl.tsv"))
 
             with patch("sys.exit") as mock_exit:
                 mock_exit.side_effect = SystemExit(1)
@@ -140,9 +140,9 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
                 mock_stdout.getvalue(),
             )
 
-            self.assertEqual(
-                no_file_class.all_inserts_path, "data/test_data/test-folder-metrics"
-            )
+            expected = str(Path(__file__).resolve().parent / "data/test_data/test-folder-metrics")
+
+            self.assertEqual(str(no_file_class.all_inserts_path), expected)
 
     def test_calculate_number_of_barcodes_per_taxon(self):
         barcodes_per_entry = (
