@@ -16,7 +16,7 @@ from src.mozaiko.marker_scoring.aux_analysis import *
 
 class TestScoringUtils(unittest.TestCase):
     def setUp(self):
-        self.test_directory = Path("data/test_data")
+        self.test_directory = Path(__file__).resolve().parent / "data/test_data"
 
     def test_calculate_iupac_mismatches(self):
         """

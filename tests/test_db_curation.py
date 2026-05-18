@@ -7,6 +7,7 @@ import os
 import subprocess
 import unittest
 from unittest.mock import mock_open, patch
+from pathlib import Path
 
 from src.mozaiko.reference_database.db_curation import CrabsScriptGenerator
 
@@ -21,7 +22,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         Set up the CrabsScriptGenerator object for testing.
         """
         self.generator = CrabsScriptGenerator()
-        self.test_data_dir = "data/test_data"
+        self.data_dir = Path(__file__).resolve().parent / "data/test_data"
 
     @patch("subprocess.run")
     def test_check_if_crabs_installed(self, mock_subprocess):

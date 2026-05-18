@@ -20,7 +20,7 @@ from src.mozaiko.marker_scoring.scoring_utils import *
 
 class TestOtlHandler(unittest.TestCase):
     def setUp(self):
-        self.test_directory = Path("data/test_data")
+        self.test_directory = Path(__file__).resolve().parent / "data/test_data"
         self.otl = str(self.test_directory / "test_otl.tsv")
         self.handler = OtlHandler(self.otl)
         self.maxDiff = None
@@ -98,7 +98,7 @@ class TestOtlHandler(unittest.TestCase):
 
 class TestReferenceDatabaseQuality(unittest.TestCase):
     def setUp(self):
-        self.test_directory = Path("data/test_data")
+        self.test_directory = Path(__file__).resolve().parent / "data/test_data"
         self.inserts_file = str(self.test_directory / "test-folder-metrics")
         self.otl = str(self.test_directory / "test_otl.tsv")
         self.ref_bd_cls = ReferenceDatabaseQuality(
@@ -235,7 +235,8 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
 
 class TestBinding(unittest.TestCase):
     def setUp(self):
-        self.otl = "data/test_data/test_otl.tsv"
+        self.data_dir = Path(__file__).resolve().parent / "data/test_data"
+        self.otl =  self.data_dir / "test_otl.tsv"
         self.binding = Binding(self.otl)
         self.binding.processed_primers = {
             "primer_1": pd.DataFrame({"taxon": ["A", "B"], "value": [1, 2]}),

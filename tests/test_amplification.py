@@ -28,9 +28,10 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         Set up the test class and data.
         """
-        self.data_dir = "data/test_data"
-        self.primer_list = self.data_dir + "/test_primer_table.tsv"
-        self.input_data = self.data_dir + "/fasta_example_file_taxid.fasta"
+
+        self.data_dir = Path(__file__).resolve().parent / "data/test_data"
+        self.primer_list = self.data_dir / "test_primer_table.tsv"
+        self.input_data = self.data_dir / "fasta_example_file_taxid.fasta"
         self.amplification = InSilicoAmplification(self.input_data, run_name="test_run")
 
     @patch("subprocess.run")
@@ -616,8 +617,8 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         Test filter_intersection_sequences with a single input file
         """
-        input_dir = Path("data/test_data/amplicon-test")
-        filter_dir = Path("data/test_data/insert-test")
+        input_dir = Path(__file__).resolve().parent / "data/test_data/amplicon-test"
+        filter_dir = Path(__file__).resolve().parent / "data/test_data/insert-test"
 
         input_file = input_dir / "primerA.fasta"
         filter_file = filter_dir / "primerA.fasta"
@@ -641,7 +642,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         """
         Clean up any files created during tests.
         """
-        filtered_dir = Path(self.data_dir + "/amplicon-test/filtered_intersection")
+        filtered_dir = Path(self.data_dir / "amplicon-test/filtered_intersection")
         if filtered_dir.exists():
             shutil.rmtree(filtered_dir)
 

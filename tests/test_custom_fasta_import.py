@@ -7,6 +7,7 @@ import unittest
 from io import StringIO
 from unittest.mock import MagicMock, mock_open, patch
 from Bio.Seq import Seq
+from pathlib import Path
 
 import pandas as pd
 
@@ -22,7 +23,7 @@ class TestCustomFastaImport(unittest.TestCase):
         """
         Set up the test class and data.
         """
-        self.data_dir = "data/test_data"
+        self.data_dir = Path(__file__).resolve().parent / "data/test_data"
         self.fasta_file = os.path.join(self.data_dir, "fasta_example_file.fasta")
         self.fasta_taxid_file = os.path.join(
             self.data_dir, "fasta_example_file_taxid.fasta"
@@ -192,7 +193,8 @@ class TestLinageFileLoader(unittest.TestCase):
         Initialize the test class.
         """
         self.lineage_loader = LineageFileLoader()
-        self.fasta_file_no_taxid = "data/test_data/fasta_example_file.fasta"
+        self.data_dir = Path(__file__).resolve().parent / "data/test_data"
+        self.fasta_file_no_taxid = self.data_dir / "fasta_example_file.fasta"
         self.fasta_import = CustomFastaImport(None)
         self.lineage_file = "dummy_lineage_file.tsv"
 
