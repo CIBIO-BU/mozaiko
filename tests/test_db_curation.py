@@ -179,7 +179,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
         dereplicated_sequences = []
         with open(
-            "data/test_data/test_dereplication_output.tsv", newline=""
+            Path(__file__).resolve().parent / "data/test_data/test_dereplication_output.tsv", newline=""
         ) as output_file:
             reader = csv.reader(output_file, delimiter="\t")
             for row in reader:
@@ -187,4 +187,4 @@ class TestCrabsScriptGenerator(unittest.TestCase):
 
         self.assertEqual(len(dereplicated_sequences), 2)
 
-        os.remove("data/test_data/test_dereplication_output.tsv")
+        os.remove(Path(__file__).resolve().parent / "data/test_data/test_dereplication_output.tsv")
