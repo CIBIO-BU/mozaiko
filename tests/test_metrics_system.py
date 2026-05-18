@@ -343,10 +343,12 @@ class TestBinding(unittest.TestCase):
             Binding, "parse_files_with_same_extension_in_folders", return_value=[]
         ) as mock_parse_files:
 
+            otl_path = Path(__file__).resolve().parent / "data/test_data/test_primer_table.tsv"
+
             result = self.binding.primer_pbs_analysis(
                 "amplicon_folder",
                 "insert_folder",
-                "data/test_data/test_primer_table.tsv",
+                otl_path,
             )
             self.assertEqual(result, (None, None))
 
@@ -894,15 +896,15 @@ class TestTraitsAndResolution(unittest.TestCase):
         """
         Set up test parameters using existing directories
         """
-        self.test_dir = "data/test_data"
-        self.amplicon_dir = self.test_dir + "/amplicon-test"
-        self.insert_dir = self.test_dir + "/insert-test"
-        self.incomplete_pbs_dir = self.test_dir + "/insert-test"
+        self.test_dir = Path(__file__).resolve().parent / "data/test_data"
+        self.amplicon_dir = self.test_dir / "amplicon-test"
+        self.insert_dir = self.test_dir / "insert-test"
+        self.incomplete_pbs_dir = self.test_dir / "insert-test"
         self.traits = TraitsAndResolution(
             insert_folder_path=self.insert_dir,
             amplicon_folder_path=self.amplicon_dir,
             incomplete_pbs_folder_path=self.incomplete_pbs_dir,
-            otl="data/test_data/test_otl.tsv",
+            otl=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv",
         )
         self.created_files = []
         self.traits.multibarcode_output_folder = os.path.join(
@@ -926,7 +928,7 @@ class TestTraitsAndResolution(unittest.TestCase):
         )
 
         traits = TraitsAndResolution(
-            results_folder=results_folder, otl="data/test_data/test_otl.tsv"
+            results_folder=results_folder, otl=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv"
         )
 
         self.assertEqual(traits.insert_folder_path, expected_insert_path)
@@ -942,7 +944,7 @@ class TestTraitsAndResolution(unittest.TestCase):
             insert_folder_path=insert_path,
             amplicon_folder_path=amplicon_path,
             incomplete_pbs_folder_path=incomplete_pbs_path,
-            otl="data/test_data/test_otl.tsv",
+            otl=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv",
         )
 
         self.assertEqual(traits.insert_folder_path, insert_path)
@@ -951,7 +953,7 @@ class TestTraitsAndResolution(unittest.TestCase):
 
     def test_init_with_missing_arguments(self):
         with self.assertRaises(ValueError) as context:
-            TraitsAndResolution(otl="data/test_data/test_otl.tsv")
+            TraitsAndResolution(otl=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv")
         self.assertIn(
             "Either provide a path to the in-silico amplification results folder",
             str(context.exception),
@@ -963,7 +965,7 @@ class TestTraitsAndResolution(unittest.TestCase):
             TraitsAndResolution(
                 insert_folder_path="path/to/insert",
                 incomplete_pbs_folder_path="path/to/incomplete_pbs",
-                otl="data/test_data/test_otl.tsv",
+                otl=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv",
             )
         self.assertIn(
             "Either provide a path to the in-silico amplification results folder",
@@ -975,7 +977,7 @@ class TestTraitsAndResolution(unittest.TestCase):
             TraitsAndResolution(
                 amplicon_folder_path="path/to/amplicon",
                 incomplete_pbs_folder_path="path/to/incomplete_pbs",
-                otl="data/test_data/test_otl.tsv",
+                otl=Path(__file__).resolve().parent / "data/test_data/test_otl.tsv",
             )
         self.assertIn(
             "Either provide a path to the in-silico amplification results folder",

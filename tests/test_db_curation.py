@@ -175,7 +175,7 @@ class TestCrabsScriptGenerator(unittest.TestCase):
         Test the outout of run_dereplicate_command method with a real example.
         """
 
-        self.generator.run_dereplicate_command("data/test_data/test_dereplication.json")
+        self.generator.run_dereplicate_command(Path(__file__).resolve().parent / "data/test_data/test_dereplication.json")
 
         dereplicated_sequences = []
         with open(

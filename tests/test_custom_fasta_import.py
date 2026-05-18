@@ -8,6 +8,7 @@ from io import StringIO
 from unittest.mock import MagicMock, mock_open, patch
 from Bio.Seq import Seq
 from pathlib import Path
+import shutil
 
 import pandas as pd
 
@@ -126,7 +127,7 @@ class TestCustomFastaImport(unittest.TestCase):
             self.assertEqual(lines[2], "NC_088426.1\tGCATAAAGCATGGCACTGA\t19\t12345\n")
             self.assertEqual(lines[3], "PP475397.1\tGTTATTGA\t8\t106731\n")
         os.remove(example_file)
-        os.rmdir("data/input_data")
+        shutil.rmtree("data/input_data")
 
     def test_get_taxids(self):
         """
