@@ -64,12 +64,12 @@ Th installation script will:
 
 mozaiko contains three main categories to evaluate and rank primer sets:
 
-### **Module 1:** Reference Database Quality
+### **Category 1:** Reference Database Quality
 
 - **_barcoded_taxa_one_plus_**: percentage of taxa in OTL with more than one barcode. A barcode must include the target insert to be considered.
 - **_ratio_barcoded_taxa_**: proportion of taxa in OTL with high barcode coverage (more than five barcodes) relative to taxa with minimal barcode coverage (at least one barcode). The value ranges from 0 to 1, 1 representing the optimal scenario.
 
-### **Module 2:** Binding
+### **Category 2:** Binding
 
 - **_mismatch_score_**: the maximum number of mismatches between the forward primer and its binding site and the reverse primer and its binding site is recorded for each taxon. The maximum mismatch values are then summed to provide the score for the OTL list. The lowest values indicate lower mismatches between primer and primer-binding sites, facilitating amplification.
 - **_priming_ratio_sum_**: sum of the priming ratio across taxon. The priming ratio is computed as the ratio of the maximum number of mismatches at the 3’ end of the primer binding site to the maximum number of mismatches across the entire primer binding site. The lowest values indicate fewer mismatches at the 3’ end of the primer binding site, hence higher binding strength.
@@ -78,7 +78,7 @@ mozaiko contains three main categories to evaluate and rank primer sets:
 - **_tm_score_**: proportion of taxa with a lower or equal variation of Tm below 2ºC.  Higher values are preferable as they indicate a better thermal performance across taxa in the OTL.
 - **_amplification_success_percent_**: the ratio of taxa that amplify to the total number of taxa with sequences containing primer binding sites, expressed as a percentage. Higher values represent higher amplification success across taxa.
 
-### **Module 3:** Traits and Resolution
+### **Category 3:** Traits and Resolution
 
 - **_taxonomic_resolution_**: percentage of taxa whose genetic divergence is higher than 2%. Higher values are preferable as they indicate an increased possibility of distinguishing between closely related taxa.
 - **_resolution_ratio_**: percentage of taxa with genetic divergence higher than a cutoff (default cutoffs are 10%, 5%, and 2% for families, genus, and species, respectively), divided by the total number of taxa considered. This metric indicates the primer's ability to distinguish the target taxonomy from non-target taxa.
