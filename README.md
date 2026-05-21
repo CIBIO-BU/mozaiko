@@ -8,7 +8,7 @@
 
 ![alt text](data/images/mozaiko-logo.png)
 
-mozaiko is a bioinformatics tool designed to help researchers select optimized sets of primers for complete coverage in biomonitoring studies. Taking inspiration from mosaics, where small pieces fit together to form a whole, mozaiko supports comprehensive genetic marker analysis by ranking primers' fitness.
+mozaiko is a bioinformatics tool designed to help researchers select suitable primer sets for complete coverage in biomonitoring studies. Taking inspiration from mosaics, where small pieces fit together to form a whole, mozaiko supports comprehensive genetic marker analysis by ranking primers' suitability.
 
 The name comes from the Esperanto word 'Mozaiko', reflecting the idea of bringing different elements together. With mozaiko, researchers can efficiently select primer sets for a range of applications, making biomonitoring and ecological studies more reliable and comparable.
 
@@ -81,6 +81,7 @@ mozaiko contains three main categories to evaluate and rank primer sets:
 ### **Module 3:** Traits and Resolution
 
 - **_taxonomic_resolution_**: percentage of taxa whose genetic divergence is higher than 2%. Higher values are preferable as they indicate an increased possibility of distinguishing between closely related taxa.
+- **_resolution_ratio_**: percentage of taxa with genetic divergence higher than a cutoff (default cutoffs are 10%, 5%, and 2% for families, genus, and species, respectively), divided by the total number of taxa considered. This metric indicates the primer's ability to distinguish the target taxonomy from non-target taxa.
 
 
 
