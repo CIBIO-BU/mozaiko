@@ -12,7 +12,7 @@ from mozaiko.reference_database.db_curation import CrabsScriptGenerator
 from mozaiko.reference_database.sequence_import import CustomFastaImport
 from mozaiko.marker_scoring.metrics_system import MetricsSystemExecutor
 
-__version__ ="0.1.1"
+__version__ ="0.1.2"
 
 def create_parser():
     parser = argparse.ArgumentParser(
