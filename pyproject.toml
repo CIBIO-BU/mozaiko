@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mozaiko"
-version = "0.1.3"
+version = "0.1.4"
 
 authors = [
   { name = "Camila Babo", email = "camila.babo@cibio.up.pt" },
@@ -17,10 +17,10 @@ requires-python = ">=3.9"
 license = { text = "GPL-3.0-or-later" }
 
 dependencies = [
-    "numpy==2.0.0",
-    "pandas==2.2.2",
-    "matplotlib==3.9.1.post1",
-    "biopython==1.84",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "biopython",
     "tqdm",
 ]
 
@@ -35,7 +35,7 @@ mozaiko = "mozaiko:mozaiko.main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-mozaiko = ["*.sh", "*.json", "**/*.sh", "**/*.json"]
+mozaiko = ["*.sh", "*.json", "**/*.sh", "**/*.json", "**/*.zip"]
 
 [tool.setuptools]
 include-package-data = true
