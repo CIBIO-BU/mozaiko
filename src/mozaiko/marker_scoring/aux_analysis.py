@@ -61,7 +61,7 @@ def sequence_count_tracking(original_database, analysis_folder, save_results: bo
         else:
             print("mozaiko WARNING: Original database file not found.")
 
-        primer_step_counts: dict[str, list[str]] = {}
+        primer_step_counts: dict[tuple[str, str], int] = {}
 
         # Count sequences using grep for analysis steps only
         for step_name, file_paths in step_files.items():
