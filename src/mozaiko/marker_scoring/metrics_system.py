@@ -542,31 +542,25 @@ class Binding:
         save_results: bool = False,
     ) -> Tuple[Optional[Dict[str, pd.DataFrame]], Optional[pd.DataFrame]]:
         """
-        This method analyzes Primer and PBS sequences to compute mismatch metrics, melting temperatures,
-        and GC fractions for both the forward and reverse sequences.
 
-        The implementation retrieves Primer-PBS information, processes amplicon and insert data files,
-        and calculates various metrics related to primer-template binding. It generates a comprehensive
-        DataFrame for each primer pair, including full-length mismatches, three-end mismatches, GC
-        clamp matches, and melting temperature averages. It also computes GC fractions for forward and
-        reverse primers.
+        The method processes amplicon and insert files from the in-silico amplification step,
+        calculating metrics such as full-length mismatches, 3′-end mismatches, GC clamp matches,
+        minimum melting temperature, and primer GC fractions for each primer pair.
 
         Parameters:
-        - amplicon_folder: str
-            Path to the folder containing amplicon sequence files from the in-silico amplification process.
-        - insert_folder: str
-             Path to the folder containing insert sequence files from the in-silico amplification process.
-        - primer_table: str
-            Path to the table containing the primer pair sequences and details.
-        - save_results: bool
-            If True, saves the comprehensive DataFrame for each primer pair and the primer GC fraction
-        DataFrame as CSV files (default is False).
+        amplicon_folder : str
+            Path to the folder containing amplicon sequence files.
+        insert_folder : str
+            Path to the folder containing insert sequence files.
+        primer_table : str
+            Path to the table containing primer pair sequences and metadata.
+        save_results : bool, optional
+            If True, saves output DataFrames as CSV files. Default is False.
 
         Output:
         Tuple[Dict[str, pd.DataFrame], pd.DataFrame]
         - primer_pbs_df : dict
-            A dictionary where keys are primer pair identifiers (based on barcode region and assay name),
-            and values are DataFrames containing:
+            Dictionary of DataFrames indexed by primer pair identifier, containing:
             - `seq_id`: Sequence identifier.
             - `taxon`: Taxonomic information.
             - `full_len_mismatch_sum`: Sum of mismatches for the forward and reverse primers across the
@@ -2395,12 +2389,9 @@ class MetricsSystemExecutor:
                                             metrics_results_path=None
                                             ):
         """
-        This method ranks the primers performance based on the results of the Metric System.
-
-        It assigns a ranking order for each relevant metric and sets the ranking order after
-        joining all the results. The final rank is the sum of the ranks for each metric. This
-        allows for a comprehensive ranking of the primers by setting the metric with the highest
-        rank as the one with the lowest value (is first in most of the ranking metrics).
+        This method evaluates primers' performance by ranking them according to the Metric System.
+        It calculates an overall rank by summing individual category ranks, prioritizing the
+        metric with the lowest value as the highest rank across most metrics.
 
         Parameters:
         - save_intermediate_ranks: bool
