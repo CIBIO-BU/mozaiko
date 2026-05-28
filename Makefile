@@ -5,6 +5,7 @@ release:
 	# Update version in pyproject.toml
 	sed -i 's/^version *= *.*/version = "$(VERSION)"/' pyproject.toml
 	sed -i 's/^__version__ =.*/__version__ ="$(VERSION)"/' src/mozaiko/mozaiko.py
+	sed -i 's/^version=.*/version="$(VERSION)"/' setup.py
 
 	# Clean previous builds
 	rm -rf dist build src/*.egg-info

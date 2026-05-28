@@ -37,14 +37,14 @@ def create_parser():
     # -------------------------
     # ASSIGN TAX
     # -------------------------
-    assign = subparsers.add_parser("assign-tax", help="Assign taxonomy using CRABS")
+    assign = subparsers.add_parser("assign-tax", help="Assign taxonomy using CRABS (for NCBI accession numbers)")
     assign.add_argument("--json_file", required=True)
     assign.set_defaults(func=handle_taxonomic_assignment)
 
     # -------------------------
     # DEREPLICATE
     # -------------------------
-    derep = subparsers.add_parser("dereplicate", help="Dereplicate sequences using CRABS")
+    derep = subparsers.add_parser("dereplicate", help="Dereplicate sequences using CRABS (input should be a TSV file)")
     derep.add_argument("--json_file", required=True)
     derep.set_defaults(func=handle_dereplication)
 
