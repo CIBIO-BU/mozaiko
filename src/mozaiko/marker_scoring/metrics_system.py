@@ -1178,8 +1178,10 @@ class TraitsAndResolution:
         self.country_name = Path(otl).stem.split('_')[0]
         self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
-    def run_catnip(self, threshold: float | list = 10.0):
+    def run_catnip(self, threshold: float | list | None = 10.0):
         clustering_threshold = None
+        if threshold is None:
+            clustering_threshold = 10.0
         if isinstance(threshold, float):
             clustering_threshold = threshold
         elif isinstance(threshold, list):
