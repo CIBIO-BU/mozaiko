@@ -299,4 +299,4 @@ def compute_pbs_stats_multiple_otls(input_A_file, input_B_file, input_ABC_file, 
 def barcoded_taxa(input_ABC_file, otl, output_dir):
     input_ABC_df = _process_fasta_file(input_ABC_file, output_dir)
 
-    _calculate_tax_coverage(input_ABC_df, otl, cutff_val=1)
+    return _calculate_tax_coverage(input_ABC_df, otl, cutff_val=1)

@@ -1,5 +1,5 @@
 """
-Unit tests for scoring_utils.py
+Unit tests for scoring_utils.py and aux_analysis.py.
 """
 
 import shutil
@@ -7,11 +7,19 @@ import tempfile
 import unittest
 from io import StringIO
 from pathlib import Path
+import os
+import shutil
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
 from src.mozaiko.marker_scoring.scoring_utils import *
 from src.mozaiko.marker_scoring.aux_analysis import *
+
+from src.mozaiko.marker_scoring.aux_analysis import (
+    _calculate_tax_coverage,
+    _process_fasta_file,
+)
 
 
 class TestScoringUtils(unittest.TestCase):
@@ -251,3 +259,370 @@ class TestMultiBarcodeToolsInput(unittest.TestCase):
         with open(os.path.join(self.test_dir, "primer3.fasta"), "w") as f:
             f.write(">seq5\n")  # Missing species name
             f.write("ATCGATCG\n")
+
+def _write_fasta(path, records):
+    """Write a minimal FASTA file. records = [(header, seq), ...]"""
+    with open(path, "w") as fh:
+        for header, seq in records:
+            fh.write(f"{header}\n{seq}\n")
+
+
+def _write_tsv(path, rows):
+    """Write a TSV with a taxa_info column. rows = [taxa_info_string, ...]"""
+    df = pd.DataFrame({"taxa_info": rows})
+    df.to_csv(path, sep="\t", index=False)
+
+
+def _make_otl_handler(families, genera, species_list, total):
+    """
+    Return a mock OtlHandler whose .otl DataFrame has the expected shape.
+    Mirrors the columns accessed in _calculate_tax_coverage:
+        family, genus, species, rank
+    """
+    records = []
+    for fam, gen, sp in zip(families, genera, species_list):
+        records.append({"family": fam, "genus": gen, "species": sp, "rank": "species"})
+    df = pd.DataFrame(records)
+
+    handler = MagicMock()
+    handler.total_taxa = total
+    handler.otl = df
+    return handler
+
+class TestProcessFastaFile(unittest.TestCase):
+    """Tests for _process_fasta_file."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        # Directory structure mirrors what the function expects:
+        #   input_file = <output_dir>/<step_name>/<file_name>.fasta
+        self.step_dir = os.path.join(self.tmp, "step_name")
+        os.makedirs(self.step_dir)
+        self.output_dir = os.path.join(self.tmp, "output")
+        os.makedirs(self.output_dir)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_returns_dataframe_when_tsv_cached(self):
+        """Reads the pre-existing TSV and returns family/genus/species columns."""
+        taxa_rows = [
+            "seq1|Species A|harmonized|rank|k|p|c|o|Familyaceae|GenusA|SpeciesA",
+            "seq2|Species B|harmonized|rank|k|p|c|o|Familyaceae|GenusB|SpeciesB",
+        ]
+        tsv_path = os.path.join(self.output_dir, "primerA_step_name.tsv")
+        _write_tsv(tsv_path, taxa_rows)
+
+        input_file = os.path.join(self.step_dir, "primerA.fasta")
+        _write_fasta(input_file, [(">seq1", "ATGC")])
+
+        result = _process_fasta_file(input_file, self.output_dir)
+
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertEqual(list(result.columns), ["family", "genus", "species"])
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result["family"].iloc[0], "Familyaceae")
+        self.assertEqual(result["genus"].iloc[0], "GenusA")
+        self.assertEqual(result["species"].iloc[0], "SpeciesA")
+
+    def test_tsv_cached_last_three_pipe_fields_parsed(self):
+        """Verifies that only the last three pipe-separated fields are used."""
+        # Many extra fields before family|genus|species
+        taxa_rows = [
+            "seq1|Common Name|harmonized|rank|Animalia|Chordata|Mammalia|Carnivora|Felidae|Felis|catus",
+        ]
+        tsv_path = os.path.join(self.output_dir, "primerA_step_name.tsv")
+        _write_tsv(tsv_path, taxa_rows)
+
+        input_file = os.path.join(self.step_dir, "primerA.fasta")
+        _write_fasta(input_file, [(">seq1", "ATGC")])
+
+        result = _process_fasta_file(input_file, self.output_dir)
+
+        self.assertEqual(result["family"].iloc[0], "Felidae")
+        self.assertEqual(result["genus"].iloc[0], "Felis")
+        self.assertEqual(result["species"].iloc[0], "catus")
+
+    def test_creates_tsv_and_returns_dataframe_when_not_cached(self):
+        """
+        When no TSV is present the function calls CustomFastaImport and
+        writes a TSV before returning the DataFrame.
+        """
+        taxa_rows = [
+            "seq1|Species A|harmonized|rank|k|p|c|o|Familyaceae|GenusA|SpeciesA",
+        ]
+
+        input_file = os.path.join(self.step_dir, "primerA.fasta")
+        _write_fasta(input_file, [(">seq1", "ATGC")])
+
+        expected_tsv = os.path.join(self.output_dir, "primerA_step_name.tsv")
+
+        mock_importer = MagicMock()
+
+        def fake_df2csv(path):
+            _write_tsv(path, taxa_rows)
+
+        mock_importer.df2csv.side_effect = fake_df2csv
+
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.CustomFastaImport",
+            return_value=mock_importer,
+        ):
+            result = _process_fasta_file(input_file, self.output_dir)
+
+        self.assertTrue(os.path.exists(expected_tsv))
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertEqual(list(result.columns), ["family", "genus", "species"])
+
+    def test_output_dir_created_when_missing(self):
+        """The output directory is created if it does not already exist."""
+        new_output = os.path.join(self.tmp, "brand_new_output")
+        self.assertFalse(os.path.exists(new_output))
+
+        input_file = os.path.join(self.step_dir, "primerA.fasta")
+        _write_fasta(input_file, [(">seq1", "ATGC")])
+
+        taxa_rows = [
+            "seq1|Species A|harmonized|rank|k|p|c|o|Familyaceae|GenusA|SpeciesA",
+        ]
+        mock_importer = MagicMock()
+        mock_importer.df2csv.side_effect = lambda p: _write_tsv(p, taxa_rows)
+
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.CustomFastaImport",
+            return_value=mock_importer,
+        ):
+            _process_fasta_file(input_file, new_output)
+
+        self.assertTrue(os.path.exists(new_output))
+
+
+class TestCalculateTaxCoverage(unittest.TestCase):
+    """Tests for _calculate_tax_coverage."""
+
+    def _input_df(self, families, genera, species_list, rank="species"):
+        return pd.DataFrame(
+            {"family": families, "genus": genera, "species": species_list, "rank": rank}
+        )
+
+    def _mock_otl_path(self):
+        return "/fake/otl.tsv"
+
+    def test_full_coverage_returns_100(self):
+        """All OTL taxa appear at least once: 100%."""
+        input_df = self._input_df(
+            ["Fam1", "Fam2"],
+            ["Gen1", "Gen2"],
+            ["sp1", "sp2"],
+        )
+        handler = _make_otl_handler(
+            ["Fam1", "Fam2"], ["Gen1", "Gen2"], ["sp1", "sp2"], total=2
+        )
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ):
+            result = _calculate_tax_coverage(input_df, self._mock_otl_path())
+
+        self.assertAlmostEqual(result, 100.0)
+
+    def test_partial_coverage(self):
+        """Half the OTL taxa are covered: 50%."""
+        input_df = self._input_df(["Fam1"], ["Gen1"], ["sp1"])
+        handler = _make_otl_handler(
+            ["Fam1", "Fam2"],
+            ["Gen1", "Gen2"],
+            ["sp1", "sp2"],
+            total=2,
+        )
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ):
+            result = _calculate_tax_coverage(input_df, self._mock_otl_path())
+
+        self.assertAlmostEqual(result, 50.0)
+
+    def test_zero_coverage(self):
+        """No OTL taxa appear in the input: 0%."""
+        input_df = self._input_df(["Unknown"], ["Unknown"], ["unknown_sp"])
+        handler = _make_otl_handler(
+            ["Fam1", "Fam2"],
+            ["Gen1", "Gen2"],
+            ["sp1", "sp2"],
+            total=2,
+        )
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ):
+            result = _calculate_tax_coverage(input_df, self._mock_otl_path())
+
+        self.assertAlmostEqual(result, 0.0)
+
+    def test_return_type_is_float(self):
+        """Coverage is always returned as a plain Python float."""
+        input_df = self._input_df(["Fam1"], ["Gen1"], ["sp1"])
+        handler = _make_otl_handler(["Fam1"], ["Gen1"], ["sp1"], total=1)
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ):
+            result = _calculate_tax_coverage(input_df, self._mock_otl_path())
+
+        self.assertIsInstance(result, float)
+
+    def test_cutoff_val_filters_low_count_taxa(self):
+        """
+        cutff_val=2 means a taxon must appear at least twice.
+        With the taxon appearing once it should not count.
+        """
+        input_df = self._input_df(["Fam1"], ["Gen1"], ["sp1"])
+        handler = _make_otl_handler(["Fam1"], ["Gen1"], ["sp1"], total=1)
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ):
+            result = _calculate_tax_coverage(
+                input_df, self._mock_otl_path(), cutff_val=2
+            )
+
+        self.assertAlmostEqual(result, 0.0)
+
+    def test_cutoff_val_1_is_default_behaviour(self):
+        """Default cutff_val=1: a single occurrence qualifies the taxon."""
+        input_df = self._input_df(["Fam1"], ["Gen1"], ["sp1"])
+        handler = _make_otl_handler(["Fam1"], ["Gen1"], ["sp1"], total=1)
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ):
+            result = _calculate_tax_coverage(input_df, self._mock_otl_path())
+
+        self.assertAlmostEqual(result, 100.0)
+
+    def test_otl_handler_called_with_correct_path(self):
+        """OtlHandler receives the path passed to _calculate_tax_coverage."""
+        otl_path = "/some/path/otl.tsv"
+        input_df = self._input_df([], [], [], [])
+        handler = _make_otl_handler(["Fam1"], ["Gen1"], ["sp1"], total=1)
+
+
+        with patch(
+            "src.mozaiko.marker_scoring.aux_analysis.OtlHandler",
+            return_value=handler,
+        ) as MockOtl:
+            _calculate_tax_coverage(input_df, otl_path)
+
+        MockOtl.assert_called_once_with(otl_path)
+        handler.import_otl.assert_called_once()
+
+
+class TestBarcodedTaxa(unittest.TestCase):
+    """Integration-style tests for barcoded_taxa (mocks its two helpers)."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.output_dir = os.path.join(self.tmp, "output")
+        os.makedirs(self.output_dir)
+        # Minimal FASTA file — content doesn't matter here because
+        # _process_fasta_file is mocked.
+        self.fasta = os.path.join(self.tmp, "primerA.fasta")
+        _write_fasta(self.fasta, [(">seq1", "ATGC")])
+        self.otl = "/fake/otl.tsv"
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def _sample_df(self):
+        return pd.DataFrame(
+            {
+                "family": ["Familyaceae"],
+                "genus": ["GenusA"],
+                "species": ["SpeciesA"],
+            }
+        )
+
+    def test_returns_coverage_float(self):
+        """barcoded_taxa returns the float produced by _calculate_tax_coverage."""
+        with (
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._process_fasta_file",
+                return_value=self._sample_df(),
+            ),
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._calculate_tax_coverage",
+                return_value=75.0,
+            ),
+        ):
+            result = barcoded_taxa(self.fasta, self.otl, self.output_dir)
+
+        self.assertIsInstance(result, float)
+        self.assertAlmostEqual(result, 75.0)
+
+    def test_process_fasta_called_with_correct_args(self):
+        """_process_fasta_file is called with input_ABC_file and output_dir."""
+        with (
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._process_fasta_file",
+                return_value=self._sample_df(),
+            ) as mock_proc,
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._calculate_tax_coverage",
+                return_value=0.0,
+            ),
+        ):
+            barcoded_taxa(self.fasta, self.otl, self.output_dir)
+
+        mock_proc.assert_called_once_with(self.fasta, self.output_dir)
+
+    def test_calculate_tax_coverage_called_with_correct_args(self):
+        """_calculate_tax_coverage receives the DataFrame and OTL path."""
+        df = self._sample_df()
+        with (
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._process_fasta_file",
+                return_value=df,
+            ),
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._calculate_tax_coverage",
+                return_value=50.0,
+            ) as mock_cov,
+        ):
+            barcoded_taxa(self.fasta, self.otl, self.output_dir)
+
+        args, kwargs = mock_cov.call_args
+        pd.testing.assert_frame_equal(args[0], df)
+        self.assertEqual(args[1], self.otl)
+
+    def test_zero_coverage_propagated(self):
+        """A coverage of 0.0 is passed through without modification."""
+        with (
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._process_fasta_file",
+                return_value=self._sample_df(),
+            ),
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._calculate_tax_coverage",
+                return_value=0.0,
+            ),
+        ):
+            result = barcoded_taxa(self.fasta, self.otl, self.output_dir)
+
+        self.assertAlmostEqual(result, 0.0)
+
+    def test_full_coverage_propagated(self):
+        """A coverage of 100.0 is passed through without modification."""
+        with (
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._process_fasta_file",
+                return_value=self._sample_df(),
+            ),
+            patch(
+                "src.mozaiko.marker_scoring.aux_analysis._calculate_tax_coverage",
+                return_value=100.0,
+            ),
+        ):
+            result = barcoded_taxa(self.fasta, self.otl, self.output_dir)
+
+        self.assertAlmostEqual(result, 100.0)
