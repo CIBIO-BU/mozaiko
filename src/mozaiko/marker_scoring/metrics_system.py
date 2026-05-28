@@ -1442,7 +1442,7 @@ class TraitsAndResolution:
 
         return df
 
-    def process_single_primer(self, folder_name, df, folder_path, thresholds: float | list = [10.0, 5.0, 2.0]):
+    def process_single_primer(self, folder_name, df, folder_path, thresholds: list[float] | float | None = [10.0, 5.0, 2.0]):
         """
         Process a single primer's catnip output:
         1. Clean and split taxonomy columns
@@ -1523,7 +1523,7 @@ class TraitsAndResolution:
 
         return df_otl_on_target, df_catnipt_all_on_target
 
-    def post_process_catnip_primer_results(self, thresholds: float | list = [10.0, 5.0, 2.0]):
+    def post_process_catnip_primer_results(self, thresholds: list[float] | float | None = [10.0, 5.0, 2.0]):
         """
         Process each primer's final_output_interclst.tsv file individually.
         Saves each processed file as processed_<primer_name>.tsv in the same folder.~
