@@ -11,8 +11,8 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
-from Bio.SeqRecord import SeqRecord
-from pandas._testing import assert_frame_equal
+import numpy as np
+import pandas as pd
 
 from src.mozaiko.marker_scoring.metrics_system import *
 from src.mozaiko.marker_scoring.scoring_utils import *
@@ -1250,3 +1250,376 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         primer1_rank = result.loc["primer1", "final_rank"]
         primer2_rank = result.loc["primer2", "final_rank"]
         self.assertLess(primer1_rank, primer2_rank)
+
+def _make_traits() -> TraitsAndResolution:
+    """Return a TraitsAndResolution instance using the standard test OTL."""
+    test_data = Path(__file__).resolve().parent / "data/test_data"
+    return TraitsAndResolution(
+        insert_folder_path=str(test_data / "insert-test"),
+        amplicon_folder_path=str(test_data / "amplicon-test"),
+        incomplete_pbs_folder_path=str(test_data / "insert-test"),
+        otl=str(test_data / "test_otl.tsv"),
+    )
+
+class TestCleanAndSplit(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    # --- query prefix ---
+
+    def test_query_splits_clean_tuple_string(self):
+        """Standard tuple string '(familyA, genusA, speciesA)' is parsed correctly."""
+        df = pd.DataFrame({"query_cat": ["('familyA', 'genusA', 'speciesA')"]})
+        result = self.traits.clean_and_split(df, "query")
+        self.assertEqual(result["query_family"].iloc[0], "familyA")
+        self.assertEqual(result["query_genus"].iloc[0], "genusA")
+        self.assertEqual(result["query_species"].iloc[0], "speciesA")
+
+    def test_query_strips_whitespace(self):
+        """Leading/trailing whitespace in each field is removed."""
+        df = pd.DataFrame({"query_cat": ["(' familyA ', ' genusA ', ' speciesA ')"]})
+        result = self.traits.clean_and_split(df, "query")
+        self.assertEqual(result["query_family"].iloc[0], "familyA")
+        self.assertEqual(result["query_genus"].iloc[0], "genusA")
+        self.assertEqual(result["query_species"].iloc[0], "speciesA")
+
+    def test_query_creates_expected_columns(self):
+        """The three new columns are added and the original _cat column is preserved."""
+        df = pd.DataFrame({"query_cat": ["('familyA', 'genusA', 'speciesA')"]})
+        result = self.traits.clean_and_split(df, "query")
+        for col in ["query_family", "query_genus", "query_species"]:
+            self.assertIn(col, result.columns)
+        self.assertIn("query_cat", result.columns)
+
+    def test_query_multiple_rows(self):
+        """Multiple rows are all parsed correctly."""
+        df = pd.DataFrame({
+            "query_cat": [
+                "('familyA', 'genusA', 'speciesA')",
+                "('familyB', 'genusB', 'speciesB')",
+            ]
+        })
+        result = self.traits.clean_and_split(df, "query")
+        self.assertEqual(result["query_family"].tolist(), ["familyA", "familyB"])
+        self.assertEqual(result["query_genus"].tolist(), ["genusA", "genusB"])
+        self.assertEqual(result["query_species"].tolist(), ["speciesA", "speciesB"])
+
+    def test_query_nan_value_is_kept(self):
+        """A NaN entry in the source column produces NaN split columns (not an error)."""
+        df = pd.DataFrame({"query_cat": [np.nan]})
+        result = self.traits.clean_and_split(df, "query")
+        # All three split columns must exist; values may be NaN
+        for col in ["query_family", "query_genus", "query_species"]:
+            self.assertIn(col, result.columns)
+
+    # --- target prefix ---
+
+    def test_target_splits_correctly(self):
+        """Same parsing logic works with the 'target' prefix."""
+        df = pd.DataFrame({"target_cat": ["('familyX', 'genusX', 'speciesX')"]})
+        result = self.traits.clean_and_split(df, "target")
+        self.assertEqual(result["target_family"].iloc[0], "familyX")
+        self.assertEqual(result["target_genus"].iloc[0], "genusX")
+        self.assertEqual(result["target_species"].iloc[0], "speciesX")
+
+    def test_target_creates_expected_columns(self):
+        df = pd.DataFrame({"target_cat": ["('familyX', 'genusX', 'speciesX')"]})
+        result = self.traits.clean_and_split(df, "target")
+        for col in ["target_family", "target_genus", "target_species"]:
+            self.assertIn(col, result.columns)
+
+    def test_removes_brackets_and_quotes(self):
+        """Parentheses and single-quotes are stripped before splitting."""
+        df = pd.DataFrame({"query_cat": ["('familyA', 'genusA', 'speciesA')"]})
+        result = self.traits.clean_and_split(df, "query")
+        # No residual punctuation
+        for col in ["query_family", "query_genus", "query_species"]:
+            self.assertNotIn("(", result[col].iloc[0])
+            self.assertNotIn(")", result[col].iloc[0])
+            self.assertNotIn("'", result[col].iloc[0])
+
+class TestMakeDataframeSymmetric(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+        # Minimal valid dataframe with all required columns
+        self.base_df = pd.DataFrame({
+            "query":          ["seqA"],
+            "query_family":   ["familyA"],
+            "query_genus":    ["genusA"],
+            "query_species":  ["speciesA"],
+            "target":         ["seqB"],
+            "target_family":  ["familyB"],
+            "target_genus":   ["genusB"],
+            "target_species": ["speciesB"],
+            "divergence_prct": [5.0],
+        })
+
+    def test_output_has_double_the_rows(self):
+        """Symmetric df must contain exactly 2× the original rows."""
+        result = self.traits.make_dataframe_symmetric(self.base_df)
+        self.assertEqual(len(result), 2 * len(self.base_df))
+
+    def test_original_rows_preserved(self):
+        """The original rows appear unchanged in the output."""
+        result = self.traits.make_dataframe_symmetric(self.base_df)
+        original_row = result.iloc[0]
+        self.assertEqual(original_row["query"],         "seqA")
+        self.assertEqual(original_row["query_family"],  "familyA")
+        self.assertEqual(original_row["target"],        "seqB")
+        self.assertEqual(original_row["target_family"], "familyB")
+
+    def test_swapped_rows_present(self):
+        """A swapped row (query ↔ target) must also appear in the output."""
+        result = self.traits.make_dataframe_symmetric(self.base_df)
+        swapped = result[result["query"] == "seqB"]
+        self.assertFalse(swapped.empty, "Swapped row not found in symmetric df")
+        self.assertEqual(swapped.iloc[0]["target"],        "seqA")
+        self.assertEqual(swapped.iloc[0]["query_family"],  "familyB")
+        self.assertEqual(swapped.iloc[0]["target_family"], "familyA")
+
+    def test_divergence_prct_preserved_in_both_rows(self):
+        """divergence_prct must be the same in both the original and swapped row."""
+        result = self.traits.make_dataframe_symmetric(self.base_df)
+        self.assertTrue((result["divergence_prct"] == 5.0).all())
+
+    def test_column_order_starts_with_query_target_block(self):
+        """Output columns must begin with the canonical query/target block."""
+        result = self.traits.make_dataframe_symmetric(self.base_df)
+        expected_prefix = [
+            "query", "query_family", "query_genus", "query_species",
+            "target", "target_family", "target_genus", "target_species",
+        ]
+        self.assertEqual(list(result.columns[:8]), expected_prefix)
+
+    def test_multiple_rows_symmetric(self):
+        """All rows are mirrored when the input has multiple rows."""
+        df = pd.DataFrame({
+            "query":          ["seqA", "seqC"],
+            "query_family":   ["familyA", "familyC"],
+            "query_genus":    ["genusA", "genusC"],
+            "query_species":  ["speciesA", "speciesC"],
+            "target":         ["seqB", "seqD"],
+            "target_family":  ["familyB", "familyD"],
+            "target_genus":   ["genusB", "genusD"],
+            "target_species": ["speciesB", "speciesD"],
+            "divergence_prct": [3.0, 7.0],
+        })
+        result = self.traits.make_dataframe_symmetric(df)
+        self.assertEqual(len(result), 4)
+        # Both original queries appear as targets somewhere
+        self.assertIn("seqA", result["target"].values)
+        self.assertIn("seqC", result["target"].values)
+
+    def test_extra_columns_are_retained(self):
+        """Extra columns beyond the standard block are retained in the output."""
+        df = self.base_df.copy()
+        df["extra_col"] = "extra_value"
+        result = self.traits.make_dataframe_symmetric(df)
+        self.assertIn("extra_col", result.columns)
+
+    def test_index_is_reset(self):
+        """The result index must be a default RangeIndex (no duplicates from concat)."""
+        result = self.traits.make_dataframe_symmetric(self.base_df)
+        self.assertEqual(list(result.index), list(range(len(result))))
+
+    def test_original_dataframe_not_mutated(self):
+        """The input dataframe must not be modified in place."""
+        original_copy = self.base_df.copy()
+        self.traits.make_dataframe_symmetric(self.base_df)
+        pd.testing.assert_frame_equal(self.base_df, original_copy)
+
+class TestAddTaxaFromMapping(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+        # A minimal existing dataframe that already contains one taxon pair
+        self.existing_df = pd.DataFrame({
+            "query":          ["seq1"],
+            "query_family":   ["familyA"],
+            "query_genus":    ["genusA"],
+            "query_species":  ["speciesA"],
+            "target":         ["seq2"],
+            "target_family":  ["familyB"],
+            "target_genus":   ["genusB"],
+            "target_species": ["speciesB"],
+            "divergence_prct": [3.0],
+        })
+
+    def _write_mapping(self, tmp_path: Path, rows: list[dict]) -> Path:
+        """Write a mapping TSV to tmp_path and return its path."""
+        header = [
+            "seq_id", "og_taxa", "scientificName", "rank",
+            "kingdom", "phylum", "class", "order",
+            "family", "genus", "species",
+        ]
+        df = pd.DataFrame(rows, columns=header)
+        out = tmp_path / "mapping_primer1.tsv"
+        df.to_csv(out, sep="\t", index=False)
+        return tmp_path
+
+    def test_no_mapping_file_returns_df_unchanged(self):
+        """When no mapping file exists the original df is returned as-is."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        pd.testing.assert_frame_equal(
+            result.reset_index(drop=True),
+            self.existing_df.reset_index(drop=True),
+        )
+
+    def test_no_new_taxa_when_all_already_present(self):
+        """Row count is unchanged when every mapping taxon is already in the df."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq1", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyA", "genus": "genusA", "species": "speciesA"},
+                {"seq_id": "seq2", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyB", "genus": "genusB", "species": "speciesB"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        self.assertEqual(len(result), len(self.existing_df))
+
+    def test_new_taxa_are_appended(self):
+        """A taxon present in the mapping but absent from the df is appended."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq1", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyA", "genus": "genusA", "species": "speciesA"},
+                # NEW taxon not in existing_df
+                {"seq_id": "seq3", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyC", "genus": "genusC", "species": "speciesC"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        self.assertEqual(len(result), len(self.existing_df) + 1)
+
+    def test_new_row_has_inf_divergence(self):
+        """The divergence_prct for a newly added taxon must be np.inf."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq3", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyC", "genus": "genusC", "species": "speciesC"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        new_row = result[result["query_family"] == "familyC"].iloc[0]
+        self.assertTrue(np.isinf(new_row["divergence_prct"]))
+
+    def test_new_row_target_columns_are_nan_string(self):
+        """Target columns for a newly added taxon are set to the string 'nan'."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq3", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyC", "genus": "genusC", "species": "speciesC"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        new_row = result[result["query_family"] == "familyC"].iloc[0]
+        self.assertEqual(new_row["target_family"],  "nan")
+        self.assertEqual(new_row["target_genus"],   "nan")
+        self.assertEqual(new_row["target_species"], "nan")
+        self.assertEqual(new_row["target"],         "nan")
+
+    def test_new_row_query_id_matches_mapping(self):
+        """The query seq_id for a new row is looked up from the mapping file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq99", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyC", "genus": "genusC", "species": "speciesC"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        new_row = result[result["query_family"] == "familyC"].iloc[0]
+        self.assertEqual(new_row["query"], "seq99")
+
+    def test_multiple_new_taxa_all_appended(self):
+        """Multiple new taxa are all appended, each with inf divergence."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seqX", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyX", "genus": "genusX", "species": "speciesX"},
+                {"seq_id": "seqY", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyY", "genus": "genusY", "species": "speciesY"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        new_rows = result[result["query_family"].isin(["familyX", "familyY"])]
+        self.assertEqual(len(new_rows), 2)
+        self.assertTrue(new_rows["divergence_prct"].apply(np.isinf).all())
+
+    def test_target_taxa_also_checked_for_duplicates(self):
+        """A taxon that appears only as a target (not query) in the df is not re-added."""
+        # familyB/genusB/speciesB is a target in existing_df — it must not be duplicated
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq2", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyB", "genus": "genusB", "species": "speciesB"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        self.assertEqual(len(result), len(self.existing_df))
+
+    def test_warning_printed_when_no_mapping_file(self):
+        """A warning message is printed when no mapping file is found."""
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch("builtins.print") as mock_print:
+            folder = Path(tmp)
+            self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer_missing"
+            )
+        printed = " ".join(str(c) for c in mock_print.call_args_list)
+        self.assertIn("WARNING", printed)
+
+    def test_original_rows_retained_after_append(self):
+        """Existing rows are not modified when new taxa are appended."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._write_mapping(Path(tmp), [
+                {"seq_id": "seq1", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyA", "genus": "genusA", "species": "speciesA"},
+                {"seq_id": "seq3", "og_taxa": None, "scientificName": None,
+                 "rank": None, "kingdom": None, "phylum": None,
+                 "class": None, "order": None,
+                 "family": "familyC", "genus": "genusC", "species": "speciesC"},
+            ])
+            result = self.traits.add_taxa_from_mapping(
+                self.existing_df.copy(), folder, "primer1"
+            )
+        original_rows = result.iloc[:len(self.existing_df)]
+        pd.testing.assert_frame_equal(
+            original_rows.reset_index(drop=True),
+            self.existing_df.reset_index(drop=True),
+        )

@@ -28,7 +28,8 @@ def sequence_count_tracking(original_database, analysis_folder, save_results: bo
         target_folders = ["all_complete_pbs", "amplicon", "incomplete_pbs", "insert", "input_B"]
         renamed_folders = ["input_ABC", "input_AC", "input_A"]
 
-        step_files = {}
+        # add type annotation to step_files
+        step_files: dict[str, list[str]] = {}
 
         # Walk through analysis folder to find files
         for root, dirs, files in os.walk(analysis_folder):
@@ -60,7 +61,7 @@ def sequence_count_tracking(original_database, analysis_folder, save_results: bo
         else:
             print("mozaiko WARNING: Original database file not found.")
 
-        primer_step_counts = {}
+        primer_step_counts: dict[str, list[str]] = {}
 
         # Count sequences using grep for analysis steps only
         for step_name, file_paths in step_files.items():

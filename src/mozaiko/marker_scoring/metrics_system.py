@@ -1277,15 +1277,45 @@ class TraitsAndResolution:
         Returns:
             DataFrame with added family, genus, species columns
         """
+        # col = f"{col_prefix}_cat"
+
+        # # Remove brackets and parentheses of tuple
+        # df[col] = df[col].str.replace(r"[\'\(\)]", "", regex=True)
+
+        # new_cols = [f"{col_prefix}_family", f"{col_prefix}_genus", f"{col_prefix}_species"]
+        # df[new_cols] = df[col].str.split(',', expand=True)
+
+        # df[new_cols] = df[new_cols].apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+
+        # return df
+
+
         col = f"{col_prefix}_cat"
 
+        new_cols = [
+            f"{col_prefix}_family",
+            f"{col_prefix}_genus",
+            f"{col_prefix}_species",
+        ]
+
+        # Work on a safe string version but preserve NaNs
+        s = df[col].astype("string")
+
         # Remove brackets and parentheses of tuple
-        df[col] = df[col].str.replace(r"[\'\(\)]", "", regex=True)
+        s = s.str.replace(r"[\'()]", "", regex=True)
+        split = s.str.split(",", expand=True)
+        split = split.reindex(columns=range(3))
+        split.columns = new_cols
 
-        new_cols = [f"{col_prefix}_family", f"{col_prefix}_genus", f"{col_prefix}_species"]
-        df[new_cols] = df[col].str.split(',', expand=True)
+        # Strip whitespace
+        split = split.map(
+        lambda x: x.strip() if isinstance(x, str) else x
+        )
 
-        df[new_cols] = df[new_cols].apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+        # Keep NaNs as NaNs
+        split = split.where(df[col].notna())
+
+        df = df.join(split)
 
         return df
 
