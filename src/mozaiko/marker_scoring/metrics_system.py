@@ -13,9 +13,8 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
-from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, Literal, Optional, Tuple, Union
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,7 +22,7 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 
 from mozaiko.in_silico_analysis.amplification import InSilicoAmplification
-from mozaiko.marker_scoring.scoring_utils import *
+from mozaiko.marker_scoring.scoring_utils import calculate_iupac_mismatches, extract_primer_binding_sites
 from mozaiko.reference_database.sequence_import import CustomFastaImport
 
 
@@ -1708,13 +1707,13 @@ class TraitsAndResolution:
 
         return otl_filtered_df
 
-    def filter_divergence_threshold(self, df, thresholds: list | float = None):
+    def filter_divergence_threshold(self, df, thresholds: list[float] | float | None = None):
         if thresholds is None:
             thresholds = [10.0, 5.0, 2.0]
-        single_threhold = None
+        single_threshold = None
         if isinstance(thresholds, float):
-            single_threhold = thresholds
-            print(f"mozaiko INFO: Using single divergence threshold of {single_threhold}%.")
+            single_threshold = thresholds
+            print(f"mozaiko INFO: Using single divergence threshold of {single_threshold}%.")
         elif isinstance(thresholds, list):
             th_family, th_genus, th_species = thresholds
             print(f"mozaiko INFO: Using divergence thresholds of {th_family}% for family, {th_genus}% for genus and {th_species}% for species.")
@@ -1727,9 +1726,9 @@ class TraitsAndResolution:
         otl_filtered = self.exclude_common_ancestry(otl_filtered)
 
         # Step 2: Apply rank-dependent divergence thresholds
-        if single_threhold is not None:
+        if single_threshold is not None:
             threshold_mask = (
-                (otl_filtered['divergence_prct'] > single_threhold) |
+                (otl_filtered['divergence_prct'] > single_threshold) |
                 (otl_filtered['divergence_prct'].isin([np.inf, -np.inf])) |
                 (otl_filtered['divergence_prct'].isna())
             )
@@ -2528,7 +2527,7 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            thresholds: list | float = None,
+                            thresholds: list[float] | float | None = None,
                             ranking_mode: str = 'category'):
         """
         Evaluate a single OTL file and generate primer rankings.
@@ -2616,7 +2615,7 @@ class MetricsSystemExecutor:
 
         executor.sort_otl_level_results(subdirectory_name=country_name)
 
-        # return ranked_df
+        return ranked_df
 
     @staticmethod
     def evaluate_several_OTLs(otl_folder,
@@ -2624,7 +2623,7 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            thresholds: list | float = None,
+                            thresholds: list[float] | float | None = None,
                             ranking_mode: str = 'category'):
         """
         Evaluate multiple OTL files in a folder.
@@ -2650,7 +2649,7 @@ class MetricsSystemExecutor:
         - results: dict
             Dictionary mapping country names to ranked DataFrames
         """
-        results = {}
+        results: dict[str, pd.DataFrame] = {}
 
         # Get all TSV files in the folder
         otl_files = [f for f in os.listdir(otl_folder) if f.endswith('.tsv')]

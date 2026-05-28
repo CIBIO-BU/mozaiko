@@ -28,7 +28,7 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
                       output_folder=output_folder,
                       primer_table=primer_table,
                       save_intermediate_ranks=True,
-                      run_catnip=True,
+                      run_catnip=False,
                       thresholds = [10.0, 5.0, 2.0],
                       ranking_mode='flat')
 
