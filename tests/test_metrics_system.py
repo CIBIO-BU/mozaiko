@@ -1625,17 +1625,6 @@ class TestAddTaxaFromMapping(unittest.TestCase):
         )
 
 
-def _make_traits() -> TraitsAndResolution:
-    """Return a TraitsAndResolution instance using the standard test OTL."""
-    test_data = Path(__file__).resolve().parent / "data/test_data"
-    return TraitsAndResolution(
-        insert_folder_path=str(test_data / "insert-test"),
-        amplicon_folder_path=str(test_data / "amplicon-test"),
-        incomplete_pbs_folder_path=str(test_data / "insert-test"),
-        otl=str(test_data / "test_otl.tsv"),
-    )
-
-
 class TestRunCatnip(unittest.TestCase):
 
     def setUp(self):
@@ -1942,7 +1931,7 @@ class TestFilterDivergenceThreshold(unittest.TestCase):
 
         self.assertEqual(len(result), 1)
 
-    def test_filter_divergence_threshold_list(self):
+    def test_filter_divergence_threshold_list_pass_genus(self):
         """Rank-specific thresholds are applied."""
         df = pd.DataFrame({
             "query_family": ["famA"],
@@ -1961,7 +1950,7 @@ class TestFilterDivergenceThreshold(unittest.TestCase):
 
         self.assertEqual(len(result), 1)
 
-    def test_filter_divergence_threshold_list(self):
+    def test_filter_divergence_threshold_list_below_genus(self):
         """Rank-specific thresholds are applied."""
         df = pd.DataFrame({
             "query_family": ["famA"],
