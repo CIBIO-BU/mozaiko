@@ -1085,17 +1085,16 @@ class Binding:
 
     def get_total_gc_matches(self, primer_pbs_df: pd.DataFrame):
         """
-        This method retrived a score for the number of GCC matches between the PBS-Primer. The
-        presence of G and C bases at the 3' end of both forward and reverse primers (GC clamp)
-        is an indicator of higher binding stability. However, more than 3 G's or C's should be
-        avoided in the last 5 bases at the 3' end of the primer. Given this, a score system is
-        applied to the number of GC matches between the Primer-PBS:
+        This method evaluates GC base matches between the PBS Primer regions to estimate binding
+        stability. It rewards having 1-3 GC matches at the 3' end (GC clamp), due to improved primer
+        binding, but penalizes more than 3 matches as excessive GC content near 3'end is
+        undesirable. Scoring rules for both forward and reverse primers:
+
         - 1-3 matches -> 1 point
         - 0 matches -> 0 points
         - >3 matches -> 0 points
 
-        The method translates the GC matches to points for both the forward and reverse sequences
-        and sums the result for each Seq Id.
+        The final score for each sequence ID is the sum of the forward and reverse primer scores..
 
         Parameters:
         - primer_pbs_df: DataFrame
@@ -1710,6 +1709,9 @@ class TraitsAndResolution:
         return otl_filtered_df
 
     def filter_divergence_threshold(self, df, thresholds: list[float] | float | None = None):
+        """
+        Filter results by divergence thresholds that depend on the taxonomic rank of the query taxa.
+        """
         if thresholds is None:
             thresholds = [10.0, 5.0, 2.0]
         single_threshold = None

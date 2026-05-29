@@ -1623,3 +1623,412 @@ class TestAddTaxaFromMapping(unittest.TestCase):
             original_rows.reset_index(drop=True),
             self.existing_df.reset_index(drop=True),
         )
+
+
+def _make_traits() -> TraitsAndResolution:
+    """Return a TraitsAndResolution instance using the standard test OTL."""
+    test_data = Path(__file__).resolve().parent / "data/test_data"
+    return TraitsAndResolution(
+        insert_folder_path=str(test_data / "insert-test"),
+        amplicon_folder_path=str(test_data / "amplicon-test"),
+        incomplete_pbs_folder_path=str(test_data / "insert-test"),
+        otl=str(test_data / "test_otl.tsv"),
+    )
+
+
+class TestRunCatnip(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    @patch("subprocess.run")
+    @patch("shutil.copy2")
+    @patch("os.makedirs")
+    @patch("os.listdir")
+    def test_run_catnip_processes_fasta_files(
+        self,
+        mock_listdir,
+        mock_makedirs,
+        mock_copy2,
+        mock_subprocess,
+    ):
+        """FASTA files are processed and subprocess is called."""
+        mock_listdir.return_value = ["primer1.fasta", "ignore.txt"]
+        mock_subprocess.return_value = MagicMock(returncode=0)
+
+        self.traits.run_catnip(10.0)
+
+        self.assertEqual(mock_subprocess.call_count, 1)
+        args = mock_subprocess.call_args[0][0]
+        self.assertIn("primer1.fasta", args)
+
+    def test_run_catnip_invalid_threshold_type_raises(self):
+        """Invalid threshold type raises TypeError."""
+        with self.assertRaises(TypeError):
+            self.traits.run_catnip("invalid")
+
+    def test_run_catnip_invalid_threshold_list_length_raises(self):
+        """Threshold list must contain exactly 3 values."""
+        with self.assertRaises(TypeError):
+            self.traits.run_catnip([1.0, 2.0])
+
+
+class TestProcessSinglePrimer(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    @patch.object(TraitsAndResolution, "add_taxa_from_mapping")
+    @patch.object(TraitsAndResolution, "get_values_otl")
+    @patch.object(TraitsAndResolution, "filter_results_by_otl")
+    @patch.object(TraitsAndResolution, "filter_divergence_threshold")
+    def test_process_single_primer_runs_pipeline(
+        self,
+        mock_filter_div,
+        mock_filter_otl,
+        mock_get_values,
+        mock_add_mapping,
+    ):
+        """Pipeline methods are called and processed dataframes returned."""
+        df = pd.DataFrame({
+            "query": ["q1"],
+            "query_cat": ["('famA', 'genA', 'spA')"],
+            "target": ["t1"],
+            "target_cat": ["('famB', 'genB', 'spB')"],
+            "divergence_prct": [2.0],
+        })
+
+        processed = pd.DataFrame({
+            "query": ["q1"],
+            "query_family": ["famA"],
+            "query_genus": ["genA"],
+            "query_species": ["spA"],
+            "target": ["t1"],
+            "target_family": ["famB"],
+            "target_genus": ["genB"],
+            "target_species": ["spB"],
+            "divergence_prct": [2.0],
+        })
+
+        mock_add_mapping.return_value = processed
+        mock_get_values.return_value = processed
+        mock_filter_otl.return_value = processed
+        mock_filter_div.return_value = processed
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result1, result2 = self.traits.process_single_primer(
+                "primer1",
+                df,
+                Path(tmpdir),
+                thresholds=[10.0, 5.0, 2.0],
+            )
+
+        self.assertTrue(mock_add_mapping.called)
+        self.assertTrue(mock_get_values.called)
+        self.assertTrue(mock_filter_otl.called)
+        self.assertTrue(mock_filter_div.called)
+
+        pd.testing.assert_frame_equal(result1, processed)
+        pd.testing.assert_frame_equal(result2, processed)
+
+    def test_process_single_primer_invalid_thresholds_raise(self):
+        """Invalid threshold lists raise TypeError."""
+        df = pd.DataFrame()
+
+        with self.assertRaises(TypeError):
+            self.traits.process_single_primer(
+                "primer",
+                df,
+                Path("."),
+                thresholds=[1.0, 2.0],
+            )
+
+
+class TestPostProcessCatnipPrimerResults(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    @patch.object(TraitsAndResolution, "process_single_primer")
+    def test_post_process_calls_process_single_primer(self, mock_process):
+        """Each valid primer folder is processed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.traits.catnip_dir = tmpdir
+
+            primer_dir = Path(tmpdir) / "primer1"
+            primer_dir.mkdir()
+
+            df = pd.DataFrame({
+                "query": ["q1"],
+                "query_cat": ["('famA', 'genA', 'spA')"],
+                "target": ["t1"],
+                "target_cat": ["('famB', 'genB', 'spB')"],
+                "divergence_prct": [2.0],
+            })
+
+            df.to_csv(
+                primer_dir / "final_output_interclst.tsv",
+                sep="\t",
+                index=False,
+            )
+
+            self.traits.post_process_catnip_primer_results()
+
+            self.assertEqual(mock_process.call_count, 1)
+
+
+class TestGetValuesOtl(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    def test_get_values_otl_returns_minimum_divergence(self):
+        """Lowest divergence value is selected."""
+        self.traits.otl = pd.DataFrame({
+            "family": ["famA"],
+            "genus": ["genA"],
+            "species": ["spA"],
+            "rank": ["species"],
+        })
+
+        self.traits.df_inf = pd.DataFrame()
+
+        df = pd.DataFrame({
+            "query_family": ["famA", "famA"],
+            "query_genus": ["genA", "genA"],
+            "query_species": ["spA", "spA"],
+            "target_family": ["famB", "famC"],
+            "target_genus": ["genB", "genC"],
+            "target_species": ["spB", "spC"],
+            "divergence_prct": [5.0, 2.0],
+        })
+
+        result = self.traits.get_values_otl(df)
+
+        self.assertEqual(result["divergence_prct"].iloc[0], 2.0)
+        self.assertEqual(result["target_species"].iloc[0], "spC")
+
+    def test_get_values_otl_multiple_equal_mins_returns_nan_targets(self):
+        """Equal minimum values result in NaN targets."""
+        self.traits.otl = pd.DataFrame({
+            "family": ["famA"],
+            "genus": ["genA"],
+            "species": ["spA"],
+            "rank": ["species"],
+        })
+
+        self.traits.df_inf = pd.DataFrame()
+
+        df = pd.DataFrame({
+            "query_family": ["famA", "famA"],
+            "query_genus": ["genA", "genA"],
+            "query_species": ["spA", "spA"],
+            "target_family": ["famB", "famC"],
+            "target_genus": ["genB", "genC"],
+            "target_species": ["spB", "spC"],
+            "divergence_prct": [2.0, 2.0],
+        })
+
+        result = self.traits.get_values_otl(df)
+
+        self.assertTrue(pd.isna(result["target_species"].iloc[0]))
+        self.assertEqual(result["divergence_prct"].iloc[0], 2.0)
+
+
+class TestFilterResultsByOtl(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    def test_filter_results_by_otl_keeps_matching_targets(self):
+        """Rows whose target taxa exist in OTL are retained."""
+        self.traits.otl = pd.DataFrame({
+            "family": ["famB"],
+            "genus": ["genB"],
+            "species": ["spB"],
+            "rank": ["species"],
+        })
+
+        df = pd.DataFrame({
+            "target_family": ["famB", "famX"],
+            "target_genus": ["genB", "genX"],
+            "target_species": ["spB", "spX"],
+            "divergence_prct": [1.0, 2.0],
+        })
+
+        result = self.traits.filter_results_by_otl(df)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result["target_species"].iloc[0], "spB")
+
+    def test_filter_results_by_otl_keeps_inf_rows(self):
+        """Rows with infinite divergence are preserved."""
+        self.traits.otl = pd.DataFrame({
+            "family": ["famB"],
+            "genus": ["genB"],
+            "species": ["spB"],
+            "rank": ["species"],
+        })
+
+        df = pd.DataFrame({
+            "target_family": ["famX"],
+            "target_genus": ["genX"],
+            "target_species": ["spX"],
+            "divergence_prct": [np.inf],
+        })
+
+        result = self.traits.filter_results_by_otl(df)
+
+        self.assertEqual(len(result), 1)
+        self.assertTrue(np.isinf(result["divergence_prct"].iloc[0]))
+
+
+class TestExcludeCommonAncestry(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    def test_excludes_same_species(self):
+        """Rows with identical query/target species are removed."""
+        df = pd.DataFrame({
+            "query_family": ["famA"],
+            "query_genus": ["genA"],
+            "query_species": ["spA"],
+            "target_family": ["famA"],
+            "target_genus": ["genA"],
+            "target_species": ["spA"],
+            "divergence_prct": [1.0],
+        })
+
+        result = self.traits.exclude_common_ancestry(df)
+
+        self.assertEqual(len(result), 0)
+
+    def test_keeps_different_species(self):
+        """Rows with different species are retained."""
+        df = pd.DataFrame({
+            "query_family": ["famA"],
+            "query_genus": ["genA"],
+            "query_species": ["spA"],
+            "target_family": ["famA"],
+            "target_genus": ["genA"],
+            "target_species": ["spB"],
+            "divergence_prct": [1.0],
+        })
+
+        result = self.traits.exclude_common_ancestry(df)
+
+        self.assertEqual(len(result), 1)
+
+
+class TestFilterDivergenceThreshold(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    def test_filter_divergence_threshold_single_float(self):
+        """Rows above single threshold are retained."""
+        df = pd.DataFrame({
+            "query_family": ["famA"],
+            "query_genus": [np.nan],
+            "query_species": [np.nan],
+            "target_family": ["famB"],
+            "target_genus": [np.nan],
+            "target_species": [np.nan],
+            "divergence_prct": [15.0],
+        })
+
+        result = self.traits.filter_divergence_threshold(df, 10.0)
+
+        self.assertEqual(len(result), 1)
+
+    def test_filter_divergence_threshold_list(self):
+        """Rank-specific thresholds are applied."""
+        df = pd.DataFrame({
+            "query_family": ["famA"],
+            "query_genus": ["genA"],
+            "query_species": [np.nan],
+            "target_family": ["famB"],
+            "target_genus": ["genB"],
+            "target_species": [np.nan],
+            "divergence_prct": [6.0],
+        })
+
+        result = self.traits.filter_divergence_threshold(
+            df,
+            [10.0, 5.0, 2.0],
+        )
+
+        self.assertEqual(len(result), 1)
+
+    def test_filter_divergence_threshold_list(self):
+        """Rank-specific thresholds are applied."""
+        df = pd.DataFrame({
+            "query_family": ["famA"],
+            "query_genus": ["genA"],
+            "query_species": [np.nan],
+            "target_family": ["famB"],
+            "target_genus": ["genB"],
+            "target_species": [np.nan],
+            "divergence_prct": [4.0],
+        })
+
+        result = self.traits.filter_divergence_threshold(
+            df,
+            [10.0, 5.0, 2.0],
+        )
+
+        self.assertEqual(len(result), 0)
+
+    def test_filter_divergence_threshold_invalid_type_raises(self):
+        """Invalid threshold types raise TypeError."""
+        df = pd.DataFrame()
+
+        with self.assertRaises(TypeError):
+            self.traits.filter_divergence_threshold(df, "bad")
+
+
+class TestGetTaxonomicResolution(unittest.TestCase):
+
+    def setUp(self):
+        self.traits = _make_traits()
+
+    def test_get_taxonomic_resolution_returns_dataframe(self):
+        """Taxonomic resolution metrics are calculated."""
+        self.traits.otl_handler.total_taxa = 10
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.traits.catnip_dir = tmpdir
+            self.traits.country_name = "test"
+
+            primer_dir = Path(tmpdir) / "primer1"
+            primer_dir.mkdir()
+
+            catnip_df = pd.DataFrame({
+                "divergence_prct": [1.0, 2.0],
+            })
+
+            otl_df = pd.DataFrame({
+                "divergence_prct": [1.0],
+            })
+
+            catnip_df.to_csv(
+                primer_dir / "catnip_target_primer1_test.tsv",
+                sep="\t",
+                index=False,
+            )
+
+            otl_df.to_csv(
+                primer_dir / "otl_target_primer1_test.tsv",
+                sep="\t",
+                index=False,
+            )
+
+            result = self.traits.get_taxonomic_resolution()
+
+            print(result)
+
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result["primer"].iloc[0], "primer1")
+            self.assertEqual(result["taxonomic_resolution"].iloc[0], 0.1)
+            self.assertEqual(result["ratio_taxonomic_resolution"].iloc[0], 2.0)
