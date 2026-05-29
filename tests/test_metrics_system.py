@@ -2104,7 +2104,7 @@ class TestComprehensivePrimerAnalysis(unittest.TestCase):
             result = self.executor.comprehensive_primer_analysis(tmpdir)
 
         self.assertIn("normalized_mismatch_score", result.columns)
-        self.assertEqual(result["baasrcoded_taxa"].iloc[0], 10)
+        self.assertEqual(result["barcoded_taxa"].iloc[0], 10)
         self.assertIn("normalized_priming_ratio_sum", result.columns)
         self.assertIn("normalized_gc_matches_across_taxon", result.columns)
         self.assertIn("min_tm_cv", result.columns)
