@@ -2021,3 +2021,344 @@ class TestGetTaxonomicResolution(unittest.TestCase):
             self.assertEqual(result["primer"].iloc[0], "primer1")
             self.assertEqual(result["taxonomic_resolution"].iloc[0], 0.1)
             self.assertEqual(result["ratio_taxonomic_resolution"].iloc[0], 2.0)
+
+
+def _make_metrics_executor() -> MetricsSystemExecutor:
+    """Return a MetricsSystemExecutor instance using standard test data."""
+    test_data = Path(__file__).resolve().parent / "data/test_data"
+
+    return MetricsSystemExecutor(
+        results_folder=str(test_data),
+        otl=str(test_data / "test_otl.tsv"),
+        primer_table=str(test_data / "test_primers.tsv"),
+    )
+
+
+class TestComprehensivePrimerAnalysis(unittest.TestCase):
+
+    def setUp(self):
+        self.executor = _make_metrics_executor()
+
+    @patch.object(Binding, "process_analysis_across_taxon")
+    @patch.object(Binding, "process_analysis_per_taxon")
+    @patch.object(Binding, "get_total_gc_matches")
+    @patch.object(Binding, "get_priming_ratio")
+    @patch.object(MetricsSystemExecutor, "get_primer_pbs_analysis")
+    @patch.object(MetricsSystemExecutor, "get_reference_database_quality")
+    def test_comprehensive_primer_analysis_returns_dataframe(
+        self,
+        mock_ref_qual,
+        mock_primer_pbs,
+        mock_priming_ratio,
+        mock_gc,
+        mock_process_taxon,
+        mock_process_across,
+    ):
+        """Comprehensive analysis aggregates primer metrics."""
+        mock_ref_qual.return_value = pd.DataFrame({
+            "barcoded_taxa": [10],
+            "ratio_barcoded_taxa": [0.8],
+        }, index=["primer1"])
+
+        primer_df = pd.DataFrame({"x": [1]})
+
+        mock_primer_pbs.return_value = (
+            {"primer1": primer_df},
+            pd.DataFrame(),
+        )
+
+        mock_process_taxon.side_effect = [
+            pd.DataFrame({
+                "family": ["famA"],
+                "genus": ["genA"],
+                "species": ["spA"],
+                "full_len_mismatch_sum": [1],
+            }),
+            pd.DataFrame({
+                "family": ["famA"],
+                "genus": ["genA"],
+                "species": ["spA"],
+                "three_end_mismatch_sum": [1],
+            }),
+            pd.DataFrame({
+                "family": ["famA"],
+                "genus": ["genA"],
+                "species": ["spA"],
+                "gc_matches_score": [5],
+            }),
+            pd.DataFrame({
+                "family": ["famA"],
+                "genus": ["genA"],
+                "species": ["spA"],
+                "min_tm": [50],
+            }),
+            ]
+
+        mock_priming_ratio.return_value = pd.DataFrame({
+            "priming_ratio": [0.5]
+        })
+
+        mock_process_across.side_effect = [1, 1, 5, 0.2]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self.executor.comprehensive_primer_analysis(tmpdir)
+
+        self.assertIn("normalized_mismatch_score", result.columns)
+        self.assertEqual(result["baasrcoded_taxa"].iloc[0], 10)
+        self.assertIn("normalized_priming_ratio_sum", result.columns)
+        self.assertIn("normalized_gc_matches_across_taxon", result.columns)
+        self.assertIn("min_tm_cv", result.columns)
+
+
+class TestJoinAnalysisResults(unittest.TestCase):
+
+    def setUp(self):
+        self.executor = _make_metrics_executor()
+
+    @patch.object(MetricsSystemExecutor, "get_traits_and_resolution")
+    @patch.object(MetricsSystemExecutor, "comprehensive_primer_analysis")
+    def test_join_analysis_results_joins_dataframes(
+        self,
+        mock_comprehensive,
+        mock_traits,
+    ):
+        """Binding and taxonomic results are joined."""
+        mock_comprehensive.return_value = pd.DataFrame({
+            "primer": ["p1"],
+            "metric1": [1.0],
+        }).set_index("primer")
+
+        mock_traits.return_value = pd.DataFrame({
+            "taxonomic_resolution": [0.8],
+        }, index=["p1"])
+
+        result = self.executor.join_analysis_results()
+
+        self.assertIn("metric1", result.columns)
+        self.assertIn("taxonomic_resolution", result.columns)
+        self.assertEqual(result.shape[0], 1)
+
+
+class TestCreateTaxonomicResolutionPerTaxon(unittest.TestCase):
+
+    def setUp(self):
+        self.executor = _make_metrics_executor()
+
+    def test_create_taxonomic_resolution_per_taxon_creates_file(self):
+        """Primer taxonomic resolution files are merged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.executor.results_folder = tmpdir
+            self.executor.country_name = "test"
+
+            catnip_dir = Path(tmpdir) / "catnip"
+            primer_dir = catnip_dir / "primer1"
+            primer_dir.mkdir(parents=True)
+
+            df = pd.DataFrame({
+                "query_family": ["famA"],
+                "query_genus": ["genA"],
+                "query_species": ["spA"],
+                "target_family": ["famB"],
+                "target_genus": ["genB"],
+                "target_species": ["spB"],
+                "divergence_prct": [1.0],
+            })
+
+            df.to_csv(
+                primer_dir / "otl_target_primer1_test.tsv",
+                sep="\t",
+                index=False,
+            )
+
+            output_path = Path(tmpdir) / "merged.tsv"
+
+            self.executor.create_taxonomic_resolution_per_taxon(output_path)
+
+            self.assertTrue(output_path.exists())
+
+            result = pd.read_csv(output_path, sep="\t")
+
+            self.assertIn("primer1", result.columns)
+
+
+class TestSortOtlLevelResults(unittest.TestCase):
+
+    def setUp(self):
+        self.executor = _make_metrics_executor()
+
+    @patch.object(MetricsSystemExecutor, "create_taxonomic_resolution_per_taxon")
+    def test_sort_otl_level_results_merges_taxonomic_resolution(
+        self,
+        mock_create,
+    ):
+        """OTL-level files are merged with taxonomic resolution."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.executor.results_folder = tmpdir
+
+            otl_dir = Path(tmpdir) / "otl_level_results"
+            otl_dir.mkdir()
+
+            tax_df = pd.DataFrame({
+                "family": ["famA"],
+                "genus": ["genA"],
+                "species": ["spA"],
+                "primer1": [1.0],
+            })
+
+            tax_df.to_csv(
+                otl_dir / "taxonomic_resolution_per_taxon.tsv",
+                sep="\t",
+                index=False,
+            )
+
+            binding_df = pd.DataFrame({
+                "family": ["famA"],
+                "genus": ["genA"],
+                "species": ["spA"],
+                "metric": [5],
+            })
+
+            binding_df.to_csv(
+                otl_dir / "otl_level_results_primer1.tsv",
+                sep="\t",
+                index=False,
+            )
+
+            self.executor.sort_otl_level_results()
+
+            result = pd.read_csv(
+                otl_dir / "otl_level_results_primer1.tsv",
+                sep="\t",
+            )
+
+            self.assertIn("taxonomic_resolution", result.columns)
+
+
+class TestRankPrimersCategoricallyWeighted(unittest.TestCase):
+
+    def setUp(self):
+        self.executor = _make_metrics_executor()
+
+    @patch.object(MetricsSystemExecutor, "join_analysis_results")
+    def test_rank_primers_categorically_weighted_returns_ranked_df(
+        self,
+        mock_join,
+    ):
+        """Primers receive final ranks."""
+        mock_join.return_value = pd.DataFrame({
+            "primer": ["p1", "p2"],
+            "barcoded_taxa": [10, 5],
+            "ratio_barcoded_taxa": [0.9, 0.5],
+            "normalized_mismatch_score": [1.0, 2.0],
+            "normalized_priming_ratio_sum": [1.0, 2.0],
+            "normalized_gc_matches_across_taxon": [5.0, 2.0],
+            "min_tm_cv": [0.1, 0.2],
+            "taxonomic_resolution": [0.9, 0.5],
+            "ratio_taxonomic_resolution": [1.5, 1.0],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.executor.results_folder = tmpdir
+
+            result = self.executor.rank_primers_categorically_weighted()
+
+        self.assertIn("final_rank", result.columns)
+        self.assertEqual(len(result), 2)
+
+    @patch.object(MetricsSystemExecutor, "join_analysis_results")
+    def test_rank_primers_missing_columns_raise(
+        self,
+        mock_join,
+    ):
+        """Missing metrics raise ValueError."""
+        mock_join.return_value = pd.DataFrame({
+            "primer": ["p1"]
+        })
+
+        with self.assertRaises(ValueError):
+            self.executor.rank_primers_categorically_weighted()
+
+
+class TestEvaluateSingleOTL(unittest.TestCase):
+
+    @patch.object(MetricsSystemExecutor, "sort_otl_level_results")
+    @patch.object(MetricsSystemExecutor, "rank_primers_categorically_weighted")
+    def test_evaluate_single_otl_category_mode(
+        self,
+        mock_rank,
+        mock_sort,
+    ):
+        """Category ranking mode runs successfully."""
+        mock_rank.return_value = pd.DataFrame({
+            "primer": ["p1"],
+            "final_rank": [1],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            Path(tmpdir, "incomplete_pbs/filtered").mkdir(parents=True)
+            Path(tmpdir, "catnip").mkdir()
+
+            otl_path = Path(tmpdir) / "test_otl.tsv"
+            otl_path.write_text("taxa\tscientificName\trank\tfamily\tgenus\tspecies\n")
+
+            result = MetricsSystemExecutor.evaluate_single_OTL(
+                otl_path=str(otl_path),
+                output_folder=tmpdir,
+                primer_table="primers.tsv",
+                run_catnip=False,
+                ranking_mode="category",
+            )
+
+        self.assertEqual(result["final_rank"].iloc[0], 1)
+
+    def test_evaluate_single_otl_invalid_ranking_mode_raises(self):
+        """Invalid ranking mode raises ValueError."""
+        with self.assertRaises(ValueError):
+            MetricsSystemExecutor.evaluate_single_OTL(
+                otl_path="x.tsv",
+                output_folder="out",
+                primer_table="primers.tsv",
+                ranking_mode="bad",
+            )
+
+
+class TestEvaluateSeveralOTLs(unittest.TestCase):
+
+    @patch.object(MetricsSystemExecutor, "evaluate_single_OTL")
+    def test_evaluate_several_otls_returns_results(
+        self,
+        mock_eval,
+    ):
+        """Multiple OTLs are evaluated and returned."""
+        mock_eval.return_value = pd.DataFrame({
+            "primer": ["p1"],
+            "final_rank": [1],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            otl1 = Path(tmpdir) / "portugal_otl.tsv"
+            otl2 = Path(tmpdir) / "spain_otl.tsv"
+
+            otl1.write_text("x")
+            otl2.write_text("x")
+
+            results = MetricsSystemExecutor.evaluate_several_OTLs(
+                otl_folder=tmpdir,
+                output_folder=tmpdir,
+                primer_table="primers.tsv",
+                run_catnip=False,
+            )
+
+        self.assertIn("portugal", results)
+        self.assertIn("spain", results)
+
+    def test_evaluate_several_otls_empty_folder_returns_empty_dict(self):
+        """No TSV files returns empty dictionary."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            results = MetricsSystemExecutor.evaluate_several_OTLs(
+                otl_folder=tmpdir,
+                output_folder=tmpdir,
+                primer_table="primers.tsv",
+            )
+
+        self.assertEqual(results, {})

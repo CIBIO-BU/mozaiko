@@ -2686,4 +2686,4 @@ class MetricsSystemExecutor:
                 continue
 
         print(f"Successfully processed {len(results)} out of {len(otl_files)} OTL files")
-        # return results
+        return results
