@@ -1,0 +1,31 @@
+{
+    "run_name": "test_run",
+    "paths": {
+        "output_root": "output",
+        "input_fasta": "database.fasta",
+        "primer_table": "primers.tsv",
+        "otl_folder": "otls/"
+    },
+    "steps": {
+        "preprocess": {
+            "enabled": true,
+            "harmonized": true
+        },
+        "insilico": {
+            "enabled": true,
+            "max_mismatch_per_primer_pair": 3,
+            "max_len_according_to_illumina": true,
+            "minimum_percentage_identity": 0.75,
+            "minimum_alignment_coverage": 99,
+            "max_ambiguous_percentage": 0.05
+        },
+        "evaluate_multiple_otl": {
+            "enabled": true,
+            "save_intermediate_ranks": true,
+            "min_barcode": 10,
+            "run_catnip": false,
+            "thresholds": [10.0, 5.0, 2.0],
+            "ranking_mode": "flat"
+        }
+    }
+}
