@@ -508,7 +508,7 @@ class TestInSilicoAmplification(unittest.TestCase):
 
     def test_read_primer_tables_max_len_true(self):
         self.amplification.read_primer_tables(
-            self.primer_list, max_len_according_to_ilumina=True
+            self.primer_list, max_len_according_to_illumina=True
         )
         self.assertIsNotNone(self.amplification.primer_table)
 
@@ -534,7 +534,7 @@ class TestInSilicoAmplification(unittest.TestCase):
             "max_read_length",
         ]
         self.amplification.read_primer_tables(
-            self.primer_list, max_len_according_to_ilumina=False
+            self.primer_list, max_len_according_to_illumina=False
         )
         self.assertIsNotNone(self.amplification.primer_table)
         self.assertIn("min_read_length", self.amplification.primer_table.columns)
@@ -558,7 +558,7 @@ class TestInSilicoAmplification(unittest.TestCase):
         ]
         with self.assertRaises(ValueError):
             self.amplification.read_primer_tables(
-                self.primer_list, max_len_according_to_ilumina=False
+                self.primer_list, max_len_according_to_illumina=False
             )
 
     def test_add_taxonomy_to_pga_outputs_missing_taxonomy(self):

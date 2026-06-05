@@ -1,11 +1,13 @@
 ## mozaiko
-VERSION=0.1.6
+VERSION=0.1.7
 
 release:
 	# Update version in pyproject.toml
 	sed -i 's/^version *= *.*/version = "$(VERSION)"/' pyproject.toml
+	# Update __version__ in source
 	sed -i 's/^__version__ =.*/__version__ ="$(VERSION)"/' src/mozaiko/mozaiko.py
-	sed -i 's/^version=.*/version="$(VERSION)"/' setup.py
+	# Update version in setup.py
+	sed -i 's/^\([[:space:]]*version *= *\)"[^"]*",/\1"$(VERSION)",/' setup.py
 
 	# Clean previous builds
 	rm -rf dist build src/*.egg-info

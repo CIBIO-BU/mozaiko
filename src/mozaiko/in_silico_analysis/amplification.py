@@ -169,7 +169,7 @@ class InSilicoAmplification:
             sys.exit(1)
 
     def read_primer_tables(
-        self, primer_table=None, max_len_according_to_ilumina: bool = True
+        self, primer_table=None, max_len_according_to_illumina: bool = True
     ):
         """
         Method to read and extract the required properties from the primer table.
@@ -211,7 +211,7 @@ class InSilicoAmplification:
                 + min_rev_overlap
             )
 
-            if max_len_according_to_ilumina is True:
+            if max_len_according_to_illumina is True:
                 max_len_formula = (
                     600 - correct_reverse_primer_length - forward_primer_length
                 )
@@ -223,7 +223,7 @@ class InSilicoAmplification:
                     and "max_read_length" not in self.primer_table_columns
                 ):
                     raise ValueError(
-                        "mozaiko ERROR: When max_len_according_to_ilumina is False, " \
+                        "mozaiko ERROR: When max_len_according_to_illumina is False, " \
                         "the primer table must contain 'min_read_length' "
                         "and 'max_read_length' columns."
                     )
@@ -565,7 +565,7 @@ class InSilicoAmplification:
 
     def run_in_silico_analysis(
         self, primer_table=None,
-        max_len_according_to_ilumina: bool = True,
+        max_len_according_to_illumina: bool = True,
         minimum_percentage_identity=0.75,
         minimum_alignment_coverage=99,
         max_ambiguous_percentage=0.05
@@ -579,7 +579,7 @@ class InSilicoAmplification:
 
         Parameters:
         - primer_table: Path to the primer table
-        - max_len_according_to_ilumina: Boolean to determine if the max read length should be
+        - max_len_according_to_illumina: Boolean to determine if the max read length should be
         calculated according to Illumina's formula
         - taxa_column_number: Number of the column in the fasta file that contains the information
         for the taxa-level we want the analysis to be performed. The count starts from 0.
@@ -595,10 +595,10 @@ class InSilicoAmplification:
         self.crabs_script_generator.check_if_crabs_installed()
         self._validate_fasta()
 
-        if max_len_according_to_ilumina is True:
-            self.read_primer_tables(primer_table, max_len_according_to_ilumina=True)
-        if max_len_according_to_ilumina is False:
-            self.read_primer_tables(primer_table, max_len_according_to_ilumina=False)
+        if max_len_according_to_illumina is True:
+            self.read_primer_tables(primer_table, max_len_according_to_illumina=True)
+        if max_len_according_to_illumina is False:
+            self.read_primer_tables(primer_table, max_len_according_to_illumina=False)
 
         if not self.run_name:
             self.run_name = input(

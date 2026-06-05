@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="mozaiko",
-    version="0.1.4",
+    version="0.1.7",
     author="Camila Babo",
     author_email="camila.babo@cibio.up.pt",
     url="https://github.com/CIBIO-BU/mozaiko",

@@ -12,7 +12,7 @@ from mozaiko.reference_database.db_curation import CrabsScriptGenerator
 from mozaiko.reference_database.sequence_import import CustomFastaImport
 from mozaiko.marker_scoring.metrics_system import MetricsSystemExecutor
 
-__version__ ="0.1.6"
+__version__ ="0.1.7"
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -55,7 +55,11 @@ def create_parser():
     insilico.add_argument("-i", "--input", required=True)
     insilico.add_argument("--run_name", required=True)
     insilico.add_argument("--primer_table", required=True)
-    insilico.add_argument("--minimum_percentage_identity", type=float, default=0.5)
+    insilico.add_argument("--max_mismatch_per_primer_pair", type=int, default=3)
+    insilico.add_argument("--minimum_percentage_identity", type=float, default=0.75)
+    insilico.add_argument("--minimum_alignment_coverage", type=int, default=99)
+    insilico.add_argument("--max_len_according_to_illumina", type=bool, default=True)
+    insilico.add_argument("--max_ambiguous_percentage", type=float, default=0.05)
     insilico.set_defaults(func=handle_in_silico_analysis)
 
     # -------------------------
@@ -69,6 +73,7 @@ def create_parser():
     eval_multi.add_argument("--ranking_mode", default="flat")
     eval_multi.add_argument("--run_catnip", action="store_true")
     eval_multi.add_argument("--save_intermediate_ranks", action="store_true")
+    eval_multi.add_argument("--min_barcode", type=int, default=10, help="Minimum number of barcodes required for a taxa to be considered well-represented. Default is 10.")
     eval_multi.set_defaults(func=handle_evaluate_multiple_otls)
 
     # -------------------------
@@ -82,6 +87,7 @@ def create_parser():
     eval_single.add_argument("--ranking_mode", default="flat")
     eval_single.add_argument("--run_catnip", action="store_true")
     eval_single.add_argument("--save_intermediate_ranks", action="store_true")
+    eval_single.add_argument("--min_barcode", type=int, default=10, help="Minimum number of barcodes required for a taxa to be considered well-represented. Default is 10.")
     eval_single.set_defaults(func=handle_evaluate_single_otl)
 
     # -------------------------
@@ -133,10 +139,15 @@ def handle_in_silico_analysis(args):
     print("mozaiko INFO: Running in-silico PCR...")
     insil = InSilicoAmplification(
         database_fasta_file=args.input,
-        run_name=args.run_name
+        run_name=args.run_name,
+        number_of_mismatches=args.max_mismatch_per_primer_pair
     )
     insil.run_in_silico_analysis(primer_table=args.primer_table,
-                                 minimum_percentage_identity=args.minimum_percentage_identity)
+                                 max_len_according_to_illumina=args.max_len_according_to_illumina,
+                                 minimum_percentage_identity=args.minimum_percentage_identity,
+                                 minimum_alignment_coverage=args.minimum_alignment_coverage,
+                                 max_ambiguous_percentage=args.max_ambiguous_percentage
+                                 )
 
 def handle_evaluate_multiple_otls(args):
     print("mozaiko INFO: Evaluating multiple OTLs...")
@@ -148,7 +159,8 @@ def handle_evaluate_multiple_otls(args):
         save_intermediate_ranks=args.save_intermediate_ranks,
         run_catnip=args.run_catnip,
         thresholds=args.thresholds,
-        ranking_mode=args.ranking_mode
+        ranking_mode=args.ranking_mode,
+        min_barcode=args.min_barcode
     )
 
 
@@ -162,7 +174,8 @@ def handle_evaluate_single_otl(args):
         save_intermediate_ranks=args.save_intermediate_ranks,
         run_catnip=args.run_catnip,
         thresholds=args.thresholds,
-        ranking_mode=args.ranking_mode
+        ranking_mode=args.ranking_mode,
+        min_barcode=args.min_barcode
     )
 
 import json
@@ -210,13 +223,25 @@ def handle_pipeline_run(args):
     if steps["insilico"]["enabled"]:
         insil = InSilicoAmplification(
             database_fasta_file=processed_fasta,
-            run_name=run_name
+            run_name=run_name,
+            number_of_mismatches=steps["insilico"].get(
+                "max_mismatch_per_primer_pair", 3
+            )
         )
 
         insil.run_in_silico_analysis(
             primer_table=paths["primer_table"],
+            max_len_according_to_illumina=steps["insilico"].get(
+                "max_len_according_to_illumina", True
+            ),
             minimum_percentage_identity=steps["insilico"].get(
-                "minimum_percentage_identity", 0.5
+                "minimum_percentage_identity", 0.75
+            ),
+            minimum_alignment_coverage=steps["insilico"].get(
+                "minimum_alignment_coverage", 99
+            ),
+            max_ambiguous_percentage=steps["insilico"].get(
+                "max_ambiguous_percentage", 0.05
             )
         )
 
@@ -231,7 +256,8 @@ def handle_pipeline_run(args):
             save_intermediate_ranks=steps["evaluate_multiple_otl"]["save_intermediate_ranks"],
             run_catnip=steps["evaluate_multiple_otl"]["run_catnip"],
             thresholds=steps["evaluate_multiple_otl"]["thresholds"],
-            ranking_mode=steps["evaluate_multiple_otl"]["ranking_mode"]
+            ranking_mode=steps["evaluate_multiple_otl"]["ranking_mode"],
+            min_barcode=steps["evaluate_multiple_otl"].get("min_barcode", 10)
         )
 
 def main():

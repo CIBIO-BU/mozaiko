@@ -229,18 +229,28 @@ class Testmozaiko(unittest.TestCase):
             run_name="test_run",
             primer_table="primers.tsv",
             minimum_percentage_identity=0.75,
+            minimum_alignment_coverage=99,
+            max_ambiguous_percentage=0.01,
+            max_len_according_to_illumina=True,
+            max_mismatch_per_primer_pair=4,
         )
 
         handle_in_silico_analysis(args)
 
+        # class
         mock_insilico.assert_called_once_with(
             database_fasta_file="database.fasta",
             run_name="test_run",
+            number_of_mismatches=4,
         )
 
+        # method
         mock_instance.run_in_silico_analysis.assert_called_once_with(
             primer_table="primers.tsv",
             minimum_percentage_identity=0.75,
+            minimum_alignment_coverage=99,
+            max_ambiguous_percentage=0.01,
+            max_len_according_to_illumina=True
         )
 
     @patch(
@@ -261,6 +271,7 @@ class Testmozaiko(unittest.TestCase):
             run_catnip=False,
             thresholds=[10.0, 5.0],
             ranking_mode="flat",
+            min_barcode=5
         )
 
         handle_evaluate_multiple_otls(args)
@@ -273,6 +284,7 @@ class Testmozaiko(unittest.TestCase):
             run_catnip=False,
             thresholds=[10.0, 5.0],
             ranking_mode="flat",
+            min_barcode=5
         )
 
     @patch(
@@ -292,7 +304,8 @@ class Testmozaiko(unittest.TestCase):
             save_intermediate_ranks=False,
             run_catnip=True,
             thresholds=[10.0, 5.0],
-            ranking_mode="weighted",
+            ranking_mode="flat",
+            min_barcode=5
         )
 
         handle_evaluate_single_otl(args)
@@ -304,7 +317,8 @@ class Testmozaiko(unittest.TestCase):
             save_intermediate_ranks=False,
             run_catnip=True,
             thresholds=[10.0, 5.0],
-            ranking_mode="weighted",
+            ranking_mode="flat",
+            min_barcode=5
         )
 
 
@@ -343,6 +357,8 @@ class Testmozaiko(unittest.TestCase):
                 "insilico": {
                     "enabled": True,
                     "minimum_percentage_identity": 0.8,
+                    "max_mismatch_per_primer_pair": 4,
+                    "max_ambiguous_percentage": 0.01,
                 },
                 "evaluate_multiple_otl": {
                     "enabled": True,
@@ -350,6 +366,7 @@ class Testmozaiko(unittest.TestCase):
                     "run_catnip": False,
                     "thresholds": [10.0, 5.0],
                     "ranking_mode": "flat",
+                    "min_barcode": 3
                 },
             },
         }
@@ -379,11 +396,15 @@ class Testmozaiko(unittest.TestCase):
         mock_insilico.assert_called_once_with(
             database_fasta_file="processed.fasta",
             run_name="test_run",
+            number_of_mismatches=4
         )
 
         mock_insilico_instance.run_in_silico_analysis.assert_called_once_with(
             primer_table="primers.tsv",
+            max_len_according_to_illumina=True,
             minimum_percentage_identity=0.8,
+            minimum_alignment_coverage=99,
+            max_ambiguous_percentage=0.01
         )
 
         mock_evaluate.assert_called_once_with(
@@ -394,6 +415,7 @@ class Testmozaiko(unittest.TestCase):
             run_catnip=False,
             thresholds=[10.0, 5.0],
             ranking_mode="flat",
+            min_barcode=3
         )
 
         mock_makedirs.assert_has_calls(

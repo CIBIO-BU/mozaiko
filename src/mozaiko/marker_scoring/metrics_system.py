@@ -413,22 +413,23 @@ class ReferenceDatabaseQuality:
 
         return results
 
-    def barcoded_taxa_ratio(self, total_taxa_count: int):
+    def barcoded_taxa_ratio(self, total_taxa_count: int, min_barcode: int = 10):
         """
         This method calculates the Ratio of Barcoded Taxa (RBT).
 
         Parameters:
-        - barcoded_taxa_five_plus: float
-            Percentage of taxa with more than five barcodes.
-        - barcoded_taxa: float
-            Percentage of taxa with more than one barcode.
+        total_taxa_count: int
+            The total number of unique taxa in the OTL.
+        min_barcode: int, optional
+            The minimum number of barcodes required to consider a taxon as "well-represented".
+            Default is 10.
 
         Output:
         - barcoded_taxa_ratio: Dict
             A dictionary containing the ratio of barcoded taxa and the proportion of taxa with more than five barcodes per primer pair.
         """
-        barcoded_taxa_five_plus = self.calculate_proportion_of_taxa_w_x_barcodes(
-            total_taxa_count, barcode_threshold=5
+        barcoded_taxa_representation = self.calculate_proportion_of_taxa_w_x_barcodes(
+            total_taxa_count, barcode_threshold=min_barcode
         )
         barcoded_taxa = self.calculate_proportion_of_taxa_w_x_barcodes(
             total_taxa_count, barcode_threshold=1
@@ -436,8 +437,8 @@ class ReferenceDatabaseQuality:
 
         barcoded_taxa_ratio = {}
 
-        for primer_pair in barcoded_taxa_five_plus.keys():
-            percent_5plus = barcoded_taxa_five_plus[primer_pair]
+        for primer_pair in barcoded_taxa_representation.keys():
+            percent_5plus = barcoded_taxa_representation[primer_pair]
             percent_1plus = barcoded_taxa[primer_pair]
 
             ratio_barcoded_taxa = (
@@ -1884,7 +1885,7 @@ class MetricsSystemExecutor:
             f"mozaiko INDO: Setting insert folder path to {self.insert_folder_path} and amplicon folder path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
         )
 
-    def get_reference_database_quality(self):
+    def get_reference_database_quality(self, min_barcode: int = 10):
         """
         Initializes the Reference Database Quality evaluation, calculating the Barcode Coverage
         Score (BCS) for each primer and stores the results.
@@ -1901,7 +1902,8 @@ class MetricsSystemExecutor:
             otl=self.otl, all_inserts_path=self.complete_pbs_path
         )
         reference_db_quality = red_bd_qual.barcoded_taxa_ratio(
-            total_taxa_count=self.total_otl_taxa_count
+            total_taxa_count=self.total_otl_taxa_count,
+            min_barcode=min_barcode
         )
 
         return reference_db_quality
@@ -1921,7 +1923,10 @@ class MetricsSystemExecutor:
 
         return primer_pbs_dict, gc_df
 
-    def comprehensive_primer_analysis(self, output_folder, save_otl_level_results=True):
+    def comprehensive_primer_analysis(self,
+                                      output_folder,
+                                      save_otl_level_results=True,
+                                      min_barcode: int = 10):
         """
         Perform comprehensive primer analysis across multiple metrics.
 
@@ -1937,7 +1942,7 @@ class MetricsSystemExecutor:
         """
         binding = Binding(otl=self.otl)
 
-        ref_qual = self.get_reference_database_quality()
+        ref_qual = self.get_reference_database_quality(min_barcode=min_barcode)
 
         primer_pbs, gc_df = self.get_primer_pbs_analysis()
 
@@ -2107,12 +2112,14 @@ class MetricsSystemExecutor:
 
         return traits_res_df
 
-    def join_analysis_results(self):
+    def join_analysis_results(self, min_barcode: int = 10):
         """
         This method joins the results from the primer analysis and the traits and resolution analysis.
         """
         binding_dataframe = self.comprehensive_primer_analysis(
-            self.results_folder, save_otl_level_results=True
+            self.results_folder,
+            save_otl_level_results=True,
+            min_barcode=min_barcode
         )
         traits_dataframe = self.get_traits_and_resolution()
 
@@ -2267,7 +2274,8 @@ class MetricsSystemExecutor:
     def rank_primers_flat(self,
                      save_intermediate_ranks: bool = False,
                      output_path=None,
-                     metrics_results_path=None
+                     metrics_results_path=None,
+                     min_barcode: int = 10
                      ):
         """
         This method ranks the primers performance based on the results of the Metric System.
@@ -2293,7 +2301,7 @@ class MetricsSystemExecutor:
             metrics_df = pd.read_csv(metrics_results_path, sep='\t')
             original_metrics = metrics_df.copy()
         else:
-            metrics_df = self.join_analysis_results()
+            metrics_df = self.join_analysis_results(min_barcode=min_barcode)
 
         metric_system = {
             "ref_db_qual": {
@@ -2389,7 +2397,8 @@ class MetricsSystemExecutor:
     def rank_primers_categorically_weighted(self,
                                             save_intermediate_ranks: bool = False,
                                             output_path=None,
-                                            metrics_results_path=None
+                                            metrics_results_path=None,
+                                            min_barcode: int = 10
                                             ):
         """
         This method evaluates primers' performance by ranking them according to the Metric System.
@@ -2412,7 +2421,7 @@ class MetricsSystemExecutor:
             metrics_df = pd.read_csv(metrics_results_path, sep='\t')
             original_metrics = metrics_df.copy()
         else:
-            metrics_df = self.join_analysis_results()
+            metrics_df = self.join_analysis_results(min_barcode=min_barcode)
 
         metric_system = {
             "ref_db_qual": {
@@ -2532,7 +2541,8 @@ class MetricsSystemExecutor:
                             save_intermediate_ranks=True,
                             run_catnip=True,
                             thresholds: list[float] | float | None = None,
-                            ranking_mode: str = 'category'):
+                            ranking_mode: str = 'category',
+                            min_barcode: int = 10):
         """
         Evaluate a single OTL file and generate primer rankings.
 
@@ -2609,12 +2619,14 @@ class MetricsSystemExecutor:
         if ranking_mode == "category":
             ranked_df = executor.rank_primers_categorically_weighted(
                 save_intermediate_ranks=save_intermediate_ranks,
-                output_path=output_path
+                output_path=output_path,
+                min_barcode=min_barcode
             )
         else:  # "flat"
             ranked_df = executor.rank_primers_flat(
                 save_intermediate_ranks=save_intermediate_ranks,
-                output_path=output_path
+                output_path=output_path,
+                min_barcode=min_barcode
             )
 
         executor.sort_otl_level_results(subdirectory_name=country_name)
@@ -2628,7 +2640,9 @@ class MetricsSystemExecutor:
                             save_intermediate_ranks=True,
                             run_catnip=True,
                             thresholds: list[float] | float | None = None,
-                            ranking_mode: str = 'category'):
+                            ranking_mode: str = 'category',
+                            min_barcode: int = 10
+                            ):
         """
         Evaluate multiple OTL files in a folder.
 
@@ -2675,7 +2689,8 @@ class MetricsSystemExecutor:
                     save_intermediate_ranks=save_intermediate_ranks,
                     run_catnip=run_catnip,
                     thresholds=thresholds,
-                    ranking_mode=ranking_mode
+                    ranking_mode=ranking_mode,
+                    min_barcode=min_barcode
                 )
 
                 country_name = Path(otl_path).stem.split('_')[0]

@@ -218,7 +218,7 @@ class TestReferenceDatabaseQuality(unittest.TestCase):
         self.assertEqual(percentage2, expected_percentage2)
 
     def test_ratio_barcoded_taxa(self):
-        rbt_rounded = self.ref_bd_cls.barcoded_taxa_ratio(self.total_otl_taxa_count)
+        rbt_rounded = self.ref_bd_cls.barcoded_taxa_ratio(self.total_otl_taxa_count, min_barcode=5)
 
         expected_output = pd.DataFrame(
             {
@@ -1091,7 +1091,7 @@ class TestMetricsSystemExecutor(unittest.TestCase):
                 primer_table=self.primer_table,
             )
 
-            result = executor.get_reference_database_quality()
+            result = executor.get_reference_database_quality(min_barcode=5)
 
             # Verify results
             pd.testing.assert_frame_equal(result, expected_result)
@@ -1100,13 +1100,14 @@ class TestMetricsSystemExecutor(unittest.TestCase):
                     otl="/fake/path/otl.tsv",
                     all_inserts_path="/fake/path/results/all_complete_pbs/filtered",
                 ),
-                call().barcoded_taxa_ratio(total_taxa_count=100),
+                call().barcoded_taxa_ratio(total_taxa_count=100, min_barcode=5),
             ]
             mock_ref_db_class.assert_has_calls(expected_calls)
 
             # Verify ReferenceDatabaseQuality was initialized correctly
             mock_ref_db_instance.barcoded_taxa_ratio.assert_called_once_with(
-                total_taxa_count=executor.total_otl_taxa_count
+                total_taxa_count=executor.total_otl_taxa_count,
+                min_barcode=5,
             )
 
     @patch("src.mozaiko.marker_scoring.metrics_system.Binding")
