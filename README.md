@@ -73,10 +73,8 @@ mozaiko contains three main categories to evaluate and rank primer sets:
 
 - **_mismatch_score_**: the maximum number of mismatches between the forward primer and its binding site and the reverse primer and its binding site is recorded for each taxon. The maximum mismatch values are then summed to provide the score for the OTL list. The lowest values indicate lower mismatches between primer and primer-binding sites, facilitating amplification.
 - **_priming_ratio_sum_**: sum of the priming ratio across taxon. The priming ratio is computed as the ratio of the maximum number of mismatches at the 3’ end of the primer binding site to the maximum number of mismatches across the entire primer binding site. The lowest values indicate fewer mismatches at the 3’ end of the primer binding site, hence higher binding strength.
-- **_gc_matches_across_taxon_**:  sum of G-C matches at the 3’ end across all taxa present in the OTL. Higher values are preferable, as a content of 40-60% of GC matches promotes binding.
+- **_gc_clamp_score_**:  sum of GC matches at the 3’ end (GC Clamp) across all taxa present in the OTL. Higher values are preferable, as a content of 40-60% of GC matches promotes binding.
 - **_min_tm_cv_**: The minimum melting temperature (Tm) between each pair of forward and reverse primers is calculated for each taxon. The coefficient of variation across taxa is then determined. Lower values indicate a more consistent thermal performance and are preferable.
-- **_tm_score_**: proportion of taxa with a lower or equal variation of Tm below 2ºC.  Higher values are preferable as they indicate a better thermal performance across taxa in the OTL.
-- **_amplification_success_percent_**: the ratio of taxa that amplify to the total number of taxa with sequences containing primer binding sites, expressed as a percentage. Higher values represent higher amplification success across taxa.
 
 ### **Category 3:** Traits and Resolution
 
