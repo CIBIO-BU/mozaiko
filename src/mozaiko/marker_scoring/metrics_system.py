@@ -1178,7 +1178,7 @@ class TraitsAndResolution:
         self.country_name = Path(otl).stem.split('_')[0]
         self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
-    def run_catnip(self, threshold: float | list | None = 10.0):
+    def run_catnip(self, threshold: Union[float, list[float], None]= 10.0):
         clustering_threshold = None
         if threshold is None:
             clustering_threshold = 10.0
@@ -1444,7 +1444,7 @@ class TraitsAndResolution:
 
         return df
 
-    def process_single_primer(self, folder_name, df, folder_path, thresholds: list[float] | float | None = [10.0, 5.0, 2.0]):
+    def process_single_primer(self, folder_name, df, folder_path, thresholds: Union[float, list[float], None] = [10.0, 5.0, 2.0]):
         """
         Process a single primer's catnip output:
         1. Clean and split taxonomy columns
@@ -1525,7 +1525,7 @@ class TraitsAndResolution:
 
         return df_otl_on_target, df_catnipt_all_on_target
 
-    def post_process_catnip_primer_results(self, thresholds: list[float] | float | None = [10.0, 5.0, 2.0]):
+    def post_process_catnip_primer_results(self, thresholds: Union[float, list[float], None] = [10.0, 5.0, 2.0]):
         """
         Process each primer's final_output_interclst.tsv file individually.
         Saves each processed file as processed_<primer_name>.tsv in the same folder.~
@@ -1709,7 +1709,7 @@ class TraitsAndResolution:
 
         return otl_filtered_df
 
-    def filter_divergence_threshold(self, df, thresholds: list[float] | float | None = None):
+    def filter_divergence_threshold(self, df, thresholds: Union[float, list[float], None] = None):
         """
         Filter results by divergence thresholds that depend on the taxonomic rank of the query taxa.
         """
@@ -2540,7 +2540,7 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            thresholds: list[float] | float | None = None,
+                            thresholds: Union[float, list[float], None] = None,
                             ranking_mode: str = 'category',
                             min_barcode: int = 10):
         """
@@ -2639,7 +2639,7 @@ class MetricsSystemExecutor:
                             primer_table,
                             save_intermediate_ranks=True,
                             run_catnip=True,
-                            thresholds: list[float] | float | None = None,
+                            thresholds: Union[float, list[float], None] = None,
                             ranking_mode: str = 'category',
                             min_barcode: int = 10
                             ):

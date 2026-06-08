@@ -1,5 +1,5 @@
 ## mozaiko
-VERSION=0.1.7
+VERSION=0.1.8
 
 release:
 	# Update version in pyproject.toml
