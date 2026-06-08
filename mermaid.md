@@ -11,9 +11,13 @@ flowchart TD
     HRMRFDB@{ shape: lean-r, label: "Processed Reference Database\n (Dataframe)"}
     NMM{{"Max. Number of Mismatches (int)"}}
     MPI{{"Min. Percentage Identity\n(float, 0-1)"}}
-    MAC{{"Min. Alignment Coverage\n(int, 0-100)"}}
-    MAP{{"Max. Allowed % of Ambiguous Bases\n(float, 0-1)"}}
+    MAC{{"Min. Alignment Coverage\n(int, 0-1010)"}}
+    MAP{{"Max. % of Ambigous Bases\n(int, 0-1)"}}
     MAXILUM{{"Max. Read Length According to Illumina Equipment\n(bool)"}}
+    AMP@{ shape: lean-r, label: "Amplicons"}
+    INST@{ shape: lean-r, label: "Inserts"}
+    INCMP@{ shape: lean-r, label: "Amplicons w/ Incomplete PBS"}
+    COMP@{ shape: lean-r, label: "Amplicons w/ Complete PBS"}
 
     %% ─────────────────────────────────────────────
     %% STAGE 1 — DATA IMPORT
@@ -38,13 +42,10 @@ flowchart TD
         SETUP["Setup Output Directories\n(Amplicon, Insert, Complete PCR, Incomplete PCR)"]
         INSIL["Run in-silico PCR\n (cutadapt)"]
         LOOP@{ shape: dbl-circ, label: "For each\nprimer pair …"}
-        CUTADAPT["Retrieve Inserts, Amplicons and PBS"]
         PGA["PGA Alignment\n(Retrieve Amplicons w/ Complete and Incomplete PBS)"]
         FILTER_PBS["Filter Amplicons by % of Ambiguous Bases"]
         AMP@{ shape: lean-r, label: "Amplicons"}
-        INST@{ shape: lean-r, label: "Inserts"}
-        INCMP@{ shape: lean-r, label: "Amplicons w/ Incomplete PBS"}
-        COMP@{ shape: lean-r, label: "Amplicons w/ Complete PBS"}
+        PBS@{ shape: lean-r, label: "PBS"}
     end
 
     HRMRFDB --> S2
@@ -54,14 +55,14 @@ flowchart TD
     SETUP --> LOOP
     LOOP --> INSIL
     RNAME --> INSIL
-    NMM --> CUTADAPT
+    NMM --> INSIL
     MPI --> PGA
     MAC --> PGA
     MAXILUM --> LDPT
-    INSIL --> CUTADAPT
-    CUTADAPT --> AMP
-    CUTADAPT --> INST
-    INSIL --> PGA
+    INSIL --> AMP
+    INSIL --> INST
+    INST --> PGA
+    INSIL --> PBS
     PGA --> FILTER_PBS
     MAP --> FILTER_PBS
     FILTER_PBS --> INCMP
@@ -73,68 +74,73 @@ flowchart TD
     %% ─────────────────────────────────────────────
     subgraph S3["Module 3: Metrics System"]
 
-        EVAL_OTL["Evaluate OTL"]
-        OTL_PROC["OtlHandler\n• validate_otl()\n• pre_process_otl()\n  (keep family / genus / species)\n• create_taxonomic_hierarchy()"]
+        LOAD_OTL["Read and Validate OTL"]
+        OTL_PROC["Proccess OTL\n• Remove non-harmonised entries\n•Remove non-ASCII characters\n•Only keep entries at family, genus, species ranks"]
+        OTL_IN@{ shape: lean-r, label: "Proccessed OTL"}
 
-        subgraph CAT1["Category 1 — Reference Database Quality"]
-            RDQ["ReferenceDatabaseQuality\n• parse_fasta_files()\n• calculate_number_of_barcodes()"]
-            M1A["barcoded_taxa_one_plus\n(% taxa with ≥1 barcode)"]
-            M1B["ratio_barcoded_taxa\n(high-coverage / low-coverage)"]
+        subgraph CAT1["Category 1"]
+            RDQ["Reference Database Quality"]
+            M1A["Barcoded Taxa\n(% taxa with ≥1 barcode)"]
+            M1B["Ratio of Barcoded Taxa\n(high-coverage / low-coverage)"]
             RDQ --> M1A & M1B
         end
 
-        subgraph CAT2["Category 2 — Binding"]
-            BIND["Binding\n• get_pbs_table()\n• primer_pbs_analysis()"]
-            M2A["mismatch_score\n(sum of max mismatches)"]
-            M2B["priming_ratio_sum\n(3′ mismatches / total)"]
-            M2C["gc_clamp_score\n(GC matches at 3′ end)"]
-            M2D["min_tm_cv\n(Tm coefficient of variation)"]
+        subgraph CAT2["Category 2"]
+            BIND["Binding Efficency"]
+            M2A["Mismatch Score\n(sum of max. mismatches)"]
+            M2B["Priming Ratio Sum\n(3′ mismatches / total)"]
+            M2C["GC Clamp Score\n(GC matches at 3′ end)"]
+            M2D["Coefficient of Variation of the Minimum Melting Temperature"]
             BIND --> M2A & M2B & M2C & M2D
         end
 
-        subgraph CAT3["Category 3 — Traits & Resolution"]
-            CATNIP["TraitsAndResolution\n• run_catnip() — pairwise divergence\n• post_process_catnip_primer_results()"]
-            M3A["taxonomic_resolution\n(% taxa divergence > 2%)"]
-            M3B["resolution_ratio\n(divergence > cutoff / total taxa)"]
+        subgraph CAT3["Category 3"]
+            CATNIP["Taxonomic Resolution"]
+            M3A["Taxonomic Resolution\n(% taxa divergence > cutoff)"]
+            M3B["Resolution Ratio\n(divergence > cutoff / total taxa)"]
             CATNIP --> M3A & M3B
         end
 
-        subgraph S4["Primer Ranking"]
-            RANK_MODE{"Rank Primers"}
-            FLAT["rank_primers_flat()\nAll metrics weighted equally"]
-            CATW["rank_primers_categorically_weighted()\nWeighted by category"]
-            INTER["Save intermediate_ranks\n(per-metric rank scores)"]
-            FINAL["Final ranked output\n{country}_ranked_primers.tsv"]
-            SORT["sort_otl_level_results()\nOrganise per country"]
-        end
+        RANK["Rank Primers"]
+        RNKMD{{"Ranking Mode (&quot;flat&quot; or &quot;category&quot;, string)"}}
+        FLAT["Flat\nAll metrics weighted equally"]
+        CATW["Categorical\nWeighted by category"]
+        SCINTM{{"Save Intermediate Ranks (bool)"}}
+        INTER["Save Metric Ranks Used to Compute Primer Ranks"]
+        SORT["Aggregate metric values per OTL taxonomy"]
 
-        OTL_PROC --> RDQ & BIND & CATNIP
+        OTL_IN --> RDQ & BIND & CATNIP
 
     end
 
-    OTL --> EVAL_OTL
-    EVAL_OTL --> OTL_PROC
-    OUT_DIRS --> RDQ
-    OUT_DIRS --> BIND
-    OUT_DIRS --> CATNIP
+    OTL --> LOAD_OTL
+    LOAD_OTL --> OTL_PROC
+    OTL_PROC --> OTL_IN
+    INST & COMP & INCMP --> RDQ
+    INST --> BIND
+    INST & INCMP --> CATNIP
 
     %% ─────────────────────────────────────────────
     %% STAGE 4 — RANKING
     %% ─────────────────────────────────────────────
 
 
-    M1A & M1B --> RANK_MODE
-    M2A & M2B & M2C & M2D --> RANK_MODE
-    M3A & M3B --> RANK_MODE
+    M1A & M1B --> RANK
+    M2A & M2B & M2C & M2D --> RANK
+    M3A & M3B --> RANK
 
-    RANK_MODE -- flat --> FLAT
-    RANK_MODE -- category --> CATW
-    FLAT & CATW --> INTER --> FINAL --> SORT
+    RANK --> SCINTM
+    SCINTM --> INTER
+    RANK --> SORT
+    RANK --> RNKMD
+    RNKMD --> FLAT
+    RNKMD --> CATW
+
 
     %% ─────────────────────────────────────────────
     %% OUTPUT
     %% ─────────────────────────────────────────────
-    SORT --> RESULT["Ranked primer list\nper country / OTL"]
+    FLAT & CATW --> RESULT["Ranked primer set per OTL\n{country}_ranked_primers.tsv"]
 
     %% ─────────────────────────────────────────────
     %% STYLING
@@ -149,10 +155,8 @@ flowchart TD
     classDef explain  fill:#34eb8f,stroke:#000000,color:#085041
     classDef metpy  fill:#e7f268,stroke:#000000,color:#085041
 
-    class FASTA,PRIMERS,OTL,RNAME,RESULT,HRMRFDB,NMM,AMP,INST,INCMP,COMP inout
-    class NMM,RNAME,MPI,MAC,MAP,MAXILUM param
-    class OTL_PROC,RDQ,BIND,CATNIP stage3
+    class FASTA,PRIMERS,OTL,RNAME,RESULT,HRMRFDB,NMM,AMP,INST,INCMP,COMP,OTL_IN inout
+    class NMM,RNAME,MPI,MAC,MAP,MAXILUM,RNKMD,SCINTM param
+    class RDQ,BIND,CATNIP stage3
     class M1A,M1B,M2A,M2B,M2C,M2D,M3A,M3B metric
-    class RANK_MODE decision
-    class FLAT,CATW,INTER,FINAL,SORT stage4
 ```
