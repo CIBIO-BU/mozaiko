@@ -76,7 +76,7 @@ The installation script will check whether Conda is installed, create a **mozaik
 
 ## Quick Start
 
-The mozaiko recommendede pipeline can be run via **Python scripts** or driven by a **JSON configuration file through CLI**.
+The mozaiko recommended pipeline can be run via **Python scripts** or driven by a **JSON configuration file through CLI**.
 
 - For **Python scripts**, two example workflow scripts are included in the repository root, one for macroinvertebrates (_workflow_bmi.py_) and one for diatoms (_workflow_dia.py_). To evaluate a single OTL instead of a whole folder, use `MetricsSystemExecutor.evaluate_single_OTL()` with the same keyword arguments plus `otl_path`.
 - For **CLI runs**, mozaiko can also be entirely run through a config file. Run `mozaiko run-pipeline --config file.json`. See _example_config_run.json_ in the repository root for a template JSON file.
@@ -118,7 +118,7 @@ The three pipeline modules map directly onto the three subpackages/files in `src
 |--------| ------- |-------------|----------------|
 | Reference Database Import | reference_database |`CustomFastaImport` | — |
 | In Silico Amplification | in_silico_analysis | `InSilicoAmplification` | cutadapt, CRABS, PGA (vsearch) |
-| Metrics Evaluation | marker_scoring | `MetricsSystemExecutor` | CATNIP |
+| Metrics Evaluation | marker_scoring | `MetricsSystemExecutor` | CATnip |
 
 
 ## Input formats
@@ -155,7 +155,7 @@ The primer table must be a tab-separated file with the following columns:
 | `fwd_seq` | Forward primer sequence (5′→3′) |
 | `rev_seq` | Reverse primer sequence (5′→3′) |
 
-Users can also add information regarding `min_read_length` and `max_read_length`. These values can also be determined automatically by the tool, by running in-silico PCR amplification with the `max_len_according_to_illumina` parameter as `True`.
+Users can also add information regarding `min_read_length` and `max_read_length`. These values can also be determined automatically by running in-silico PCR amplification with the `max_len_according_to_illumina` parameter as `True`.
 
 ### Operational Taxonomic List (OTL, TSV)
 
@@ -228,7 +228,7 @@ mozaiko supports two ranking strategies, controlled by the `ranking_mode` parame
 
 ## mozaiko Workflow
 
-> **Note:** The tool assumes that the reference database and the taxonomic identifications it contains are correct. Primer rankings are always relative to a specific run — adding or removing primers from the input table will change the results.
+> **Note:** The tool assumes that the reference database and the taxonomic identifications it contains are correct. Primer rankings are always relative to a specific run, adding or removing primers from the input table will change the results.
 
 
 ```mermaid
