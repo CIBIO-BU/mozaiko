@@ -1,30 +1,52 @@
 {
   "run_name": "DIA-test",
+  "run_name_comment_": "Name of the folder in which to save the results.",
 
   "paths": {
     "input_fasta": "data/input_data/DIA/diat_barcode_hrm_dreped.fasta",
+    "input_fasta_comment_": "Path to the reference database file (must be harmonised).",
     "primer_table": "data/input_data/DIA/diat-barcode-primers.tsv",
+    "primer_table_comment_": "Path to the TSV file containing primer set information.",
     "otl_folder": "data/input_data/DIA/OTL",
-    "output_root": "data/output_data/"
+    "otl_folder_comment_": "Path to the folder containing the target taxa (OTL) TSV files.",
+    "output_root": "data/output_data/",
+    "output_root_comment_": "Path where the result folder should be saved."
   },
 
   "steps": {
     "preprocess": {
       "enabled": true,
-      "harmonized": true
+      "enabled_comment_": "If set to true, it runs the respective step (reference database pre-processing)",
+      "harmonized": true,
+      "harmonized_comment_": "If set to true, it expects the reference database to have undergone harmonization (recommended)"
     },
 
     "insilico": {
       "enabled": true,
-      "minimum_percentage_identity": 0.5
+      "enabled_comment_":"If set to true, it runs the respective step (in-silico analysis)",
+      "max_mismatch_per_primer_pair": 3,
+      "max_mismatch_per_primer_pair_comment_": "Max. number of allowed mismatches in each primer-template region.",
+      "max_len_according_to_illumina": true,
+      "max_len_according_to_illumina_comment_": "If set to true, it sets min. read lenght as 0, as max. read length according to Illumina's constraints.",
+      "minimum_percentage_identity": 0.5,
+      "minimum_percentage_identity_comment_": "Min. percentage identity to be used in the retrieval of amplicons with incomplete PBS or complete PBS that were not in-sillico amplified (>3 mismatches) (0-1).",
+      "minimum_alignment_coverage": 99,
+      "minimum_alignment_coverage_comment_": "Min. alignment coverage to be used in the retrieval of inserts with incomplete PBS or complete PBS that were not in-sillico amplified (>3 mismatches) (0-100).",
+      "max_ambiguous_percentage": 0.05,
+      "max_ambiguous_percentage_comment_": "Max. allowed percentage of ambiguous bases in inserts recovered with incomplete PBS or complete PBS that were not in-sillico amplified (>3 mismatches) (0-1)"
     },
 
     "evaluate_multiple_otl": {
       "enabled": true,
+      "enabled_comment_":"If set to true, it runs the respective step (OTL-based primer ranking)",
       "run_catnip": true,
-      "save_intermediate_ranks": true,
+      "run_catnip_comment_": "If set to true, it will compute nucleotide divergence for closest-related taxa for inserts in-silico amplified or w/ incomplete PBS. This step is required, only turn to false, if results have already ran",
       "thresholds": [10.0, 5.0, 2.0],
-      "ranking_mode": "flat"
+      "thresholds_comment_": "Cutoff divergence values to filter nucleotide divergence between closest-related taxa. Include a max of 3 values for family, genus and species-specific filtering, or one for all ranks. Values below these cutoff render a taxa indistinguishable.",
+      "save_intermediate_ranks": true,
+      "save_intermediate_ranks_comment_": "If set to true, it will save taxonomic-based results and other intermediary results.",
+      "ranking_mode": "flat",
+      "ranking_mode_comment_": "Which ranking strategy to use. Accepted values are 'category' or 'flat', to rank primers based on main categories, or assigning equal weight to all metrics, respectively."
     }
   }
 }
