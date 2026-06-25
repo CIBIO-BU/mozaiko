@@ -10,8 +10,8 @@ from src.mozaiko.marker_scoring.metrics_system import *
 # Files
 database_file = "data/input_data/BMI/bmi_database.fasta"
 primer_table = "data/input_data/BMI/bmi-primers.tsv"
-run_name = 'BMI-flat-primers_'
-otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl"
+run_name = 'BMI-flat-primers_austria-otl-0.1.8'
+otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl/test"
 output_folder = 'data/output_data/' + run_name
 
 # Data Import
@@ -30,7 +30,8 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
                       save_intermediate_ranks=True,
                       run_catnip=False,
                       thresholds = [10.0, 5.0, 2.0],
-                      ranking_mode='flat')
+                      ranking_mode='flat',
+                      min_barcode=5)
 
 # otl_path = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl/Germany_taxonlist_bmi_harmonized_harmonized.tsv"
 # MetricsSystemExecutor.evaluate_single_OTL(

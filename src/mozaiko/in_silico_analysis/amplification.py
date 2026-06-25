@@ -491,8 +491,7 @@ class InSilicoAmplification:
                         if seq_id not in mismatch_per_seq_id:
                             mismatch_per_seq_id[seq_id] = full_len_mismatch_sum
 
-                        # mismatch_threshold = (self.number_of_mismatches * 2)
-                        mismatch_threshold = 6
+                        mismatch_threshold = (self.number_of_mismatches * 2)
 
                         if full_len_mismatch_sum > mismatch_threshold:
                             #print(
