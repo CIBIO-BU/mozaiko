@@ -10,6 +10,7 @@ dependencies:
   - vsearch=2.16
   - cutadapt=4.9
   - catnip-seq
+  - crabs=0.1.7
   - numpy
   - pandas
   - matplotlib

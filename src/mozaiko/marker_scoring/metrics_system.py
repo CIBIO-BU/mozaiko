@@ -1223,7 +1223,7 @@ class TraitsAndResolution:
                 cols = "0,8,9,10"  # seq_id, family, genus, species
 
                 try:
-                    result = subprocess.run(
+                    result = subprocess.Popen(
                         [
                             catnip_script,
                             file,
@@ -1231,11 +1231,18 @@ class TraitsAndResolution:
                             cols,
                             str(clustering_threshold)
                         ],
-                        check=True,
-                        capture_output=True,
+                        cwd=primer_output_dir,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
                         text=True,
-                        cwd=primer_output_dir  # Run in primer-specific directory
                     )
+
+                    for line in result.stdout:
+                        print(line, end="")
+
+                    returncode = result.wait()
+                    if returncode != 0:
+                        raise subprocess.CalledProcessError(returncode, result.args)
 
                     processed_files += 1
                     print(f"mozaiko INFO: catnip completed successfully for {primer_name}.")
@@ -2604,7 +2611,7 @@ class MetricsSystemExecutor:
                         trait.post_process_catnip_primer_results(thresholds)
 
                     else:
-                        print("mozaiko INFO: Taxonomic Resolution files not found. Running catnip...")
+                        print("mozaiko INFO: Taxonomic Resolution files not found. Running catnip once per primer pair...")
                         trait.run_catnip(threshold=thresholds)
                         trait.post_process_catnip_primer_results(thresholds)
 
