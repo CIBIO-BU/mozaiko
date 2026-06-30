@@ -836,7 +836,7 @@ class TestBinding(unittest.TestCase):
         )
 
         expected = pd.DataFrame(
-            {"priming_ratio": [0.50, 0.75]},
+            {"priming_ratio": [1.0, 3.0]},
             index=pd.MultiIndex.from_tuples(
                 [
                     ("familyA", "genusA", "speciesA"),
@@ -1631,7 +1631,7 @@ class TestRunCatnip(unittest.TestCase):
     def setUp(self):
         self.traits = _make_traits()
 
-    @patch("subprocess.run")
+    @patch("subprocess.Popen")
     @patch("shutil.copy2")
     @patch("os.makedirs")
     @patch("os.listdir")

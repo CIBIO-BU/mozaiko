@@ -1075,9 +1075,18 @@ class Binding:
             on=["family", "genus", "species"],
             suffixes=("_three_end", "_full_len"),
         )
+        # proportional ratio
+        # merged_df["priming_ratio"] = (
+        #     merged_df["three_end_mismatch_sum"] / merged_df["full_len_mismatch_sum"]
+        # )
+        # 3'end ratio
         merged_df["priming_ratio"] = (
-            merged_df["three_end_mismatch_sum"] / merged_df["full_len_mismatch_sum"]
+            merged_df["three_end_mismatch_sum"] / 5
         )
+        # # absolute
+        # merged_df["priming_ratio"] = (
+        #     merged_df["three_end_mismatch_sum"]
+        # )
 
         ratio_col = merged_df["priming_ratio"]
         ratio_df = pd.DataFrame(ratio_col)
@@ -1237,8 +1246,9 @@ class TraitsAndResolution:
                         text=True,
                     )
 
-                    for line in result.stdout:
-                        print(line, end="")
+                    if result.stdout is not None:
+                        for line in result.stdout:
+                            print(line, end="")
 
                     returncode = result.wait()
                     if returncode != 0:
