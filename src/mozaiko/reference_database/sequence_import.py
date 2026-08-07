@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from typing import Optional
 
 
 class CustomFastaImport:
@@ -113,7 +114,7 @@ class CustomFastaImport:
 
     def read_fasta(
         self,
-        fasta_file: str,
+        fasta_file: Optional[str],
         sep="|",
         overide_validation=False,
         check_taxid=False,
