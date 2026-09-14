@@ -1372,6 +1372,7 @@ class TraitsAndResolution:
             search_entry = search_entry[search_entry[target_col] != entry]
 
             if search_entry.empty:
+                # means that it is indistinguishable
                 if rank == 'species':
                     otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
                                             'divergence_prct']] = ['nan', 'nan', 'nan', np.nan]
@@ -1386,6 +1387,7 @@ class TraitsAndResolution:
                         otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
                                                 'divergence_prct']] = ['nan', 'nan', 'nan', np.inf]
                     elif search_entry_inf.empty:
+                        # means that it is indistinguishable
                         otl_filtered_df.loc[index, ['target_family', 'target_genus', 'target_species',
                                                 'divergence_prct']] = ['nan', 'nan', 'nan', np.nan]
 
@@ -1433,7 +1435,6 @@ class TraitsAndResolution:
         )
 
         return otl_filtered_df
-
 
     def filter_results_by_otl(self, df):
         """
@@ -1605,25 +1606,47 @@ class TraitsAndResolution:
                     df_otl_on_target['divergence_prct'].notna()
                 ]
 
-                # Metric 1: Taxonomic resolution considering only OTL entries
+                # Metric 1: Taxonomic resolution of OTL taxa
 
                 taxa_considered_otl = df_otl_on_target.shape[0]
 
                 taxonomic_resolution_otl = taxa_considered_otl / total_otl_taxa_count
 
-                # Metric 2: Ratio between Taxonomic resolution considering only OTL entries and Taxonomic resolution considering all taxa from catnipt
+                df_otl_on_target_fam = df_otl_on_target[df_otl_on_target['query_family'].notna()]
+                df_otl_on_target_gen = df_otl_on_target[df_otl_on_target['query_genus'].notna()]
+                df_otl_on_target_sp = df_otl_on_target[df_otl_on_target['query_species'].notna()]
+
+                tax_res_fam = df_otl_on_target_fam.shape[0] / total_otl_taxa_count
+                tax_res_gen = df_otl_on_target_gen.shape[0] / total_otl_taxa_count
+                tax_res_sp = df_otl_on_target_sp.shape[0] / total_otl_taxa_count
+
+                # Metric 2: Target discrimination relative to all taxa
 
                 taxa_considered_all_catnip = df_catnipt_all_on_target.shape[0]
 
-                ratio_taxonomic_resolution = taxa_considered_all_catnip / total_otl_taxa_count
+                target_discrimination_ratio = taxa_considered_all_catnip / total_otl_taxa_count
+
+                df_catnipt_all_on_target_fam = df_catnipt_all_on_target[df_catnipt_all_on_target['query_family'].notna()]
+                df_catnipt_all_on_target_gen = df_catnipt_all_on_target[df_catnipt_all_on_target['query_genus'].notna()]
+                df_catnipt_all_on_target_sp = df_catnipt_all_on_target[df_catnipt_all_on_target['query_species'].notna()]
+
+                targt_dis_fam = df_catnipt_all_on_target_fam.shape[0] / total_otl_taxa_count
+                targt_dis_gen = df_catnipt_all_on_target_gen.shape[0] / total_otl_taxa_count
+                targt_dis_sp = df_catnipt_all_on_target_sp.shape[0] / total_otl_taxa_count
 
                 taxonomic_resolution_results.append(
                     {
                         "primer": folder,
                         "total_taxa": total_otl_taxa_count,
                         "n_taxa_above_cutoff": taxa_considered_otl,
-                        "taxonomic_resolution": round(taxonomic_resolution_otl, 2),
-                        "ratio_taxonomic_resolution": round(ratio_taxonomic_resolution, 2),
+                        "taxonomic_resolution_overall": round(taxonomic_resolution_otl, 2),
+                        "taxonomic_resolution_family": round(tax_res_fam, 2),
+                        "taxonomic_resolution_genus": round(tax_res_gen, 2),
+                        "taxonomic_resolution_species": round(tax_res_sp, 2),
+                        "target_discrimination_ratio": round(target_discrimination_ratio, 2),
+                        "target_discrimination_ratio_family": round(targt_dis_fam, 2),
+                        "target_discrimination_ratio_genus": round(targt_dis_gen, 2),
+                        "target_discrimination_ratio_species": round(targt_dis_sp, 2),
                     }
                 )
 
@@ -1863,8 +1886,15 @@ class MetricsSystemExecutor:
             taxonomic_resolution = taxonomic_resolution.set_index("primer")
 
         combined_div_score_and_tax_res_results = pd.DataFrame(
-            {"taxonomic_resolution": taxonomic_resolution["taxonomic_resolution"],
-             "ratio_taxonomic_resolution": taxonomic_resolution["ratio_taxonomic_resolution"]}
+            {"taxonomic_resolution_overall": taxonomic_resolution["taxonomic_resolution_overall"],
+             "taxonomic_resolution_family": taxonomic_resolution["taxonomic_resolution_family"],
+             "taxonomic_resolution_genus": taxonomic_resolution["taxonomic_resolution_genus"],
+             "taxonomic_resolution_species": taxonomic_resolution["taxonomic_resolution_species"],
+             "target_discrimination_ratio": taxonomic_resolution["target_discrimination_ratio"],
+             "target_discrimination_ratio_family": taxonomic_resolution["target_discrimination_ratio_family"],
+             "target_discrimination_ratio_genus": taxonomic_resolution["target_discrimination_ratio_genus"],
+             "target_discrimination_ratio_species": taxonomic_resolution["target_discrimination_ratio_species"]
+             }
         )
 
         traits_res_df = combined_div_score_and_tax_res_results
@@ -2074,8 +2104,8 @@ class MetricsSystemExecutor:
                 "min_tm_cv": "asc"
             },
             "tax_res": {
-                "taxonomic_resolution": "desc",
-                "ratio_taxonomic_resolution": "desc"
+                "taxonomic_resolution_overall": "desc",
+                "target_discrimination_ratio": "desc"
             }
         }
 
@@ -2126,8 +2156,16 @@ class MetricsSystemExecutor:
         metrics_df_sorted = metrics_df.sort_values(
             by="final_rank", ascending=True
         ).reset_index(drop=False)
+
+        extra_cols = ["taxonomic_resolution_family",
+                        "taxonomic_resolution_genus",
+                        "taxonomic_resolution_species",
+                        "target_discrimination_ratio_family",
+                        "target_discrimination_ratio_genus",
+                        "target_discrimination_ratio_species"]
+
         metrics_df_final = metrics_df_sorted[
-            ["primer"] + list(ranking_order.keys()) + ["final_rank"]
+            ["primer"] + list(ranking_order.keys()) + ["final_rank"] + extra_cols
         ]
 
         if output_path is None:
@@ -2194,8 +2232,8 @@ class MetricsSystemExecutor:
                 "min_tm_cv": "asc"
             },
             "tax_res": {
-                "taxonomic_resolution": "desc",
-                "ratio_taxonomic_resolution": "desc"
+                "taxonomic_resolution_overall": "desc",
+                "target_discrimination_ratio": "desc"
             }
         }
 
