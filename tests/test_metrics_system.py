@@ -1176,8 +1176,8 @@ class TestMetricsSystemExecutor(unittest.TestCase):
 
         # Mock expected DataFrame with 'primer' index
         mock_traits_instance.get_taxonomic_resolution.return_value = pd.DataFrame(
-            {"primer": ["primer1"], "taxonomic_resolution": [0.75],
-             "ratio_taxonomic_resolution": [0.75]}
+            {"primer": ["primer1"], "taxonomic_resolution_overall": [0.75],
+             "target_discrimination_ratio": [0.75]}
         ).set_index("primer")
 
         # Create instance with mocked dependencies
@@ -1218,15 +1218,15 @@ class TestMetricsSystemExecutor(unittest.TestCase):
             {
                 "primer": ["primer1", "primer2"],
                 "barcoded_taxa": [90, 80],
-                "ratio_barcoded_taxa": [0.9, 0.8],
+                "well_barcoded_taxa": [0.9, 0.8],
                 "normalized_mismatch_score": [2, 3],
                 "normalized_priming_ratio_sum": [0.8, 0.7],
                 "normalized_gc_matches_across_taxon": [15, 12],
                 "min_tm_cv": [0.1, 0.2],
                 "tm_score": [0.9, 0.8],
                 "amplification_success_percent": [95, 85],
-                "taxonomic_resolution": [0.2, 0.3],
-                "ratio_taxonomic_resolution": [0.2, 0.3],
+                "taxonomic_resolution_overall": [0.2, 0.3],
+                "target_discrimination_ratio": [0.2, 0.3],
             },
             index=["primer1", "primer2"],
         )
@@ -1253,7 +1253,9 @@ class TestMetricsSystemExecutor(unittest.TestCase):
         self.assertLess(primer1_rank, primer2_rank)
 
 def _make_traits() -> TraitsAndResolution:
-    """Return a TraitsAndResolution instance using the standard test OTL."""
+    """
+    Return a TraitsAndResolution instance using the standard test OTL.
+    """
     test_data = Path(__file__).resolve().parent / "data/test_data"
     return TraitsAndResolution(
         insert_folder_path=str(test_data / "insert-test"),
@@ -1984,7 +1986,9 @@ class TestGetTaxonomicResolution(unittest.TestCase):
         self.traits = _make_traits()
 
     def test_get_taxonomic_resolution_returns_dataframe(self):
-        """Taxonomic resolution metrics are calculated."""
+        """
+        Taxonomic resolution metrics are calculated.
+        """
         self.traits.otl_handler.total_taxa = 10
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2020,8 +2024,8 @@ class TestGetTaxonomicResolution(unittest.TestCase):
 
             self.assertEqual(len(result), 1)
             self.assertEqual(result["primer"].iloc[0], "primer1")
-            self.assertEqual(result["taxonomic_resolution"].iloc[0], 0.1)
-            self.assertEqual(result["ratio_taxonomic_resolution"].iloc[0], 2.0)
+            self.assertEqual(result["taxonomic_resolution_overall"].iloc[0], 0.1)
+            self.assertEqual(result["target_discrimination_ratio"].iloc[0], 2.0)
 
 
 def _make_metrics_executor() -> MetricsSystemExecutor:
@@ -2249,13 +2253,13 @@ class TestRankPrimersCategoricallyWeighted(unittest.TestCase):
         mock_join.return_value = pd.DataFrame({
             "primer": ["p1", "p2"],
             "barcoded_taxa": [10, 5],
-            "ratio_barcoded_taxa": [0.9, 0.5],
+            "well_barcoded_taxa": [0.9, 0.5],
             "normalized_mismatch_score": [1.0, 2.0],
             "normalized_priming_ratio_sum": [1.0, 2.0],
             "normalized_gc_matches_across_taxon": [5.0, 2.0],
             "min_tm_cv": [0.1, 0.2],
-            "taxonomic_resolution": [0.9, 0.5],
-            "ratio_taxonomic_resolution": [1.5, 1.0],
+            "taxonomic_resolution_overall": [0.9, 0.5],
+            "target_discrimination_ratio": [1.5, 1.0],
         })
 
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -337,8 +337,6 @@ class InSilicoAmplification:
                 "output_file": output_file,
             }
 
-            print(f" For {input_file.stem}: {len(retained_sequences)} sequences were retained.")
-
         return results
 
     def _load_taxonomy_mapping(self):

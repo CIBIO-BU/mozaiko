@@ -54,3 +54,4 @@ dist/*
 external_scripts/crabs-0.1.7
 workflow_dia.py
 workflow_bmi.py
+compare_files.sh

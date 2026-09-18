@@ -981,18 +981,14 @@ class TraitsAndResolution:
         else:
             raise TypeError("mozaiko ERROR: threhsolds must be float or a list of three numbers.")
 
-        # create directory for catnip analysis
         os.makedirs(self.catnip_dir, exist_ok=True)
 
-        print("mozaiko INFO: Starting catnip to retrieve nucleotide divergence across taxa levels...")
-
-        # get catnip script
         script_dir = os.path.dirname(os.path.abspath(__file__))
         catnip_script = os.path.join(script_dir, "catnip.sh")
         os.chmod(catnip_script, 0o755)
 
-        # run catnip for each primer
         processed_files = 0
+        skipped_files = 0
         failed_files = []
 
         for file in os.listdir(self.incomplete_pbs_path):
@@ -1002,6 +998,17 @@ class TraitsAndResolution:
 
                 # Create a subdirectory for each primer to keep outputs organized
                 primer_output_dir = os.path.join(self.catnip_dir, primer_name)
+
+                # per-primer logic to check if files already exist to skip processing
+                mapping_file = os.path.join(primer_output_dir, f"mapping_{primer_name}.tsv")
+                interclust_file = os.path.join(primer_output_dir, "final_output_interclst.tsv")
+
+                if os.path.exists(mapping_file) and os.path.exists(interclust_file):
+                    skipped_files += 1
+                    print(f"mozaiko INFO: Skipping {primer_name} as catnip output files already exist.")
+                    continue  # raw catnip.sh output already exists; don't rerun the subprocess
+
+                print("mozaiko INFO: Starting catnip to retrieve nucleotide divergence across taxa levels...")
 
                 os.makedirs(primer_output_dir, exist_ok=True)
 
@@ -1052,8 +1059,8 @@ class TraitsAndResolution:
                     print(f"mozaiko ERROR: Unexpected error processing {primer_name}: {str(e)}")
 
         print(f"\nmozaiko INFO: catnip processing complete.")
-        # print(f"mozaiko INFO: Output directory: {self.catnip_dir}")
-        # print(f"mozaiko INFO: Successfully processed: {processed_files} primers(s)")
+        if skipped_files > 0:
+            print(f"mozaiko INFO: {skipped_files} primer(s) were already up to date and were skipped.")
 
         if failed_files:
             print(f"mozaiko WARNING: Failed to process {len(failed_files)} file(s): {', '.join(failed_files)}")
@@ -1243,7 +1250,7 @@ class TraitsAndResolution:
         Returns:
             Processed DataFrame
         """
-        print(f"mozaiko INFO: Processing primer {folder_name}...")
+        print(f"mozaiko INFO: Processing catnip's output for primer {folder_name}...")
 
         clustering_threshold = None
         if isinstance(thresholds, float):
@@ -1316,12 +1323,18 @@ class TraitsAndResolution:
 
         Returns: None. Saves processed files to disk.
         """
-        # print(f"mozaiko INFO: Processing {len(list(os.listdir(self.catnip_dir)))} primers...")
-
         for folder in os.listdir(self.catnip_dir):
             folder_path = Path(self.catnip_dir) / folder
 
             if not folder_path.is_dir():
+                continue
+
+            # check if post-processed file already exists, skip primers whose files already exist
+            final_target_all = folder_path / f"catnip_target_{folder}_{self.country_name}.tsv"
+            final_target_otl = folder_path / f"otl_target_{folder}_{self.country_name}.tsv"
+
+            if final_target_all.exists() and final_target_otl.exists():
+                print(f"mozaiko INFO: Skipping {folder} as catnip's processed files already exist.")
                 continue
 
             output_file_path = folder_path / "final_output_interclst.tsv"
@@ -1503,10 +1516,8 @@ class TraitsAndResolution:
         single_threshold = None
         if isinstance(thresholds, float):
             single_threshold = thresholds
-            print(f"mozaiko INFO: Using single divergence threshold of {single_threshold}%.")
         elif isinstance(thresholds, list):
             th_family, th_genus, th_species = thresholds
-            print(f"mozaiko INFO: Using divergence thresholds of {th_family}% for family, {th_genus}% for genus and {th_species}% for species.")
         else:
             raise TypeError("mozaiko ERROR: threhsolds must be float or a list of three numbers.")
 
@@ -1684,9 +1695,9 @@ class MetricsSystemExecutor:
         self.complete_pbs_path = os.path.join(
             results_folder, "all_complete_pbs/filtered"
         )
-        print(
-            f"mozaiko INDO: Setting insert folder path to {self.insert_folder_path} and amplicon folder path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
-        )
+        # print(
+        #     f"mozaiko INDO: Setting insert folder path to {self.insert_folder_path} and amplicon folder path to {self.amplicon_folder_path} and incomplete_pbs_path to {self.incomplete_pbs_path}."
+        # )
 
     def get_reference_database_quality(self, min_barcode: int = 10):
         """
@@ -2373,37 +2384,10 @@ class MetricsSystemExecutor:
         print("---------------------")
         print(f"mozaiko INFO: Starting evaluating process for {country_name} OTL.")
 
-        incomplete_pbs_path = Path(output_folder) / "incomplete_pbs/filtered"
-        catnip_dir = Path(output_folder) / "catnip"
-
         if run_catnip:
-            for file in os.listdir(incomplete_pbs_path):
-                if file.endswith(".fasta"):
-                    primer_name = os.path.splitext(file)[0]
-
-                    primer_output_dir = os.path.join(catnip_dir, primer_name)
-
-                    # OTL Files
-                    expected_output_all = os.path.join(primer_output_dir, f"catnip_target_{primer_name}_{country_name}.tsv")
-                    expected_output_otl = os.path.join(primer_output_dir, f"otl_target_{primer_name}_{country_name}.tsv")
-
-                    # Intermediate Results
-                    output_interclust = os.path.join(primer_output_dir, f"final_output_interclst.tsv")
-                    mapping = os.path.join(primer_output_dir, f"mapping_{primer_name}.tsv")
-
-                    if os.path.exists(expected_output_all) and os.path.exists(expected_output_otl):
-                        continue
-
-                    trait = TraitsAndResolution(otl=otl_path, results_folder=output_folder)
-
-                    if os.path.exists(output_interclust) and os.path.exists(mapping):
-                        print(f"mozaiko INFO: catnip results already exist for {primer_name}, performing post-processing for {country_name}...")
-                        trait.post_process_catnip_primer_results(thresholds)
-
-                    else:
-                        print("mozaiko INFO: Taxonomic Resolution files not found. Running catnip once per primer pair...")
-                        trait.run_catnip(threshold=thresholds)
-                        trait.post_process_catnip_primer_results(thresholds)
+            trait = TraitsAndResolution(otl=otl_path, results_folder=output_folder)
+            trait.run_catnip(threshold=thresholds)  # internally skips primers already done
+            trait.post_process_catnip_primer_results(thresholds) # internally skips primers already done
 
         output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
 
