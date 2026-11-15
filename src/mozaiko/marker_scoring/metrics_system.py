@@ -1617,6 +1617,7 @@ class TraitsAndResolution:
                     df_otl_on_target['divergence_prct'].notna()
                 ]
 
+                # otl total count per taxa level
                 otl_family = len(self.otl_taxa['family'].drop_duplicates())
                 otl_genus = len(self.otl_taxa['genus'].drop_duplicates())
                 otl_species = len(self.otl_taxa['species'].drop_duplicates())
