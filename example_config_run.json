@@ -46,7 +46,13 @@
       "save_intermediate_ranks": true,
       "save_intermediate_ranks_comment_": "If set to true, it will save taxonomic-based results and other intermediary results.",
       "ranking_mode": "flat",
-      "ranking_mode_comment_": "Which ranking strategy to use. Accepted values are 'category' or 'flat', to rank primers based on main categories, or assigning equal weight to all metrics, respectively."
+      "ranking_mode_comment_": "Which ranking strategy to use. Accepted values are 'category' or 'flat', to rank primers based on main categories, or assigning equal weight to all metrics, respectively.",
+      "threads": 8,
+      "threads_comment_": "Number of threads catnip can use for clustering and alignment. Omit to use catnip's default (1).",
+      "memory": 16000,
+      "memory_comment_": "Memory in MB available to catnip. Omit to use catnip's default (800).",
+      "parallel_jobs": 8,
+      "parallel_jobs_comment_": "Number of clusters catnip aligns at the same time; threads and memory are split between them. Omit to use the same value as threads. Lower it if memory is limited."
     }
   }
 }

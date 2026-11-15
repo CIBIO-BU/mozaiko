@@ -968,7 +968,17 @@ class TraitsAndResolution:
         self.country_name = Path(otl).stem.split('_')[0]
         self.catnip_dir = os.path.join(self.results_folder, "catnip")
 
-    def run_catnip(self, threshold: Union[float, list[float], None]= 10.0):
+    def run_catnip(self,
+                   threshold: Union[float, list[float], None]= 10.0,
+                   threads: Optional[int] = None,
+                   memory: Optional[int] = None,
+                   parallel_jobs: Optional[int] = None):
+        """
+        Run catnip for each primer FASTA file.
+
+        threads, memory (MB) and parallel_jobs are passed to catnip as -t, -m and -j.
+        When None, catnip's own defaults are used.
+        """
         clustering_threshold = None
         if threshold is None:
             clustering_threshold = 10.0
@@ -1026,7 +1036,10 @@ class TraitsAndResolution:
                             file,
                             mapping_file_name,
                             cols,
-                            str(clustering_threshold)
+                            str(clustering_threshold),
+                            "" if threads is None else str(threads),
+                            "" if memory is None else str(memory),
+                            "" if parallel_jobs is None else str(parallel_jobs),
                         ],
                         cwd=primer_output_dir,
                         stdout=subprocess.PIPE,
@@ -2355,7 +2368,10 @@ class MetricsSystemExecutor:
                             run_catnip=True,
                             thresholds: Union[float, list[float], None] = None,
                             ranking_mode: str = 'category',
-                            min_barcode: int = 10):
+                            min_barcode: int = 10,
+                            threads: Optional[int] = None,
+                            memory: Optional[int] = None,
+                            parallel_jobs: Optional[int] = None):
         """
         Evaluate a single OTL file and generate primer rankings.
 
@@ -2370,6 +2386,8 @@ class MetricsSystemExecutor:
             Whether to save intermediate ranking files
         - run_catnip: bool
             Whether to run catnip analysis
+        - threads, memory, parallel_jobs: int or None
+            Passed to catnip as -t, -m (MB) and -j. None uses catnip's defaults.
         - ranking_mode: str
 
         Ranking strategy to use. Options:
@@ -2391,7 +2409,10 @@ class MetricsSystemExecutor:
 
         if run_catnip:
             trait = TraitsAndResolution(otl=otl_path, results_folder=output_folder)
-            trait.run_catnip(threshold=thresholds)  # internally skips primers already done
+            trait.run_catnip(threshold=thresholds,
+                             threads=threads,
+                             memory=memory,
+                             parallel_jobs=parallel_jobs)  # internally skips primers already done
             trait.post_process_catnip_primer_results(thresholds) # internally skips primers already done
 
         output_path = os.path.join(output_folder, f'{country_name}_ranked_primers.tsv')
@@ -2427,7 +2448,10 @@ class MetricsSystemExecutor:
                             run_catnip=True,
                             thresholds: Union[float, list[float], None] = None,
                             ranking_mode: str = 'category',
-                            min_barcode: int = 10
+                            min_barcode: int = 10,
+                            threads: Optional[int] = None,
+                            memory: Optional[int] = None,
+                            parallel_jobs: Optional[int] = None
                             ):
         """
         Evaluate multiple OTL files in a folder.
@@ -2443,6 +2467,8 @@ class MetricsSystemExecutor:
             Whether to save intermediate ranking files
         - run_catnip: bool
             Whether to run catnip analysis
+        - threads, memory, parallel_jobs: int or None
+            Passed to catnip as -t, -m (MB) and -j. None uses catnip's defaults.
         - ranking_mode: str
             Ranking strategy to use. Options:
             - "category": category-weighted ranking (default)
@@ -2476,7 +2502,10 @@ class MetricsSystemExecutor:
                     run_catnip=run_catnip,
                     thresholds=thresholds,
                     ranking_mode=ranking_mode,
-                    min_barcode=min_barcode
+                    min_barcode=min_barcode,
+                    threads=threads,
+                    memory=memory,
+                    parallel_jobs=parallel_jobs
                 )
 
                 country_name = Path(otl_path).stem.split('_')[0]

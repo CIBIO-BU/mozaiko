@@ -12,7 +12,7 @@ from mozaiko.reference_database.db_curation import CrabsScriptGenerator
 from mozaiko.reference_database.sequence_import import CustomFastaImport
 from mozaiko.marker_scoring.metrics_system import MetricsSystemExecutor
 
-__version__ ="0.1.11"
+__version__ ="0.2.0"
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -74,6 +74,9 @@ def create_parser():
     eval_multi.add_argument("--run_catnip", action="store_true")
     eval_multi.add_argument("--save_intermediate_ranks", action="store_true")
     eval_multi.add_argument("--min_barcode", type=int, default=10, help="Minimum number of barcodes required for a taxa to be considered well-represented. Default is 10.")
+    eval_multi.add_argument("--threads", type=int, default=None, help="Threads for catnip (clustering and alignment). Default: catnip's default (1).")
+    eval_multi.add_argument("--memory", type=int, default=None, help="Memory in MB for catnip. Default: catnip's default (800).")
+    eval_multi.add_argument("--parallel_jobs", type=int, default=None, help="Clusters aligned at the same time by catnip; threads and memory are split between them. Default: same as --threads.")
     eval_multi.set_defaults(func=handle_evaluate_multiple_otls)
 
     # -------------------------
@@ -88,6 +91,9 @@ def create_parser():
     eval_single.add_argument("--run_catnip", action="store_true")
     eval_single.add_argument("--save_intermediate_ranks", action="store_true")
     eval_single.add_argument("--min_barcode", type=int, default=10, help="Minimum number of barcodes required for a taxa to be considered well-represented. Default is 10.")
+    eval_single.add_argument("--threads", type=int, default=None, help="Threads for catnip (clustering and alignment). Default: catnip's default (1).")
+    eval_single.add_argument("--memory", type=int, default=None, help="Memory in MB for catnip. Default: catnip's default (800).")
+    eval_single.add_argument("--parallel_jobs", type=int, default=None, help="Clusters aligned at the same time by catnip; threads and memory are split between them. Default: same as --threads.")
     eval_single.set_defaults(func=handle_evaluate_single_otl)
 
     # -------------------------
@@ -160,7 +166,10 @@ def handle_evaluate_multiple_otls(args):
         run_catnip=args.run_catnip,
         thresholds=args.thresholds,
         ranking_mode=args.ranking_mode,
-        min_barcode=args.min_barcode
+        min_barcode=args.min_barcode,
+        threads=args.threads,
+        memory=args.memory,
+        parallel_jobs=args.parallel_jobs
     )
 
 
@@ -175,7 +184,10 @@ def handle_evaluate_single_otl(args):
         run_catnip=args.run_catnip,
         thresholds=args.thresholds,
         ranking_mode=args.ranking_mode,
-        min_barcode=args.min_barcode
+        min_barcode=args.min_barcode,
+        threads=args.threads,
+        memory=args.memory,
+        parallel_jobs=args.parallel_jobs
     )
 
 import json
@@ -257,7 +269,10 @@ def handle_pipeline_run(args):
             run_catnip=steps["evaluate_multiple_otl"]["run_catnip"],
             thresholds=steps["evaluate_multiple_otl"]["thresholds"],
             ranking_mode=steps["evaluate_multiple_otl"]["ranking_mode"],
-            min_barcode=steps["evaluate_multiple_otl"].get("min_barcode", 10)
+            min_barcode=steps["evaluate_multiple_otl"].get("min_barcode", 10),
+            threads=steps["evaluate_multiple_otl"].get("threads"),
+            memory=steps["evaluate_multiple_otl"].get("memory"),
+            parallel_jobs=steps["evaluate_multiple_otl"].get("parallel_jobs")
         )
 
 def main():
