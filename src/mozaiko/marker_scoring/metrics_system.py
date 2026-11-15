@@ -1641,9 +1641,9 @@ class TraitsAndResolution:
 
                 taxonomic_resolution_otl = taxa_considered_otl / total_otl_taxa_count
 
-                df_otl_on_target_fam = df_otl_on_target_fam['query_family'].dropna().drop_duplicates()
-                df_otl_on_target_gen = df_otl_on_target_gen['query_genus'].dropna().drop_duplicates()
-                df_otl_on_target_sp = df_otl_on_target_sp['query_species'].dropna().drop_duplicates()
+                df_otl_on_target_fam = df_otl_on_target['query_family'].dropna().drop_duplicates()
+                df_otl_on_target_gen = df_otl_on_target['query_genus'].dropna().drop_duplicates()
+                df_otl_on_target_sp = df_otl_on_target['query_species'].dropna().drop_duplicates()
 
                 tax_res_fam = df_otl_on_target_fam.shape[0] / otl_family
                 tax_res_gen = df_otl_on_target_gen.shape[0] / otl_genus
@@ -1945,12 +1945,16 @@ class MetricsSystemExecutor:
 
         return analysis_results
 
-    def create_taxonomic_resolution_per_taxon(self, div_score_df_path):
+    def _create_per_taxon_table(self, file_prefix: str, output_path) -> bool:
         """
-        Method to create the taxonomic_resolution_per_taxon file that aggregates catnipt output
-        files from each primer, comprising values for taxonomic resolution and divergence scores.
+        Build a wide table with one row per OTL taxon and one column per primer, holding the
+        divergence_prct values from each primer's <file_prefix>_<primer>_<country>.tsv file
+        (catnip/<primer>/).
+
+        Returns True if the table was written, False if no input files were found.
         """
-        tax_res_df = []
+        query_cols = ["query_family", "query_genus", "query_species"]
+        tables = []
 
         self.catnip_dir = Path(self.results_folder) / "catnip"
 
@@ -1958,39 +1962,67 @@ class MetricsSystemExecutor:
             folder_path = Path(self.catnip_dir) / folder
             if not folder_path.is_dir():
                 continue
-            output_file_path = folder_path / f"otl_target_{folder}_{self.country_name}.tsv"
-            if not output_file_path.exists():
-                print(f"mozaiko WARNING: No otl_target_{folder}_{self.country_name}.tsv found for {folder}")
+            input_file_path = folder_path / f"{file_prefix}_{folder}_{self.country_name}.tsv"
+            if not input_file_path.exists():
+                print(f"mozaiko WARNING: No {input_file_path.name} found for {folder}")
                 continue
 
-            df = pd.read_csv(output_file_path, sep="\t")
-            df = df.drop(columns=['target_family', 'target_genus', 'target_species'], errors='ignore')
-            df = df.rename(columns={
+            df = pd.read_csv(input_file_path, sep="\t")
+            df = df[query_cols + ["divergence_prct"]].rename(columns={
                 "query_family": "family",
                 "query_genus": "genus",
                 "query_species": "species",
                 "divergence_prct": folder  # Rename divergence_prct to primer name
             })
-            tax_res_df.append(df)
+            tables.append(df)
 
-        # Merge all dataframes on taxonomy columns
-        if tax_res_df:
-            merged_df = tax_res_df[0]
-            for df in tax_res_df[1:]:
-                merged_df = merged_df.merge(
-                    df,
-                    on=['family', 'genus', 'species'],
-                    how='outer'  # outer join keeps all taxonomies from all dataframes
-                )
+        if not tables:
+            return False
 
-            # The result will have NaN for missing values, which represents empty cells
+        # Merge all dataframes on taxonomy columns; outer join keeps all taxa from all primers.
+        # The result has NaN (empty cells) where a primer has no value for a taxon.
+        merged_df = tables[0]
+        for df in tables[1:]:
+            merged_df = merged_df.merge(
+                df,
+                on=['family', 'genus', 'species'],
+                how='outer'
+            )
 
-        merged_df.to_csv(div_score_df_path, sep='\t', index=False, header=True)
+        merged_df.to_csv(output_path, sep='\t', index=False, header=True)
+        return True
+
+    def create_taxonomic_resolution_per_taxon(self, div_score_df_path):
+        """
+        Create the taxonomic_resolution_per_taxon file: divergence to the closest OTL taxon
+        (otl_target files), one column per primer.
+        """
+        if not self._create_per_taxon_table("otl_target", div_score_df_path):
+            raise FileNotFoundError(
+                f"mozaiko ERROR: No otl_target files found in {self.catnip_dir}."
+            )
+
+    def create_target_discrimination_per_taxon(self, target_disc_df_path) -> bool:
+        """
+        Create the target_discrimination_per_taxon file: divergence to the closest taxon in the
+        whole reference database (catnip_target files), one column per primer.
+
+        Returns True if the file was written, False if no catnip_target files were found.
+        """
+        return self._create_per_taxon_table("catnip_target", target_disc_df_path)
+
+    @staticmethod
+    def _normalise_taxonomy_columns(df, columns):
+        for col in columns:
+            df[col] = df[col].astype(str)
+            df[col] = df[col].replace('nan', '')
+        return df
 
     def sort_otl_level_results(self, subdirectory_name: Optional[str] = None):
         """
-        This method joins the divergence score results with the OTL-level binding results.
-        Files are processed in the base directory, then moved to the specified subdirectory.
+        This method joins the taxonomic resolution and target discrimination results with the
+        OTL-level binding results. Files are processed in the base directory, then moved to the
+        specified subdirectory.
 
         Parameters:
             subdirectory_name (str, optional): Name of the subdirectory where processed files will be moved.
@@ -2005,6 +2037,7 @@ class MetricsSystemExecutor:
                 target_directory.mkdir(parents=True, exist_ok=True)
 
             div_score_df_path = base_directory / "taxonomic_resolution_per_taxon.tsv"
+            target_disc_df_path = base_directory / "target_discrimination_per_taxon.tsv"
 
             self.create_taxonomic_resolution_per_taxon(div_score_df_path)
 
@@ -2023,9 +2056,22 @@ class MetricsSystemExecutor:
                     f"mozaiko WARNING: Missing required columns in divergence score file: {required_columns}"
                 )
 
-            for col in required_columns:
-                taxonomic_resolution_df[col] = taxonomic_resolution_df[col].astype(str)
-                taxonomic_resolution_df[col] = taxonomic_resolution_df[col].replace('nan', '')
+            taxonomic_resolution_df = self._normalise_taxonomy_columns(
+                taxonomic_resolution_df, required_columns
+            )
+
+            # Target discrimination is optional: skip it if no catnip_target files exist
+            target_disc_df = None
+            if self.create_target_discrimination_per_taxon(target_disc_df_path):
+                target_disc_df = pd.read_csv(target_disc_df_path, sep="\t")
+                target_disc_df = self._normalise_taxonomy_columns(
+                    target_disc_df, required_columns
+                )
+            else:
+                print(
+                    "mozaiko WARNING: No catnip_target files found; "
+                    "target_discrimination will not be added to OTL-level results."
+                )
 
             processed_files = []
 
@@ -2049,9 +2095,9 @@ class MetricsSystemExecutor:
                         ):
                             continue
 
-                        for col in required_columns:
-                            binding_df[col] = binding_df[col].astype(str)
-                            binding_df[col] = binding_df[col].replace('nan', '')
+                        binding_df = self._normalise_taxonomy_columns(
+                            binding_df, required_columns
+                        )
 
                         div_score_subset = taxonomic_resolution_df[
                             required_columns + [primer_name]
@@ -2063,6 +2109,18 @@ class MetricsSystemExecutor:
                             on=required_columns,
                             how="left",
                         )
+
+                        if target_disc_df is not None and primer_name in target_disc_df.columns:
+                            target_disc_subset = target_disc_df[
+                                required_columns + [primer_name]
+                            ].rename(columns={primer_name: "target_discrimination"})
+
+                            merged_df = pd.merge(
+                                merged_df,
+                                target_disc_subset,
+                                on=required_columns,
+                                how="left",
+                            )
 
                         # Save processed file back to base directory
                         merged_df.to_csv(file_path, sep="\t", index=False)
@@ -2077,14 +2135,14 @@ class MetricsSystemExecutor:
                         print(f"mozaiko ERROR: Error processing {file}: {str(e)}")
 
             if processed_files:
-                # Move the divergence score file to subdirectory if specified
-                if subdirectory_name:
-                    target_div_score_path = (
-                        target_directory / "taxonomic_resolution_per_taxon.tsv"
-                    )
-                    shutil.move(str(div_score_df_path), str(target_div_score_path))
-                else:
-                    os.remove(div_score_df_path)
+                # Move the per-taxon files to subdirectory if specified, otherwise remove them
+                for per_taxon_path in (div_score_df_path, target_disc_df_path):
+                    if not per_taxon_path.exists():
+                        continue
+                    if subdirectory_name:
+                        shutil.move(str(per_taxon_path), str(target_directory / per_taxon_path.name))
+                    else:
+                        os.remove(per_taxon_path)
 
         except Exception as e:
             raise Exception(f"mozaiko ERROR: Error in sort_otl_level_results: {str(e)}")
