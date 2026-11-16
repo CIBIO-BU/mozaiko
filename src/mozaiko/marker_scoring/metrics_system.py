@@ -1631,9 +1631,9 @@ class TraitsAndResolution:
                 ]
 
                 # otl total count per taxa level
-                otl_family = len(self.otl_taxa['family'].drop_duplicates())
-                otl_genus = len(self.otl_taxa['genus'].drop_duplicates())
-                otl_species = len(self.otl_taxa['species'].drop_duplicates())
+                otl_family = len(self.otl['family'].drop_duplicates())
+                otl_genus = len(self.otl['genus'].drop_duplicates())
+                otl_species = len(self.otl['species'].drop_duplicates())
 
                 # Metric 1: Taxonomic resolution of OTL taxa
 
@@ -1870,7 +1870,7 @@ class MetricsSystemExecutor:
             # Save OTL-level results
             if save_otl_level_results:
                 merge_columns = ["family", "genus", "species"]
-                otl_base = self.otl_handler.otl[['family', 'genus', 'species']]  # ensure this is a dataframe
+                otl_base = self.otl_handler.otl[['family', 'genus', 'species']].drop_duplicates()
 
                 otl_lev_result = otl_base.merge(tax_lev_max_ms_full_len, on=merge_columns, how="left") \
                                         .merge(tax_lev_max_ms_three_end, on=merge_columns, how="left") \

@@ -6,10 +6,10 @@ from src.mozaiko.in_silico_analysis.amplification import InSilicoAmplification
 from src.mozaiko.marker_scoring.metrics_system import *
 
 # Input Data
-database_file = "data/input_data/DIA/diat_barcode_hrm_dreped.fasta"
+database_file = "data/input_data/DIA/diat_barcode_updated.fasta"
 primer_table = "data/input_data/DIA/diat-barcode-primers.tsv"
-run_name = 'DIA-test-7Aug'
-otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia"
+run_name = 'DIA-completly-new'
+otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/dia/updated"
 output_folder = 'data/output_data/' + run_name
 
 # Logging setup
@@ -63,6 +63,7 @@ MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
                       save_intermediate_ranks=True,
                       run_catnip=True,
                       thresholds = [10.0, 5.0, 2.0],
+                      threads=2,
                       ranking_mode='flat',
                       min_barcode=5)
 
