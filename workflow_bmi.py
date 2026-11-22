@@ -8,7 +8,7 @@ from src.mozaiko.marker_scoring.metrics_system import *
 # Input Data
 database_file = "data/input_data/BMI/bmi_database.fasta"
 primer_table = "data/input_data/BMI/bmi-primers.tsv"
-run_name = 'BMI-test-7Aug'
+run_name = 'BMI-update-prev'
 otl_folder = "/home/camilababo/Documents/DNAquaIMG/countries-otls/harmonized/bmi/filtered_phyl"
 output_folder = 'data/output_data/' + run_name
 
@@ -47,13 +47,13 @@ print(f"mozaiko INFO: Starting mozaiko workflow for {run_name} at {start_info.st
 print(f"mozaiko INFO: Log file: {log_file}")
 
 # Data Import
-custom_fasta_import = CustomFastaImport(database_file)
-custom_fasta_import.read_fasta(database_file, check_taxid=False)
-custom_fasta_import.pre_process_harmonized_fasta_database()
+# custom_fasta_import = CustomFastaImport(database_file)
+# custom_fasta_import.read_fasta(database_file, check_taxid=False)
+# custom_fasta_import.pre_process_harmonized_fasta_database()
 
-# In Sillico Analysis
-insil = InSilicoAmplification(custom_fasta_import.database_fasta_file, run_name=run_name)
-insil.run_in_silico_analysis(primer_table, minimum_percentage_identity=0.50)
+# # In Sillico Analysis
+# insil = InSilicoAmplification(custom_fasta_import.database_fasta_file, run_name=run_name)
+# insil.run_in_silico_analysis(primer_table, minimum_percentage_identity=0.50)
 
 # Primer Evaluation
 MetricsSystemExecutor.evaluate_several_OTLs(otl_folder=otl_folder,
