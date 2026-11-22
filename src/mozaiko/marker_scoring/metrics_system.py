@@ -862,7 +862,7 @@ class Binding:
         # )
         # 3'end ratio
         merged_df["priming_ratio"] = (
-            merged_df["three_end_mismatch_sum"] / 5
+            merged_df["three_end_mismatch_sum"] / 10
         )
         # # absolute
         # merged_df["priming_ratio"] = (
@@ -1631,9 +1631,9 @@ class TraitsAndResolution:
                 ]
 
                 # otl total count per taxa level
-                otl_family = len(self.otl['family'].drop_duplicates())
-                otl_genus = len(self.otl['genus'].drop_duplicates())
-                otl_species = len(self.otl['species'].drop_duplicates())
+                otl_family  = self.otl['family'].replace("nan", np.nan).nunique()
+                otl_genus   = self.otl['genus'].replace("nan", np.nan).nunique()
+                otl_species = self.otl['species'].replace("nan", np.nan).nunique()
 
                 # Metric 1: Taxonomic resolution of OTL taxa
 
@@ -1645,9 +1645,18 @@ class TraitsAndResolution:
                 df_otl_on_target_gen = df_otl_on_target['query_genus'].dropna().drop_duplicates()
                 df_otl_on_target_sp = df_otl_on_target['query_species'].dropna().drop_duplicates()
 
-                tax_res_fam = df_otl_on_target_fam.shape[0] / otl_family
-                tax_res_gen = df_otl_on_target_gen.shape[0] / otl_genus
-                tax_res_sp = df_otl_on_target_sp.shape[0] / otl_species
+                tax_res_fam = (
+                    df_otl_on_target_fam.shape[0] / otl_family
+                    if otl_family > 0 else np.nan
+                )
+                tax_res_gen = (
+                    df_otl_on_target_gen.shape[0] / otl_genus
+                    if otl_genus > 0 else np.nan
+                )
+                tax_res_sp = (
+                    df_otl_on_target_sp.shape[0] / otl_species
+                    if otl_species > 0 else np.nan
+                )
 
                 # Metric 2: Target discrimination relative to all taxa
 
@@ -1659,9 +1668,19 @@ class TraitsAndResolution:
                 df_catnipt_all_on_target_gen = df_catnipt_all_on_target['query_genus'].dropna().drop_duplicates()
                 df_catnipt_all_on_target_sp = df_catnipt_all_on_target['query_species'].dropna().drop_duplicates()
 
-                targt_dis_fam = df_catnipt_all_on_target_fam.shape[0] / otl_family
-                targt_dis_gen = df_catnipt_all_on_target_gen.shape[0] / otl_genus
-                targt_dis_sp = df_catnipt_all_on_target_sp.shape[0] / otl_species
+                targt_dis_fam = (
+                    df_catnipt_all_on_target_fam.shape[0] / otl_family
+                    if otl_family > 0 else np.nan
+                )
+                targt_dis_gen = (
+                    df_catnipt_all_on_target_gen.shape[0] / otl_genus
+                    if otl_genus > 0 else np.nan
+                )
+                targt_dis_sp = (
+                    df_catnipt_all_on_target_sp.shape[0] / otl_species
+                    if otl_species > 0 else np.nan
+                )
+
 
                 taxonomic_resolution_results.append(
                     {

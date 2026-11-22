@@ -44,6 +44,7 @@ def calculate_iupac_mismatches(sequence1, sequence2, search_gc_clamp: bool = Fal
         "H": ["A", "C", "T"],
         "V": ["A", "C", "G"],
         "N": ["A", "C", "G", "T"],
+        "I": ["A", "C", "G", "T"],
     }
 
     mismatches = 0
